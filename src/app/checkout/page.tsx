@@ -1,0 +1,1099 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Contact,
+  Truck,
+  CreditCard,
+  Trash2,
+  Tag,
+  Check,
+  Lock,
+  ShoppingBag,
+  ChevronDown,
+  ChevronUp,
+  ShieldCheck,
+  Percent,
+  Sparkles,
+} from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { EASE, Reveal } from "@/components/motion-primitives";
+
+type Step = 1 | 2 | 3;
+
+interface FormData {
+  // Step 1: Contact Details
+  name: string;
+  email: string;
+  phone: string;
+  // Step 2: Shipping Address
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  // Step 3: Payment Details
+  cardNumber: string;
+  expiry: string;
+  cvc: string;
+  cardHolder: string;
+}
+
+export default function CheckoutPage() {
+  const {
+    detailed,
+    subtotal,
+    savings,
+    shipping,
+    discountAmount,
+    appliedCoupon,
+    total,
+    applyCoupon,
+    removeCoupon,
+    remove,
+    add,
+    clear,
+  } = useCart();
+
+  const { user } = useAuth();
+
+  const [currentStep, setCurrentStep] = useState<Step>(1);
+  const [placed, setPlaced] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMobileSummary, setShowMobileSummary] = useState(false);
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [couponSuccess, setCouponSuccess] = useState("");
+
+  // Form State
+  const [form, setForm] = useState<FormData>({
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    address1: "",
+    address2: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "United States",
+    cardNumber: "",
+    expiry: "",
+    cvc: "",
+    cardHolder: "",
+  });
+
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+
+  // Sync user info if available
+  useEffect(() => {
+    if (user) {
+      setForm((prev) => ({
+        ...prev,
+        name: prev.name || user.name || "",
+        phone: prev.phone || user.phone || "",
+        email: prev.email || user.email || "",
+      }));
+    }
+  }, [user]);
+
+  // Price formatter with 2 decimal places to match reference image (£149.00 / $14.00)
+  const formatPrice = (amount: number) => {
+    return "$" + amount.toFixed(2);
+  };
+
+  // Card input formatters
+  const handleCardNumberChange = (value: string) => {
+    const raw = value.replace(/\D/g, "").slice(0, 16);
+    const formatted = raw.match(/.{1,4}/g)?.join(" ") || raw;
+    setForm((prev) => ({ ...prev, cardNumber: formatted }));
+    if (errors.cardNumber) setErrors((prev) => ({ ...prev, cardNumber: "" }));
+  };
+
+  const handleExpiryChange = (value: string) => {
+    const raw = value.replace(/\D/g, "").slice(0, 4);
+    let formatted = raw;
+    if (raw.length >= 3) {
+      formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}`;
+    }
+    setForm((prev) => ({ ...prev, expiry: formatted }));
+    if (errors.expiry) setErrors((prev) => ({ ...prev, expiry: "" }));
+  };
+
+  const handleCvcChange = (value: string) => {
+    const raw = value.replace(/\D/g, "").slice(0, 4);
+    setForm((prev) => ({ ...prev, cvc: raw }));
+    if (errors.cvc) setErrors((prev) => ({ ...prev, cvc: "" }));
+  };
+
+  // Step 1 Validation
+  const validateStep1 = (): boolean => {
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
+    if (!form.name.trim() || form.name.trim().length < 2) {
+      newErrors.name = "Please enter your full name";
+    }
+    if (!form.email.trim() || !/^\S+@\S+\.\S+$/.test(form.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    if (!form.phone.trim() || form.phone.replace(/\D/g, "").length < 8) {
+      newErrors.phone = "Please enter a valid phone number";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Step 2 Validation
+  const validateStep2 = (): boolean => {
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
+    if (!form.address1.trim()) {
+      newErrors.address1 = "Please enter your street address";
+    }
+    if (!form.city.trim()) {
+      newErrors.city = "Please enter your city";
+    }
+    if (!form.state.trim()) {
+      newErrors.state = "Please enter your state / province";
+    }
+    if (!form.zip.trim()) {
+      newErrors.zip = "Please enter your postal / ZIP code";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Step 3 Validation
+  const validateStep3 = (): boolean => {
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
+    const cleanCard = form.cardNumber.replace(/\s/g, "");
+    if (!cleanCard || cleanCard.length < 15) {
+      newErrors.cardNumber = "Please enter a valid 16-digit card number";
+    }
+    if (!form.expiry || form.expiry.length < 5) {
+      newErrors.expiry = "MM/YY";
+    }
+    if (!form.cvc || form.cvc.length < 3) {
+      newErrors.cvc = "CVC";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Navigation handlers
+  const handleProceedToShipping = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateStep1()) {
+      setCurrentStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleProceedToPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateStep2()) {
+      setCurrentStep(3);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleFinalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateStep3()) {
+      setIsSubmitting(true);
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setOrderNumber(`MK-${Math.floor(100000 + Math.random() * 900000)}`);
+        setPlaced(true);
+        clear();
+      }, 900);
+    }
+  };
+
+  // Apply Coupon Handler
+  const handleApplyCoupon = () => {
+    if (!couponCode.trim()) return;
+    setCouponError("");
+    setCouponSuccess("");
+    const res = applyCoupon(couponCode);
+    if (!res.success) {
+      setCouponError(res.message);
+    } else {
+      setCouponSuccess("Coupon applied successfully!");
+      setCouponCode("");
+    }
+  };
+
+  // Helper to load sample items if cart is empty for testing
+  const loadDemoItems = () => {
+    add("peri-peri-roast", 1);
+    add("truffle-black-pepper", 1);
+  };
+
+  // 1. ORDER PLACED SCREEN
+  if (placed) {
+    return (
+      <section className="relative min-h-screen grid place-items-center px-4 pt-28 pb-16 bg-[#0a0a0c] text-white">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EASE }}
+          className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#141416] p-8 text-center shadow-2xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 rounded-b-full shadow-[0_0_20px_rgba(245,158,11,0.5)]" />
+
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+            className="mx-auto mb-6 grid h-20 w-20 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-black shadow-lg"
+          >
+            <Check className="h-10 w-10 stroke-[2.5]" />
+          </motion.div>
+
+          <span className="inline-block rounded-full bg-amber-400/10 border border-amber-400/20 px-3.5 py-1 text-xs font-bold tracking-wider text-amber-400 uppercase mb-3">
+            Payment Confirmed
+          </span>
+
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">
+            Thank you for your order!
+          </h1>
+
+          <p className="mt-2 text-sm text-zinc-400 leading-relaxed">
+            Order <span className="font-mono font-bold text-white">{orderNumber}</span> has been confirmed. A confirmation receipt and dispatch details have been sent to{" "}
+            <span className="font-medium text-white">{form.email || "your email"}</span>.
+          </p>
+
+          <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-left text-xs text-zinc-300 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Delivery to:</span>
+              <span className="font-medium text-white">{form.name || "Customer"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Destination:</span>
+              <span className="font-medium text-white">
+                {form.city ? `${form.city}, ${form.state || ""}` : "Express Shipping"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Estimated Dispatch:</span>
+              <span className="font-medium text-emerald-400">Within 24 Hours</span>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/shop"
+              className="flex-1 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-black transition-all hover:bg-zinc-200 active:scale-95 shadow-md"
+            >
+              Continue Shopping
+            </Link>
+            <Link
+              href="/"
+              className="flex-1 rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-white/10"
+            >
+              Return Home
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Floating corner makhana */}
+        <div className="pointer-events-none fixed bottom-0 right-0 z-0 max-w-[220px] sm:max-w-[280px] opacity-80 select-none">
+          <Image
+            src="/img/login-corner-makhana.png"
+            alt="Makhana"
+            width={340}
+            height={260}
+            className="w-full h-auto object-contain"
+          />
+        </div>
+      </section>
+    );
+  }
+
+  // 2. EMPTY BAG STATE
+  if (detailed.length === 0) {
+    return (
+      <section className="relative min-h-screen grid place-items-center px-4 pt-28 pb-16 bg-[#0a0a0c] text-white">
+        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#141416] p-8 text-center shadow-2xl">
+          <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl bg-white/5 border border-white/10">
+            <ShoppingBag className="h-8 w-8 text-zinc-400" />
+          </div>
+          <h1 className="text-2xl font-extrabold text-white">Your bag is empty</h1>
+          <p className="mt-2 text-sm text-zinc-400">
+            Select your favourite roasted lotus seed flavours to start checkout.
+          </p>
+          <div className="mt-6 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={loadDemoItems}
+              className="rounded-xl bg-amber-400 px-6 py-3 text-sm font-bold text-black transition-all hover:bg-amber-300 shadow-md flex items-center justify-center gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Load Sample Pack (Peri Peri & Truffle)
+            </button>
+            <Link
+              href="/shop"
+              className="rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-white/10"
+            >
+              Browse Flavour Collection
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Common input class matching the reference mockup
+  const inputClass =
+    "w-full rounded-lg border border-white/10 bg-[#161618] px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 outline-none transition-all focus:border-white/40 focus:ring-1 focus:ring-white/20";
+
+  return (
+    <section className="relative min-h-screen bg-[#0a0a0c] text-white pt-24 pb-20 sm:pt-28 sm:pb-28 overflow-hidden">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Mobile Accordion Summary Bar (visible only on screens < lg) */}
+        <div className="lg:hidden mb-6">
+          <button
+            type="button"
+            onClick={() => setShowMobileSummary(!showMobileSummary)}
+            className="w-full flex items-center justify-between p-4 rounded-2xl bg-[#141416] border border-white/10 text-left transition-all active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-2.5 text-sm font-medium text-zinc-200">
+              <ShoppingBag className="h-4 w-4 text-amber-400" />
+              <span>{showMobileSummary ? "Hide" : "Show"} order summary</span>
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/70">
+                {detailed.reduce((acc, item) => acc + item.qty, 0)}
+              </span>
+              {showMobileSummary ? (
+                <ChevronUp className="h-4 w-4 text-zinc-400" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-zinc-400" />
+              )}
+            </div>
+            <span className="text-base font-bold text-white">{formatPrice(total)}</span>
+          </button>
+
+          <AnimatePresence>
+            {showMobileSummary && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: EASE }}
+                className="mt-3 overflow-hidden"
+              >
+                {/* Embedded Summary Card for Mobile */}
+                <div className="rounded-2xl border border-white/10 bg-[#141416] p-5 shadow-xl">
+                  <h3 className="text-sm font-bold text-white mb-4">Items in Order</h3>
+                  <div className="flex flex-col gap-3">
+                    {detailed.map(({ product, qty }) => (
+                      <div
+                        key={product.slug}
+                        className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.06] last:border-b-0"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="relative h-12 w-12 shrink-0 rounded-xl overflow-hidden bg-black/40 border border-white/10">
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              fill
+                              sizes="48px"
+                              className="object-cover"
+                            />
+                            <span className="absolute -top-1 -right-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-black ring-2 ring-[#141416]">
+                              {qty}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-white truncate">{product.name}</p>
+                            <p className="text-xs text-zinc-400">{formatPrice(product.price * qty)}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => remove(product.slug)}
+                          className="text-zinc-500 hover:text-red-400 p-1.5 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-white/10 flex flex-col gap-2 text-xs">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Subtotal</span>
+                      <span className="text-white font-medium">{formatPrice(subtotal)}</span>
+                    </div>
+                    {savings > 0 && (
+                      <div className="flex justify-between text-emerald-400">
+                        <span>MRP Savings</span>
+                        <span>&minus;{formatPrice(savings)}</span>
+                      </div>
+                    )}
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between text-amber-300">
+                        <span>Discount ({appliedCoupon?.code})</span>
+                        <span>&minus;{formatPrice(discountAmount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Shipping</span>
+                      <span className="text-white font-medium">{shipping === 0 ? "Free" : formatPrice(shipping)}</span>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-white/10 flex justify-between items-center text-sm font-bold text-white">
+                      <span>Total</span>
+                      <span>{formatPrice(total)}</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Desktop 2-Column Responsive Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] xl:grid-cols-[420px_1fr] gap-8 lg:gap-12 items-start">
+          
+          {/* ============================================================== */}
+          {/* LEFT COLUMN: ORDER SUMMARY CARD (Matches reference screenshot) */}
+          {/* ============================================================== */}
+          <div className="hidden lg:block lg:sticky lg:top-28">
+            <div className="rounded-3xl border border-white/10 bg-[#141416] p-6 sm:p-7 shadow-2xl relative overflow-hidden backdrop-blur-md">
+              <h2 className="text-[18px] font-bold text-white mb-6 tracking-tight">
+                Order Summary
+              </h2>
+
+              {/* Items List */}
+              <div className="flex flex-col gap-4">
+                <AnimatePresence initial={false}>
+                  {detailed.map(({ product, qty }) => (
+                    <motion.div
+                      key={product.slug}
+                      layout
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="flex items-center justify-between gap-3.5"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        {/* Thumbnail with round counter badge */}
+                        <div className="relative h-14 w-14 shrink-0 rounded-xl overflow-hidden bg-black/50 border border-white/10">
+                          <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            sizes="56px"
+                            className="object-cover"
+                          />
+                          <span className="absolute -top-1 -right-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white text-[11px] font-extrabold text-black shadow-md ring-2 ring-[#141416]">
+                            {qty}
+                          </span>
+                        </div>
+
+                        {/* Title & Price */}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[14px] font-medium text-white truncate">
+                            {product.name}
+                          </p>
+                          <p className="text-[13px] text-zinc-400 font-normal">
+                            {formatPrice(product.price * qty)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Delete Action Icon */}
+                      <button
+                        type="button"
+                        onClick={() => remove(product.slug)}
+                        className="text-zinc-500 hover:text-red-400 p-2 transition-colors rounded-lg hover:bg-white/5 shrink-0"
+                        title="Remove item"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              {/* Discount Code Section */}
+              <div className="mt-6 pt-5 border-t border-white/10">
+                <div className="flex items-center gap-2 text-xs font-medium text-zinc-300 mb-2.5">
+                  <Tag className="h-3.5 w-3.5 text-zinc-400" />
+                  <span>Discount code</span>
+                </div>
+
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/[0.08] px-3.5 py-2.5 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Percent className="h-3.5 w-3.5 text-emerald-400" />
+                      <span className="font-mono font-bold text-emerald-400 uppercase">
+                        {appliedCoupon.code}
+                      </span>
+                      <span className="text-zinc-400">applied</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeCoupon}
+                      className="text-xs font-semibold text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => {
+                          setCouponCode(e.target.value.toUpperCase());
+                          setCouponError("");
+                        }}
+                        placeholder="Enter code here"
+                        className="flex-1 rounded-lg border border-white/10 bg-[#1a1a1d] px-3.5 py-2.5 text-[13px] text-white placeholder:text-zinc-500 outline-none transition-all focus:border-white/30"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        className="rounded-lg border border-white/20 bg-[#1f1f23] hover:bg-[#28282e] px-5 py-2.5 text-[13px] font-semibold text-white transition-all active:scale-95"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className="mt-1.5 text-xs text-red-400">{couponError}</p>
+                    )}
+                    {couponSuccess && (
+                      <p className="mt-1.5 text-xs text-emerald-400">{couponSuccess}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Price Breakdown Totals */}
+              <div className="mt-6 pt-5 border-t border-white/10 flex flex-col gap-2.5 text-sm">
+                <div className="flex justify-between text-zinc-400">
+                  <span>Subtotal</span>
+                  <span className="text-white font-medium">{formatPrice(subtotal)}</span>
+                </div>
+
+                {savings > 0 && (
+                  <div className="flex justify-between text-emerald-400">
+                    <span>MRP Savings</span>
+                    <span>&minus;{formatPrice(savings)}</span>
+                  </div>
+                )}
+
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-amber-300">
+                    <span className="flex items-center gap-1.5">
+                      <Percent className="h-3.5 w-3.5" />
+                      Promo Discount ({appliedCoupon?.code})
+                    </span>
+                    <span className="font-semibold">&minus;{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-zinc-400">
+                  <span>Shipping</span>
+                  <span className="text-white font-medium">
+                    {shipping === 0 ? "Free" : formatPrice(shipping)}
+                  </span>
+                </div>
+
+                <div className="mt-3 pt-4 border-t border-white/10 flex justify-between items-baseline">
+                  <span className="text-[17px] font-bold text-white">Total</span>
+                  <span className="text-[22px] font-extrabold text-white">
+                    {formatPrice(total)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Security reassurance */}
+              <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-center gap-2 text-xs text-zinc-500">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                <span>256-Bit Bank Grade SSL Encrypted Checkout</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ============================================================== */}
+          {/* RIGHT COLUMN: STEPPER + STEP-WISE PAYMENT FLOW UI */}
+          {/* ============================================================== */}
+          <div className="w-full">
+            
+            {/* STEPPER HEADER (Matches the exact circular icons and line style) */}
+            <div className="mb-8 lg:mb-10">
+              <div className="flex items-center justify-between w-full max-w-xl">
+                
+                {/* STEP 1: Contact Details */}
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(1)}
+                  className="flex items-center gap-2.5 group text-left cursor-pointer transition-all"
+                >
+                  <div
+                    className={`grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full transition-all ${
+                      currentStep === 1
+                        ? "bg-[#18181b] border-2 border-white ring-4 ring-white/20 text-white shadow-lg"
+                        : currentStep > 1
+                        ? "bg-white text-black shadow-md"
+                        : "bg-[#18181b] border border-white/20 text-zinc-400"
+                    }`}
+                  >
+                    <Contact className="h-5 w-5" />
+                  </div>
+                  <span
+                    className={`text-xs sm:text-sm font-medium transition-colors ${
+                      currentStep === 1
+                        ? "text-white font-bold"
+                        : currentStep > 1
+                        ? "text-zinc-200"
+                        : "text-zinc-500"
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Contact Details</span>
+                    <span className="sm:hidden">Contact</span>
+                  </span>
+                </button>
+
+                {/* Connecting Line 1 */}
+                <div
+                  className={`flex-1 h-[1.5px] mx-2 sm:mx-4 transition-colors ${
+                    currentStep > 1 ? "bg-white/50" : "bg-white/15"
+                  }`}
+                />
+
+                {/* STEP 2: Shipping Address */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (validateStep1()) setCurrentStep(2);
+                  }}
+                  className={`flex items-center gap-2.5 group text-left transition-all ${
+                    currentStep >= 2 ? "cursor-pointer" : "cursor-default"
+                  }`}
+                >
+                  <div
+                    className={`grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full transition-all ${
+                      currentStep === 2
+                        ? "bg-[#18181b] border-2 border-white ring-4 ring-white/20 text-white shadow-lg"
+                        : currentStep > 2
+                        ? "bg-white text-black shadow-md"
+                        : "bg-[#18181b] border border-white/20 text-zinc-400"
+                    }`}
+                  >
+                    <Truck className="h-5 w-5" />
+                  </div>
+                  <span
+                    className={`text-xs sm:text-sm font-medium transition-colors ${
+                      currentStep === 2
+                        ? "text-white font-bold"
+                        : currentStep > 2
+                        ? "text-zinc-200"
+                        : "text-zinc-500"
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Shipping Address</span>
+                    <span className="sm:hidden">Shipping</span>
+                  </span>
+                </button>
+
+                {/* Connecting Line 2 */}
+                <div
+                  className={`flex-1 h-[1.5px] mx-2 sm:mx-4 transition-colors ${
+                    currentStep === 3 ? "bg-white/50" : "bg-white/15"
+                  }`}
+                />
+
+                {/* STEP 3: Payment Details */}
+                <div className="flex items-center gap-2.5 text-left">
+                  <div
+                    className={`grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full transition-all ${
+                      currentStep === 3
+                        ? "bg-[#18181b] border-2 border-white ring-4 ring-white/20 text-white shadow-lg"
+                        : "bg-[#18181b] border border-white/20 text-zinc-400"
+                    }`}
+                  >
+                    <CreditCard className="h-5 w-5" />
+                  </div>
+                  <span
+                    className={`text-xs sm:text-sm font-medium transition-colors ${
+                      currentStep === 3
+                        ? "text-white font-bold"
+                        : "text-zinc-500"
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Payment Details</span>
+                    <span className="sm:hidden">Payment</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* STEP FORMS CONTAINER */}
+            <div className="w-full max-w-xl">
+              <AnimatePresence mode="wait">
+                
+                {/* -------------------------------------------------------- */}
+                {/* STEP 1: CONTACT DETAILS */}
+                {/* -------------------------------------------------------- */}
+                {currentStep === 1 && (
+                  <motion.div
+                    key="step-1"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3, ease: EASE }}
+                  >
+                    <h1 className="text-[26px] sm:text-[30px] font-bold text-white mb-6 tracking-tight">
+                      Contact Details
+                    </h1>
+
+                    <form onSubmit={handleProceedToShipping} className="space-y-5">
+                      <div>
+                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                          Full Name
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={form.name}
+                          onChange={(e) => {
+                            setForm({ ...form, name: e.target.value });
+                            if (errors.name) setErrors({ ...errors, name: "" });
+                          }}
+                          placeholder="Enter your full name"
+                          className={inputClass}
+                        />
+                        {errors.name && (
+                          <p className="mt-1.5 text-xs text-red-400">{errors.name}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={form.email}
+                          onChange={(e) => {
+                            setForm({ ...form, email: e.target.value });
+                            if (errors.email) setErrors({ ...errors, email: "" });
+                          }}
+                          placeholder="Enter your email address"
+                          className={inputClass}
+                        />
+                        {errors.email && (
+                          <p className="mt-1.5 text-xs text-red-400">{errors.email}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                          Mobile Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          value={form.phone}
+                          onChange={(e) => {
+                            setForm({ ...form, phone: e.target.value });
+                            if (errors.phone) setErrors({ ...errors, phone: "" });
+                          }}
+                          placeholder="Enter your phone number (e.g. +1 555 123 4567)"
+                          className={inputClass}
+                        />
+                        {errors.phone && (
+                          <p className="mt-1.5 text-xs text-red-400">{errors.phone}</p>
+                        )}
+                      </div>
+
+                      <div className="pt-4 flex justify-end">
+                        <button
+                          type="submit"
+                          className="w-full sm:w-auto rounded-lg bg-white px-8 py-3 text-[14px] font-bold text-black transition-all hover:bg-zinc-200 active:scale-95 shadow-md"
+                        >
+                          Continue to Shipping
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
+
+                {/* -------------------------------------------------------- */}
+                {/* STEP 2: SHIPPING ADDRESS */}
+                {/* -------------------------------------------------------- */}
+                {currentStep === 2 && (
+                  <motion.div
+                    key="step-2"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3, ease: EASE }}
+                  >
+                    <h1 className="text-[26px] sm:text-[30px] font-bold text-white mb-6 tracking-tight">
+                      Shipping Address
+                    </h1>
+
+                    <form onSubmit={handleProceedToPayment} className="space-y-4">
+                      <div>
+                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                          Street Address
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={form.address1}
+                          onChange={(e) => {
+                            setForm({ ...form, address1: e.target.value });
+                            if (errors.address1) setErrors({ ...errors, address1: "" });
+                          }}
+                          placeholder="House number, flat, and street name"
+                          className={inputClass}
+                        />
+                        {errors.address1 && (
+                          <p className="mt-1.5 text-xs text-red-400">{errors.address1}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                          Apartment, suite, unit (optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={form.address2}
+                          onChange={(e) => setForm({ ...form, address2: e.target.value })}
+                          placeholder="Apartment, suite, unit, building, floor, etc."
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[13px] font-medium text-white/80 mb-2">
+                            City
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={form.city}
+                            onChange={(e) => {
+                              setForm({ ...form, city: e.target.value });
+                              if (errors.city) setErrors({ ...errors, city: "" });
+                            }}
+                            placeholder="Enter city"
+                            className={inputClass}
+                          />
+                          {errors.city && (
+                            <p className="mt-1.5 text-xs text-red-400">{errors.city}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-[13px] font-medium text-white/80 mb-2">
+                            State / Province
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={form.state}
+                            onChange={(e) => {
+                              setForm({ ...form, state: e.target.value });
+                              if (errors.state) setErrors({ ...errors, state: "" });
+                            }}
+                            placeholder="Enter state"
+                            className={inputClass}
+                          />
+                          {errors.state && (
+                            <p className="mt-1.5 text-xs text-red-400">{errors.state}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[13px] font-medium text-white/80 mb-2">
+                            Postal / PIN Code
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={form.zip}
+                            onChange={(e) => {
+                              setForm({ ...form, zip: e.target.value });
+                              if (errors.zip) setErrors({ ...errors, zip: "" });
+                            }}
+                            placeholder="ZIP / Postal Code"
+                            className={inputClass}
+                          />
+                          {errors.zip && (
+                            <p className="mt-1.5 text-xs text-red-400">{errors.zip}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-[13px] font-medium text-white/80 mb-2">
+                            Country
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={form.country}
+                            onChange={(e) => setForm({ ...form, country: e.target.value })}
+                            placeholder="Country"
+                            className={inputClass}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-6 flex items-center justify-between sm:justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentStep(1)}
+                          className="rounded-lg border border-white/20 bg-[#161618] hover:bg-white/10 px-6 py-2.5 text-[14px] font-medium text-white transition-all"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="submit"
+                          className="rounded-lg bg-white hover:bg-zinc-200 px-7 py-2.5 text-[14px] font-bold text-black transition-all active:scale-95 shadow-md"
+                        >
+                          Continue to Payment
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
+
+                {/* -------------------------------------------------------- */}
+                {/* STEP 3: PAYMENT DETAILS (EXACT MATCH TO REFERENCE IMAGE) */}
+                {/* -------------------------------------------------------- */}
+                {currentStep === 3 && (
+                  <motion.div
+                    key="step-3"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3, ease: EASE }}
+                  >
+                    <h1 className="text-[26px] sm:text-[30px] font-bold text-white mb-6 tracking-tight">
+                      Payment Details
+                    </h1>
+
+                    <form onSubmit={handleFinalSubmit} className="space-y-4">
+                      {/* Card Number */}
+                      <div>
+                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                          Card Number
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          required
+                          value={form.cardNumber}
+                          onChange={(e) => handleCardNumberChange(e.target.value)}
+                          placeholder="Enter Here"
+                          className={inputClass}
+                        />
+                        {errors.cardNumber && (
+                          <p className="mt-1.5 text-xs text-red-400">{errors.cardNumber}</p>
+                        )}
+                      </div>
+
+                      {/* Expiration Date and CVC Columns */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[13px] font-medium text-white/80 mb-2">
+                            Expiration date (MM/YY)
+                          </label>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            required
+                            value={form.expiry}
+                            onChange={(e) => handleExpiryChange(e.target.value)}
+                            placeholder="MM/YY"
+                            className={inputClass}
+                          />
+                          {errors.expiry && (
+                            <p className="mt-1.5 text-xs text-red-400">{errors.expiry}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-[13px] font-medium text-white/80 mb-2">
+                            CVC
+                          </label>
+                          <input
+                            type="password"
+                            inputMode="numeric"
+                            required
+                            maxLength={4}
+                            value={form.cvc}
+                            onChange={(e) => handleCvcChange(e.target.value)}
+                            placeholder="123"
+                            className={inputClass}
+                          />
+                          {errors.cvc && (
+                            <p className="mt-1.5 text-xs text-red-400">{errors.cvc}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Buttons at bottom right matching the screenshot */}
+                      <div className="pt-6 flex items-center justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentStep(2)}
+                          className="rounded-lg border border-white/20 bg-[#161618] hover:bg-white/10 px-6 py-2.5 text-[14px] font-medium text-white transition-all active:scale-95"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="rounded-lg bg-white hover:bg-zinc-200 px-8 py-2.5 text-[14px] font-bold text-black transition-all active:scale-95 shadow-md flex items-center justify-center gap-2"
+                        >
+                          {isSubmitting ? (
+                            <div className="h-4 w-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                          ) : (
+                            "Submit"
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Makhana Seeds in the Bottom-Right Corner (Matches reference image) */}
+      <div className="pointer-events-none fixed bottom-0 right-0 z-0 select-none max-w-[180px] sm:max-w-[240px] lg:max-w-[300px] opacity-75 sm:opacity-90">
+        <Image
+          src="/img/login-corner-makhana.png"
+          alt="Roasted makhana seeds decor"
+          width={340}
+          height={260}
+          className="w-full h-auto object-contain select-none"
+          priority
+        />
+      </div>
+    </section>
+  );
+}
