@@ -14,7 +14,7 @@ import { EASE } from "./motion-primitives";
 const links = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
-  { href: "/about", label: "Our Story" },
+  { href: "/orders", label: "My Order" },
   { href: "/shipping", label: "Worldwide shipment" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },
@@ -60,7 +60,7 @@ export default function Navbar() {
             : "border-b border-transparent bg-transparent"
         }`}
       >
-        <nav className="container-x flex h-[88px] items-center justify-between gap-8">
+        <nav className="container-x flex h-[72px] sm:h-[88px] items-center justify-between gap-3 sm:gap-8">
           <Logo />
 
           {/* Desktop links */}
@@ -93,11 +93,11 @@ export default function Navbar() {
           </ul>
 
           {/* Actions */}
-          <div className="flex shrink-0 items-center gap-3">
-            <button
-              onClick={openCart}
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <Link
+              href="/cart"
               aria-label={`Open cart, ${count} items`}
-              className="relative grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
+              className="relative grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
             >
               <motion.div
                 key={`bag-${count}`}
@@ -120,72 +120,47 @@ export default function Navbar() {
                   </motion.span>
                 )}
               </AnimatePresence>
-            </button>
+            </Link>
 
-            {/* User Profile / Sign In Pill (Responsive) */}
-            {user ? (
-              <>
-                {/* Mobile User DP Button (visible < sm) */}
-                <Link
-                  href="/profile"
-                  aria-label="My Account & Track Orders"
-                  className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-white/15 transition-colors hover:border-amber-400/50 sm:hidden"
-                >
-                  <Image
-                    src={user.avatar || "/img/avatar-1.jpg"}
-                    alt={user.name}
-                    fill
-                    sizes="40px"
-                    className="object-cover"
-                  />
-                </Link>
+            {/* Desktop User Pill Button: User DP + User Name (Gretchen Rosser matching clone) */}
+            <Link
+              href={user ? "/profile" : "/login"}
+              aria-label="My Account & Track Orders"
+              className="group hidden items-center gap-2.5 rounded-full bg-white py-1.5 pl-1.5 pr-4 text-black transition-all hover:bg-neutral-100 hover:shadow-md active:scale-95 sm:flex"
+            >
+              <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full ring-1 ring-black/10">
+                <Image
+                  src={user?.avatar || "/img/avatar-1.jpg"}
+                  alt={user?.name || "Gretchen Rosser"}
+                  fill
+                  sizes="28px"
+                  className="object-cover"
+                />
+              </span>
+              <span className="text-[12.5px] font-semibold tracking-tight text-neutral-900">
+                {user?.name || "Gretchen Rosser"}
+              </span>
+            </Link>
 
-                {/* Desktop User Pill Button: User DP + User Name (visible >= sm) */}
-                <Link
-                  href="/profile"
-                  aria-label="My Account & Track Orders"
-                  className="group hidden items-center gap-2.5 rounded-full bg-white py-1.5 pl-1.5 pr-4 text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-95 sm:flex shadow-sm"
-                >
-                  <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full ring-1 ring-black/10">
-                    <Image
-                      src={user.avatar || "/img/avatar-1.jpg"}
-                      alt={user.name}
-                      fill
-                      sizes="28px"
-                      className="object-cover"
-                    />
-                  </span>
-                  <span className="text-[13px] font-bold tracking-tight">
-                    {user.name}
-                  </span>
-                </Link>
-              </>
-            ) : (
-              <>
-                {/* Mobile Sign In Icon Button (< sm) */}
-                <Link
-                  href="/login"
-                  aria-label="Sign In"
-                  className="relative grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 sm:hidden"
-                >
-                  <User className="h-[17px] w-[17px]" />
-                </Link>
-
-                {/* Desktop Sign In Pill (>= sm) */}
-                <Link
-                  href="/login"
-                  className="group hidden items-center gap-2 rounded-full border border-white/15 bg-white/5 py-2 pl-3.5 pr-4 text-[13px] font-semibold text-white transition-all hover:border-amber-400/50 hover:bg-amber-400/10 hover:text-amber-400 active:scale-95 sm:flex shadow-sm"
-                >
-                  <User className="h-4 w-4 text-amber-400 transition-transform group-hover:scale-110" />
-                  <span>Sign In</span>
-                </Link>
-              </>
-            )}
+            {/* Mobile User Icon (< sm) */}
+            <Link
+              href={user ? "/profile" : "/login"}
+              aria-label="Account"
+              className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-white/15 transition-colors hover:border-amber-400/50 sm:hidden"
+            >
+              <Image
+                src={user?.avatar || "/img/avatar-1.jpg"}
+                alt={user?.name || "Gretchen Rosser"}
+                fill
+                sizes="36px"
+                className="object-cover"
+              />
+            </Link>
 
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Open menu"
-              className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 xl:hidden"
+              className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 xl:hidden"
             >
               <Menu className="h-[17px] w-[17px]" />
             </button>

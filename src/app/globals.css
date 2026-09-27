@@ -23,7 +23,9 @@
   --color-dim: #7e7e7e;
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-josefin: var(--font-josefin), "Josefin Sans", sans-serif;
+  --font-display: var(--font-josefin), "Josefin Sans", sans-serif;
+  --font-heading: var(--font-josefin), "Josefin Sans", sans-serif;
 
   --radius-card: 20px;
   --radius-xl2: 28px;
@@ -50,6 +52,12 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Josefin Sans applied to all header titles as requested */
+  h1, h2, h3, h4, h5, h6, .font-heading, .font-josefin {
+    font-family: var(--font-josefin), "Josefin Sans", sans-serif;
+    letter-spacing: -0.015em;
+  }
+
   ::selection {
     background: var(--color-gold);
     color: var(--color-ink);
@@ -73,7 +81,26 @@
     width: 100%;
     max-width: 1440px;
     margin-inline: auto;
-    padding-inline: 24px;
+    padding-inline: 16px;
+  }
+  @media (min-width: 640px) {
+    .container-x {
+      padding-inline: 24px;
+    }
+  }
+  @media (min-width: 1024px) {
+    .container-x {
+      padding-inline: 32px;
+    }
+  }
+
+  /* Utility to hide scrollbars for horizontal pill bars */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
   /* Warm radial bloom used behind hero + product imagery in the Figma */

@@ -1,277 +1,341 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Award,
-  Globe,
-  ShieldCheck,
-  Truck,
-  Sparkles,
-  Star,
-  Check,
-  Flame,
-} from "lucide-react";
 import { EASE } from "../motion-primitives";
 
-const makhanaImages = [
+/* --------------------------------------------------------------------------
+   Makhana Slides Data (Real Makhana Product PNGs - Top Luxury Web UI)
+   -------------------------------------------------------------------------- */
+const slides = [
   {
-    src: "/img/hero-platter.jpg",
-    alt: "Premium roasted makhana on rustic wooden platter",
-    tag: "6+ Suta Jumbo",
-    flavor: "Whole Roasted Fox Nuts",
-    rating: "4.9",
-    reviews: "2.8k+",
-    highlight: "Grade A Selection",
+    src: "/img/makhana-hero2.png",
+    alt: "Signature whole roasted makhana on rustic wooden platter",
+    title: "Artisanal Whole Roasted Makhana",
+    flavor: "Original Himalayan Crisp",
+    glow: "rgba(235, 175, 70, 0.20)",
+    accent: "#EBAF46",
   },
   {
-    src: "/img/bowl-classic.jpg",
-    alt: "Classic Himalayan Salt roasted makhana",
-    tag: "Artisanal Bestseller",
-    flavor: "Classic Himalayan Salt",
-    rating: "4.9",
-    reviews: "1.2k+",
-    highlight: "Pink Mineral Salt",
+    src: "/img/makhana-prod-salt.png",
+    alt: "Makhana Himalayan Pink Salt premium pouch with roasted lotus seeds",
+    title: "Himalayan Pink Salt Pouch",
+    flavor: "Slow-Roasted in Pure A2 Ghee",
+    glow: "rgba(244, 160, 160, 0.20)",
+    accent: "#F4A0A0",
   },
   {
-    src: "/img/bowl-peri.jpg",
-    alt: "Fiery Peri Peri roasted makhana",
-    tag: "Smoky & Fiery",
-    flavor: "Peri Peri Crunch",
-    rating: "4.8",
-    reviews: "940+",
-    highlight: "African Bird's Eye",
+    src: "/img/makhana-prod-peri.png",
+    alt: "Makhana Peri Peri Crunch spicy roasted lotus seeds snack pouch",
+    title: "Peri Peri Crunch Pouch",
+    flavor: "Scorching & Savory Spices",
+    glow: "rgba(255, 107, 74, 0.20)",
+    accent: "#FF6B4A",
   },
   {
-    src: "/img/bowl-cheese.jpg",
-    alt: "Truffle Black Pepper gourmet makhana",
-    tag: "Chef's Selection",
-    flavor: "Truffle Black Pepper",
-    rating: "4.9",
-    reviews: "610+",
-    highlight: "Italian Black Truffle",
+    src: "/img/makhana-prod-truffle.png",
+    alt: "Makhana Truffle & Sea Salt gourmet cylindrical tin canister",
+    title: "Truffle & Sea Salt Tin",
+    flavor: "Connoisseur Reserve Tin",
+    glow: "rgba(218, 165, 32, 0.22)",
+    accent: "#DAA520",
   },
 ];
 
-const trustFeatures = [
+/* --------------------------------------------------------------------------
+   Custom Vector Outline Icons matching the Reference Screenshot Exactly
+   -------------------------------------------------------------------------- */
+function StarRosetteIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M12 2l2.4 2.4 3.4-.4 1.4 3.1 3.2 1.3-.4 3.4 2.4 2.4-2.4 2.4.4 3.4-3.2 1.3-1.4 3.1-3.4-.4L12 22l-2.4-2.4-3.4.4-1.4-3.1-3.2-1.3.4-3.4L2 12l2.4-2.4-.4-3.4 3.2-1.3 1.4-3.1 3.4.4L12 2z" />
+      <polygon points="12 8 13.2 11.2 16.5 11.2 13.8 13.2 14.8 16.5 12 14.5 9.2 16.5 10.2 13.2 7.5 11.2 10.8 11.2 12 8" />
+    </svg>
+  );
+}
+
+function GlobeIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+      <path d="M2 12h20" />
+    </svg>
+  );
+}
+
+function TruckSpeedIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 28 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Speed motion lines */}
+      <line x1="1" y1="7" x2="6" y2="7" />
+      <line x1="3" y1="11" x2="7" y2="11" />
+      <line x1="1" y1="15" x2="5" y2="15" />
+      {/* Truck body */}
+      <rect x="8" y="5" width="11" height="11" rx="1" />
+      <path d="M19 9h4l3 3.5V16h-7V9z" />
+      {/* Wheels */}
+      <circle cx="12" cy="18" r="2" />
+      <circle cx="22" cy="18" r="2" />
+      <line x1="14" y1="18" x2="20" y2="18" />
+    </svg>
+  );
+}
+
+function ShieldCheckIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
+
+/* --------------------------------------------------------------------------
+   Four Trust Feature Pillars Data
+   -------------------------------------------------------------------------- */
+const trustPillars = [
   {
-    icon: Award,
+    icon: StarRosetteIcon,
     title: "Premium Quality",
-    desc: "Carefully selected 6+ suta fox nuts, crisp and rich in natural nutrients.",
+    desc: "Carefully presented to feel refined, giftable, and globally premium.",
   },
   {
-    icon: Globe,
+    icon: GlobeIcon,
     title: "Worldwide Shipping",
-    desc: "Hand-selected batches shipped with our global courier partners.",
+    desc: "Serve international customers with clear global delivery support.",
   },
   {
-    icon: Truck,
+    icon: TruckSpeedIcon,
     title: "Free Delivery",
-    desc: "Free Worldwide Express Delivery on orders over $49.",
+    desc: "Highlight free delivery offers clearly to increase checkout conversion.",
   },
   {
-    icon: ShieldCheck,
+    icon: ShieldCheckIcon,
     title: "Secure Purchase",
-    desc: "256-bit encrypted checkout flow designed for seamless, secure ordering.",
+    desc: "Elegant checkout flow designed for trust, comfort, and quick buying.",
   },
 ];
 
+const fadeVariants = {
+  enter: {
+    opacity: 0,
+    scale: 0.93,
+    filter: "blur(3px)",
+  },
+  center: {
+    zIndex: 1,
+    opacity: 1,
+    scale: 1,
+    filter: "blur(0px)",
+  },
+  exit: {
+    zIndex: 0,
+    opacity: 0,
+    scale: 1.04,
+    filter: "blur(3px)",
+  },
+};
+
+/* --------------------------------------------------------------------------
+   Hero Component
+   -------------------------------------------------------------------------- */
 export default function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
-  // Auto-slide every 3.5 seconds
+  // Auto-slide every 3.8s with smooth instant in-place transition
   useEffect(() => {
+    if (isPaused) return;
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % makhanaImages.length);
-    }, 3500);
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 3800);
     return () => clearInterval(timer);
-  }, []);
+  }, [isPaused]);
 
-  const activeSlideData = makhanaImages[currentSlide];
+  const activeSlide = slides[currentSlide];
 
   return (
-    <section className="relative overflow-hidden pt-[116px] pb-16 lg:pt-[130px] lg:pb-24">
-      {/* Background ambient radial glow */}
-      <div className="pointer-events-none absolute right-0 top-1/4 h-[600px] w-[600px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(229,169,60,0.18)_0%,transparent_70%)] blur-3xl opacity-80" />
+    <section className="relative overflow-hidden bg-[#111111] pt-[76px] pb-10 sm:pt-[88px] lg:pt-[98px] lg:pb-14 text-white">
+      {/* Hidden preloader to guarantee 0ms instant display without load delays */}
+      <div className="hidden pointer-events-none" aria-hidden="true">
+        {slides.map((s) => (
+          <img key={s.src} src={s.src} alt="" decoding="sync" />
+        ))}
+      </div>
+
+      {/* Ambient warm glow in the background */}
+      <div className="pointer-events-none absolute right-0 top-1/4 h-[650px] w-[650px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(215,160,70,0.14)_0%,transparent_70%)] blur-3xl" />
+      <div className="pointer-events-none absolute left-1/4 top-1/3 h-[400px] w-[400px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.03)_0%,transparent_70%)] blur-2xl" />
 
       <div className="container-x">
-        {/* Main Hero Grid */}
-        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
-          {/* Left Copy */}
+        {/* Main Hero Row */}
+        <div className="grid items-center gap-8 sm:gap-10 lg:grid-cols-[1.1fr_1.1fr] lg:gap-12 min-h-[460px] sm:min-h-[520px] lg:min-h-[580px]">
+          
+          {/* Left Column: Heading, Paragraph, Two Buttons */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: EASE }}
+            transition={{ duration: 0.7, ease: EASE }}
             className="relative z-10 max-w-xl"
           >
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-amber-300 mb-4">
-              <Sparkles className="h-3 w-3" />
-              <span>Slow-Roasted in Pure A2 Ghee</span>
-            </div>
-
-            <h1 className="text-[38px] font-bold leading-[1.12] tracking-tight text-white sm:text-[50px] lg:text-[56px]">
-              Premium Makhana for the Modern World.
+            {/* Header Title with Josefin Sans font */}
+            <h1 className="font-heading font-bold text-white text-[32px] xs:text-[38px] sm:text-[50px] lg:text-[62px] leading-[1.1] tracking-tight">
+              Premium Makhana for
+              <br className="hidden xs:inline" />{" "}
+              the Modern World.
             </h1>
 
-            <p className="mt-5 text-[15px] leading-relaxed text-[#9a9a9a] sm:text-[16px]">
-              Crafted for refined snacking, elegant gifting, and everyday
-              indulgence &mdash; our premium roasted fox nuts deliver special crisp
-              texture with mindful health benefits. Enjoy fast delivery on
-              eligible orders.
+            {/* Paragraph Subtitle matching clone text */}
+            <p className="mt-4 sm:mt-6 text-[14px] sm:text-[16px] leading-[1.65] text-[#9a9a9a] max-w-lg">
+              Crafted for refined taste, elegant gifting, and everyday indulgence &mdash;
+              our premium makhana collection is available for online purchase with
+              worldwide shipping and free delivery on eligible orders.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-4">
+            {/* Action Buttons */}
+            <div className="mt-7 sm:mt-9 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <Link
                 href="/shop"
-                className="rounded-full bg-white px-7 py-3.5 text-[14px] font-semibold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-95 shadow-lg shadow-white/10"
+                className="w-full sm:w-auto text-center rounded-xl bg-white px-7 py-3.5 text-[14.5px] font-semibold text-[#111111] transition-all hover:bg-neutral-100 hover:shadow-[0_8px_24px_rgba(255,255,255,0.18)] active:scale-95"
               >
                 Shop Collection
               </Link>
               <Link
                 href="/about"
-                className="rounded-full border border-white/20 bg-white/[0.04] px-7 py-3.5 text-[14px] font-semibold text-white transition-all hover:border-amber-400/40 hover:text-amber-400 hover:bg-amber-400/10 active:text-amber-300 active:scale-95"
+                className="w-full sm:w-auto text-center rounded-xl border border-white/25 bg-white/[0.04] px-7 py-3.5 text-[14.5px] font-semibold text-white transition-all hover:border-white/50 hover:bg-white/[0.08] active:scale-95"
               >
-                Explore Our Story
+                Explore Brand Story
               </Link>
             </div>
           </motion.div>
 
-          {/* Right: Clean Auto-Sliding Animated Makhana Images + Floating Responsive Items */}
+          {/* Right Column: Instant In-Place Smooth Animated Product Showcase */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
+            transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
             className="relative flex items-center justify-center lg:justify-end"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
           >
-            {/* Outer Stage Wrapper hosting the floating items */}
-            <div className="relative aspect-square w-full max-w-[490px] lg:max-w-[550px]">
-              {/* Outer soft ambient glow */}
-              <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(229,169,60,0.22)_0%,transparent_70%)] blur-2xl -z-10" />
-
-              {/* 1. Floating Card: Upper-Left (Dynamic Roast & Flavour Details) */}
+            {/* Stage wrapper holding the floating transparent PNG */}
+            <div className="relative w-full max-w-[420px] sm:max-w-[520px] lg:max-w-[560px] h-[280px] sm:h-[400px] lg:h-[480px] flex items-center justify-center">
+              {/* Dynamic ambient spotlight glow behind active product */}
               <motion.div
-                animate={{ y: [-4, 4, -4], rotate: [0, 1.2, 0] }}
-                transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-4 -left-2 sm:top-8 sm:-left-7 lg:top-10 lg:-left-9 z-20 flex items-center gap-2.5 sm:gap-3 rounded-2xl border border-amber-400/35 bg-[#141414]/95 p-2.5 sm:p-3.5 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-xl ring-1 ring-amber-400/20 max-w-[200px] sm:max-w-[225px]"
-              >
-                <div className="grid h-8 w-8 sm:h-9 sm:w-9 shrink-0 place-items-center rounded-xl bg-amber-400/15 border border-amber-400/30 text-amber-400">
-                  <Sparkles className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={activeSlideData.flavor}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <p className="truncate text-[11.5px] sm:text-[12.5px] font-bold text-white flex items-center gap-1">
-                        <span className="truncate">{activeSlideData.flavor}</span>
-                        <Check className="h-3 w-3 text-amber-400 stroke-[3] shrink-0" />
-                      </p>
-                      <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-[#909090] mt-0.5">
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" />
-                        <span className="font-semibold text-white">{activeSlideData.rating}</span>
-                        <span className="truncate">({activeSlideData.reviews})</span>
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </motion.div>
+                animate={{
+                  background: `radial-gradient(circle, ${activeSlide.glow} 0%, rgba(0,0,0,0) 70%)`,
+                }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                className="pointer-events-none absolute inset-0 rounded-full blur-3xl -z-10"
+              />
 
-              {/* 2. Floating Card: Lower-Right (A2 Ghee & Nutritional Purity) */}
-              <motion.div
-                animate={{ y: [4, -4, 4], rotate: [0, -1.2, 0] }}
-                transition={{ duration: 5.4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute bottom-8 -right-2 sm:bottom-12 sm:-right-6 lg:bottom-14 lg:-right-8 z-20 flex items-center gap-2.5 sm:gap-3 rounded-2xl border border-white/15 bg-[#141414]/95 p-2.5 sm:p-3.5 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-xl ring-1 ring-white/10 max-w-[210px] sm:max-w-[235px]"
-              >
-                <div className="grid h-8 w-8 sm:h-9 sm:w-9 shrink-0 place-items-center rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-                  <Flame className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-[11.5px] sm:text-[12.5px] font-bold text-white flex items-center gap-1.5">
-                    <span>100% Pure A2 Ghee</span>
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 animate-pulse" />
-                  </p>
-                  <p className="truncate text-[10px] sm:text-[11px] text-[#909090] mt-0.5">
-                    9.7g Protein &middot; Zero Palm Oil
-                  </p>
-                </div>
-              </motion.div>
-
-              {/* Main Image Frame with overflow-hidden */}
-              <div className="relative h-full w-full overflow-hidden rounded-[32px] border border-white/10 bg-[#141414] shadow-2xl">
-                {/* Animated Slides */}
-                <AnimatePresence mode="sync">
+              {/* Instant In-Place Smooth Animated Auto-Transition (Zero Blank Wait) */}
+              <AnimatePresence initial={false} mode="popLayout">
+                <motion.div
+                  key={currentSlide}
+                  variants={fadeVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    duration: 0.65,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  {/* Organic floating levitation micro-animation */}
                   <motion.div
-                    key={currentSlide}
-                    initial={{ opacity: 0, scale: 1.08 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{ duration: 1, ease: EASE }}
-                    className="absolute inset-0"
+                    animate={{
+                      y: [-8, 8, -8],
+                      rotate: [-0.8, 0.8, -0.8],
+                    }}
+                    transition={{
+                      duration: 5.2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    className="relative h-full w-full flex items-center justify-center p-3 sm:p-5"
                   >
-                    <Image
-                      src={makhanaImages[currentSlide].src}
-                      alt={makhanaImages[currentSlide].alt}
-                      fill
-                      priority
-                      sizes="(max-width: 1024px) 90vw, 45vw"
-                      className="object-cover"
+                    <img
+                      src={activeSlide.src}
+                      alt={activeSlide.alt}
+                      decoding="sync"
+                      loading="eager"
+                      className="h-full w-full object-contain drop-shadow-[0_28px_45px_rgba(0,0,0,0.85)] filter select-none pointer-events-none"
                     />
-                    {/* Subtle soft edge vignette */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
                   </motion.div>
-                </AnimatePresence>
-
-                {/* Minimalist Slide Dots Indicator */}
-                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 backdrop-blur-md border border-white/10">
-                  {makhanaImages.map((_, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setCurrentSlide(idx)}
-                      aria-label={`Go to slide ${idx + 1}`}
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        currentSlide === idx
-                          ? "w-6 bg-amber-400 shadow-sm shadow-amber-400/50"
-                          : "w-2 bg-white/30 hover:bg-white/60"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
+                </motion.div>
+              </AnimatePresence>
             </div>
           </motion.div>
         </div>
 
-        {/* Four Trust / Value Proposition Pillars */}
+        {/* -------------------------------------------------------------
+            Bottom 4 Trust Pillars (Single Rounded Card matching Screenshot)
+            ------------------------------------------------------------- */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: EASE, delay: 0.2 }}
-          className="mt-14 lg:mt-20 overflow-hidden rounded-[24px] border border-white/10 bg-[#141414]/90 backdrop-blur-md"
+          transition={{ duration: 0.7, ease: EASE, delay: 0.15 }}
+          className="mt-8 lg:mt-10 overflow-hidden rounded-[26px] border border-white/10 bg-[#181818] shadow-2xl"
         >
           <div className="grid grid-cols-1 divide-y divide-white/10 sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
-            {trustFeatures.map((feat) => {
-              const Icon = feat.icon;
+            {trustPillars.map((pillar) => {
+              const Icon = pillar.icon;
               return (
                 <div
-                  key={feat.title}
-                  className="group flex flex-col gap-3 p-6 sm:p-7 transition-colors hover:bg-amber-400/[0.02]"
+                  key={pillar.title}
+                  className="flex flex-col gap-2.5 sm:gap-3 p-5 sm:p-7 lg:p-8 transition-colors hover:bg-white/[0.02]"
                 >
-                  <span className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/5 text-white transition-colors group-hover:border-amber-400/40 group-hover:text-amber-400 group-hover:bg-amber-400/10">
-                    <Icon className="h-5 w-5 text-white/90 group-hover:text-amber-400" />
-                  </span>
-                  <h3 className="text-[16px] font-bold text-white transition-colors group-hover:text-amber-400">
-                    {feat.title}
+                  {/* Clean outline icon */}
+                  <div className="text-white/90">
+                    <Icon className="h-7 w-7" />
+                  </div>
+
+                  {/* Header Title with Josefin Sans */}
+                  <h3 className="font-heading font-bold text-[18px] text-white tracking-tight">
+                    {pillar.title}
                   </h3>
-                  <p className="text-[12.5px] leading-relaxed text-[#8a8a8a]">
-                    {feat.desc}
+
+                  {/* Description paragraph */}
+                  <p className="text-[13px] leading-relaxed text-[#8a8a8a]">
+                    {pillar.desc}
                   </p>
                 </div>
               );
