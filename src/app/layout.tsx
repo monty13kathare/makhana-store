@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Playfair_Display, Josefin_Sans } from "next/font/google";
+import { Montserrat, Josefin_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
@@ -10,10 +10,10 @@ import Footer from "@/components/Footer";
 import AuthModal from "@/components/AuthModal";
 import { WishlistProvider } from "@/context/WishlistContext";
 
-const jakarta = Plus_Jakarta_Sans({
+const montserrat = Montserrat({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-jakarta",
+  variable: "--font-montserrat",
   display: "swap",
 });
 
@@ -61,7 +61,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${jakarta.variable} ${josefin.variable} ${playfair.variable}`}
+      className={`${montserrat.variable} ${josefin.variable} ${playfair.variable}`}
     >
       <body className="antialiased">
         <AuthProvider>

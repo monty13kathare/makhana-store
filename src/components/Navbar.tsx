@@ -16,7 +16,7 @@ const links = [
   { href: "/shop", label: "Shop" },
   { href: "/orders", label: "My Order" },
   { href: "/shipping", label: "Worldwide shipment" },
-  { href: "/faq", label: "FAQ" },
+  { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
 

@@ -22,7 +22,9 @@
   --color-muted: #b0b0b0;
   --color-dim: #7e7e7e;
 
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-montserrat), "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-montserrat: var(--font-montserrat), "Montserrat", sans-serif;
+  --font-jakarta: var(--font-montserrat), "Montserrat", sans-serif;
   --font-josefin: var(--font-josefin), "Josefin Sans", sans-serif;
   --font-display: var(--font-josefin), "Josefin Sans", sans-serif;
   --font-heading: var(--font-josefin), "Josefin Sans", sans-serif;
@@ -41,21 +43,33 @@
   html {
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-montserrat), "Montserrat", ui-sans-serif, system-ui, sans-serif;
   }
 
   body {
     background-color: var(--color-ink);
     color: #fff;
-    font-family: var(--font-sans);
+    font-family: var(--font-montserrat), "Montserrat", ui-sans-serif, system-ui, sans-serif;
     line-height: 1.6;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Josefin Sans applied to all header titles as requested */
+  /* All header titles use Josefin Sans with font weight 500 */
   h1, h2, h3, h4, h5, h6, .font-heading, .font-josefin {
-    font-family: var(--font-josefin), "Josefin Sans", sans-serif;
+    font-family: var(--font-josefin), "Josefin Sans", sans-serif !important;
+    font-weight: 500 !important;
     letter-spacing: -0.015em;
+  }
+
+  h1 *, h2 *, h3 *, h4 *, h5 *, h6 * {
+    font-family: inherit;
+    font-weight: inherit;
+  }
+
+  /* All paragraphs, pre-titles, body titles, subtitles, spans, buttons, links use Montserrat */
+  p, span, a, button, input, textarea, select, label, li, small {
+    font-family: var(--font-montserrat), "Montserrat", sans-serif;
   }
 
   ::selection {

@@ -4,7 +4,10 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { EASE } from "./motion-primitives";
 
+import Image from "next/image";
+
 export function LogoIcon({
+  size = 40,
   className = "",
 }: {
   size?: number;
@@ -12,37 +15,17 @@ export function LogoIcon({
 }) {
   return (
     <div
-      className={`relative flex shrink-0 items-center justify-center rounded-[10px] bg-white px-2.5 py-1.5 shadow-[0_4px_16px_rgba(255,255,255,0.08)] transition-transform group-hover:scale-105 ${className}`}
+      className={`relative flex shrink-0 items-center justify-center rounded-[10px] bg-white px-2 py-1 shadow-[0_4px_16px_rgba(255,255,255,0.08)] transition-transform group-hover:scale-105 ${className}`}
+      style={{ height: `${size}px` }}
     >
-      <div className="flex flex-col items-center">
-        {/* Decorative mini bowl with makhana seeds */}
-        <svg
-          viewBox="0 0 54 18"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-[13px] w-[38px]"
-        >
-          {/* Bowl outline / fill */}
-          <path
-            d="M6 6 C12 16, 42 16, 48 6 Z"
-            fill="#78350f"
-          />
-          {/* Popped lotus seeds */}
-          <circle cx="16" cy="5.5" r="3.6" fill="#fef3c7" stroke="#b45309" strokeWidth="0.6" />
-          <circle cx="27" cy="4" r="4.2" fill="#ffffff" stroke="#b45309" strokeWidth="0.6" />
-          <circle cx="38" cy="5.5" r="3.6" fill="#fef3c7" stroke="#b45309" strokeWidth="0.6" />
-          <circle cx="21" cy="3.5" r="2.8" fill="#ffffff" />
-          <circle cx="33" cy="3.5" r="2.8" fill="#fef3c7" />
-          {/* Fresh mint accent leaf */}
-          <path
-            d="M27 1 C28 2, 29 1.5, 30 1 C29 0.5, 28 0.5, 27 1 Z"
-            fill="#16a34a"
-          />
-        </svg>
-        <span className="text-[10.5px] font-black tracking-tight leading-none text-[#991b1b] mt-0.5">
-          Chakh<span className="text-[#15803d] font-bold ml-0.5">Low</span>
-        </span>
-      </div>
+      <Image
+        src="/img/makhana-logo.png"
+        alt="Chakh-low"
+        width={120}
+        height={80}
+        className="h-full w-auto object-contain"
+        priority
+      />
     </div>
   );
 }

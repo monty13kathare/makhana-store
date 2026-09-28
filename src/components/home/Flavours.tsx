@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { products } from "@/lib/products";
 import ProductCard from "../ProductCard";
 import { Reveal } from "../motion-primitives";
@@ -10,16 +10,12 @@ export default function Flavours() {
   const collection = products.slice(0, 3);
 
   return (
-    <section id="collection" className="py-16 lg:py-24">
+    <section id="collection" className="relative bg-[#0a0a0a] pt-28 sm:pt-36 lg:pt-40 pb-16 lg:pb-24">
       <div className="container-x">
         {/* Section Heading */}
         <div className="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <Reveal className="max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-amber-300">
-              <Sparkles className="h-3 w-3" />
-              Artisanal Craft
-            </span>
-            <h2 className="mt-3 text-[32px] font-bold tracking-tight text-white sm:text-[42px]">
+            <h2 className="text-[32px] font-bold tracking-tight text-white sm:text-[42px]">
               Our Signature Makhana Collection
             </h2>
             <p className="mt-3 text-[15px] leading-relaxed text-[#8e8e8e]">

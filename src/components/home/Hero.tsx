@@ -49,7 +49,7 @@ const slides = [
 function StarRosetteIcon({ className = "" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 32 32"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.6"
@@ -57,8 +57,12 @@ function StarRosetteIcon({ className = "" }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      <path d="M12 2l2.4 2.4 3.4-.4 1.4 3.1 3.2 1.3-.4 3.4 2.4 2.4-2.4 2.4.4 3.4-3.2 1.3-1.4 3.1-3.4-.4L12 22l-2.4-2.4-3.4.4-1.4-3.1-3.2-1.3.4-3.4L2 12l2.4-2.4-.4-3.4 3.2-1.3 1.4-3.1 3.4.4L12 2z" />
-      <polygon points="12 8 13.2 11.2 16.5 11.2 13.8 13.2 14.8 16.5 12 14.5 9.2 16.5 10.2 13.2 7.5 11.2 10.8 11.2 12 8" />
+      <path d="M16 2.5a3.2 3.2 0 0 1 2.7 1.5 3.2 3.2 0 0 0 3 1.2 3.2 3.2 0 0 1 2.8 1.4 3.2 3.2 0 0 0 3.2.6 3.2 3.2 0 0 1 2.6 1.8 3.2 3.2 0 0 0 3 1.4 3.2 3.2 0 0 1 2 2.4 3.2 3.2 0 0 0 2.4 2.2 3.2 3.2 0 0 1 1.2 3 3.2 3.2 0 0 0 1.5 2.9 3.2 3.2 0 0 1 0 3.2 3.2 3.2 0 0 0-1.5 2.9 3.2 3.2 0 0 1-1.2 3 3.2 3.2 0 0 0-2.4 2.2 3.2 3.2 0 0 1-2 2.4 3.2 3.2 0 0 0-3 1.4 3.2 3.2 0 0 1-2.6 1.8 3.2 3.2 0 0 0-3.2.6 3.2 3.2 0 0 1-2.8 1.4 3.2 3.2 0 0 0-3 1.2 3.2 3.2 0 0 1-2.7 1.5 3.2 3.2 0 0 1-2.7-1.5 3.2 3.2 0 0 0-3-1.2 3.2 3.2 0 0 1-2.8-1.4 3.2 3.2 0 0 0-3.2-.6 3.2 3.2 0 0 1-2.6-1.8 3.2 3.2 0 0 0-3-1.4 3.2 3.2 0 0 1-2-2.4 3.2 3.2 0 0 0-2.4-2.2 3.2 3.2 0 0 1-1.2-3 3.2 3.2 0 0 0-1.5-2.9 3.2 3.2 0 0 1 0-3.2 3.2 3.2 0 0 0 1.5-2.9 3.2 3.2 0 0 1 1.2-3 3.2 3.2 0 0 0 2.4-2.2 3.2 3.2 0 0 1 2-2.4 3.2 3.2 0 0 0 3-1.4 3.2 3.2 0 0 1 2.6-1.8 3.2 3.2 0 0 0 3.2-.6 3.2 3.2 0 0 1 2.8-1.4 3.2 3.2 0 0 0 3-1.2A3.2 3.2 0 0 1 16 2.5z" />
+      <circle cx="16" cy="16" r="6.8" />
+      <polygon
+        points="16 11.5 17.3 14.5 20.5 14.5 17.9 16.5 18.9 19.5 16 17.7 13.1 19.5 14.1 16.5 11.5 14.5 14.7 14.5"
+        strokeWidth="1.2"
+      />
     </svg>
   );
 }
@@ -66,7 +70,7 @@ function StarRosetteIcon({ className = "" }: { className?: string }) {
 function GlobeIcon({ className = "" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 32 32"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.6"
@@ -74,9 +78,10 @@ function GlobeIcon({ className = "" }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-      <path d="M2 12h20" />
+      <circle cx="16" cy="16" r="13" />
+      <path d="M10.5 6.5c1 1.5 2.5 2 2.5 3.5 0 1.5-1 2-2 3s-1.5 2-1 3.5c.5 1.5 2 2 2 3.5 0 1-1 2.5-.5 3.5" />
+      <path d="M17 4.5c1.5 1 3 1 3 2.5 0 1-1 1.5-1.5 2.5s0 2 1 2.5 2.5 1 2.5 2.5-1.5 2-2 3c-1 1.5-.5 3 0 4.5" />
+      <path d="M24 18c1 .5 1.5 1.5 1 2.5s-2 1.5-2.5 1" />
     </svg>
   );
 }
@@ -84,7 +89,7 @@ function GlobeIcon({ className = "" }: { className?: string }) {
 function TruckSpeedIcon({ className = "" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 28 24"
+      viewBox="0 0 32 32"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.6"
@@ -92,17 +97,14 @@ function TruckSpeedIcon({ className = "" }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      {/* Speed motion lines */}
-      <line x1="1" y1="7" x2="6" y2="7" />
-      <line x1="3" y1="11" x2="7" y2="11" />
-      <line x1="1" y1="15" x2="5" y2="15" />
-      {/* Truck body */}
-      <rect x="8" y="5" width="11" height="11" rx="1" />
-      <path d="M19 9h4l3 3.5V16h-7V9z" />
-      {/* Wheels */}
-      <circle cx="12" cy="18" r="2" />
-      <circle cx="22" cy="18" r="2" />
-      <line x1="14" y1="18" x2="20" y2="18" />
+      <line x1="3" y1="10" x2="10" y2="10" />
+      <line x1="1" y1="15" x2="8" y2="15" />
+      <line x1="3" y1="20" x2="9" y2="20" />
+      <rect x="11" y="8" width="11" height="11" rx="1.5" />
+      <path d="M22 12.5h4.5l2.5 3.5V19h-7v-6.5z" />
+      <circle cx="14.5" cy="22" r="2.2" />
+      <circle cx="25.5" cy="22" r="2.2" />
+      <line x1="16.7" y1="22" x2="23.3" y2="22" />
     </svg>
   );
 }
@@ -110,7 +112,7 @@ function TruckSpeedIcon({ className = "" }: { className?: string }) {
 function ShieldCheckIcon({ className = "" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 32 32"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.6"
@@ -118,8 +120,8 @@ function ShieldCheckIcon({ className = "" }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <path d="m9 12 2 2 4-4" />
+      <path d="M16 4.5l10.5 3.5v7.5c0 7.2-4.8 11.8-10.5 13.5-5.7-1.7-10.5-6.3-10.5-13.5V8L16 4.5z" />
+      <path d="M11.5 15.5l3.5 3.5 6-6.5" strokeWidth="1.8" />
     </svg>
   );
 }
@@ -190,7 +192,7 @@ export default function Hero() {
   const activeSlide = slides[currentSlide];
 
   return (
-    <section className="relative overflow-hidden bg-[#111111] pt-[76px] pb-10 sm:pt-[88px] lg:pt-[98px] lg:pb-14 text-white">
+    <section className="relative bg-[#191919] pt-[76px] sm:pt-[88px] lg:pt-[100px] text-white">
       {/* Hidden preloader to guarantee 0ms instant display without load delays */}
       <div className="hidden pointer-events-none" aria-hidden="true">
         {slides.map((s) => (
@@ -198,9 +200,11 @@ export default function Hero() {
         ))}
       </div>
 
-      {/* Ambient warm glow in the background */}
-      <div className="pointer-events-none absolute right-0 top-1/4 h-[650px] w-[650px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(215,160,70,0.14)_0%,transparent_70%)] blur-3xl" />
-      <div className="pointer-events-none absolute left-1/4 top-1/3 h-[400px] w-[400px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.03)_0%,transparent_70%)] blur-2xl" />
+      {/* Ambient warm glow contained inside overflow-hidden to prevent horizontal scroll */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute right-0 top-1/4 h-[650px] w-[650px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(215,160,70,0.14)_0%,transparent_70%)] blur-3xl" />
+        <div className="absolute left-1/4 top-1/3 h-[400px] w-[400px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.03)_0%,transparent_70%)] blur-2xl" />
+      </div>
 
       <div className="container-x">
         {/* Main Hero Row */}
@@ -307,41 +311,53 @@ export default function Hero() {
 
         {/* -------------------------------------------------------------
             Bottom 4 Trust Pillars (Single Rounded Card matching Screenshot)
+            Centered card overflowing across the hero boundary into the next section
             ------------------------------------------------------------- */}
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: EASE, delay: 0.15 }}
-          className="mt-8 lg:mt-10 overflow-hidden rounded-[26px] border border-white/10 bg-[#181818] shadow-2xl"
-        >
-          <div className="grid grid-cols-1 divide-y divide-white/10 sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
-            {trustPillars.map((pillar) => {
-              const Icon = pillar.icon;
-              return (
-                <div
-                  key={pillar.title}
-                  className="flex flex-col gap-2.5 sm:gap-3 p-5 sm:p-7 lg:p-8 transition-colors hover:bg-white/[0.02]"
-                >
-                  {/* Clean outline icon */}
-                  <div className="text-white/90">
-                    <Icon className="h-7 w-7" />
+        <div className="relative z-20 mt-12 sm:mt-16 lg:mt-20 -mb-20 sm:-mb-24 lg:-mb-28">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, ease: EASE, delay: 0.15 }}
+            style={{
+              backdropFilter: "blur(89.5px)",
+              WebkitBackdropFilter: "blur(89.5px)",
+            }}
+            className="relative overflow-hidden rounded-[32px] sm:rounded-[36px] border border-white/[0.08] bg-[#222222]/70 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]"
+          >
+            {/* Inset vertical dividers matching reference image (y: 81 to 234) */}
+            <div className="hidden lg:block pointer-events-none absolute top-[14%] bottom-[14%] left-1/4 w-[1px] bg-white/[0.08]" />
+            <div className="hidden lg:block pointer-events-none absolute top-[14%] bottom-[14%] left-2/4 w-[1px] bg-white/[0.08]" />
+            <div className="hidden lg:block pointer-events-none absolute top-[14%] bottom-[14%] left-3/4 w-[1px] bg-white/[0.08]" />
+
+            <div className="grid grid-cols-1 divide-y divide-white/[0.08] sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:divide-x-0 lg:grid-cols-4">
+              {trustPillars.map((pillar) => {
+                const Icon = pillar.icon;
+                return (
+                  <div
+                    key={pillar.title}
+                    className="flex flex-col p-6 sm:p-7 lg:py-9 lg:px-8 xl:px-9 transition-colors hover:bg-white/[0.02]"
+                  >
+                    {/* Clean outline icon in white */}
+                    <div className="text-white">
+                      <Icon className="h-8 w-8" />
+                    </div>
+
+                    {/* Header Title with Josefin Sans and font-weight 500 */}
+                    <h3 className="mt-5 sm:mt-6 font-heading font-medium text-[19px] sm:text-[20px] text-white tracking-tight leading-snug">
+                      {pillar.title}
+                    </h3>
+
+                    {/* Description paragraph with Montserrat */}
+                    <p className="mt-2.5 sm:mt-3 text-[13px] leading-[1.6] text-[#8a8a8a] max-w-[28ch] sm:max-w-none">
+                      {pillar.desc}
+                    </p>
                   </div>
-
-                  {/* Header Title with Josefin Sans */}
-                  <h3 className="font-heading font-bold text-[18px] text-white tracking-tight">
-                    {pillar.title}
-                  </h3>
-
-                  {/* Description paragraph */}
-                  <p className="text-[13px] leading-relaxed text-[#8a8a8a]">
-                    {pillar.desc}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        </div>
       </div>
     </section>
   );
