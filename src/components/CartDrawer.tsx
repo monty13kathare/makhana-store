@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -52,6 +52,18 @@ export default function CartDrawer() {
   } | null>(null);
   const [showCouponsList, setShowCouponsList] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   const remaining = Math.max(0, FREE_SHIPPING_OVER - subtotal);
   const progress = Math.min(100, (subtotal / FREE_SHIPPING_OVER) * 100);
   const isFreeShipping =
@@ -96,7 +108,7 @@ export default function CartDrawer() {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.45, ease: EASE }}
-            className="fixed right-0 top-0 z-[71] flex h-full w-full max-w-[460px] flex-col border-l border-white/10 bg-[#121212] shadow-2xl text-white"
+            className="fixed right-0 top-0 z-[71] flex h-full w-full max-w-[460px] flex-col border-l border-white/10 bg-[#121212] shadow-2xl text-white overflow-hidden"
           >
             {/* 1. Header */}
             <header className="flex items-center justify-between border-b border-white/10 px-6 py-5 bg-[#141414]">
@@ -146,8 +158,8 @@ export default function CartDrawer() {
               </div>
             )}
 
-            {/* 3. Items List Container */}
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            {/* 3. Items List Container — only this region scrolls */}
+            <div className="cart-items-scroll min-h-0 flex-1 overflow-y-auto px-6 py-5">
               {detailed.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                   <div className="grid h-16 w-16 place-items-center rounded-2xl border border-white/10 bg-white/5">
@@ -243,7 +255,7 @@ export default function CartDrawer() {
 
             {/* 4. Coupons & Summary Footer */}
             {detailed.length > 0 && (
-              <footer className="border-t border-white/10 px-6 py-5 bg-[#141414]">
+              <footer className="shrink-0 border-t border-white/10 px-6 py-5 bg-[#141414]">
                 {/* =========================================================================
                     COUPON FEATURE UI
                    ========================================================================= */}
@@ -334,7 +346,7 @@ export default function CartDrawer() {
                           className="flex items-center gap-1.5 text-[11.5px] font-semibold text-amber-400 hover:text-amber-300 transition-colors"
                         >
                           <Sparkles className="h-3 w-3" />
-                          <span>View Available Offers ({availableCoupons.length})</span>
+                          <span>View Available Offers ({availableCoupons.slice(0, 3).length})</span>
                           {showCouponsList ? (
                             <ChevronUp className="h-3 w-3" />
                           ) : (
@@ -348,9 +360,10 @@ export default function CartDrawer() {
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: "auto" }}
                               exit={{ opacity: 0, height: 0 }}
-                              className="mt-2 space-y-2 overflow-hidden"
+                              className="mt-2 overflow-hidden"
                             >
-                              {availableCoupons.map((c: Coupon) => (
+                              <div className="cart-coupon-scroll max-h-[220px] overflow-y-auto space-y-2 pr-0.5">
+                              {availableCoupons.slice(0, 3).map((c: Coupon) => (
                                 <div
                                   key={c.code}
                                   className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] p-2.5 transition-colors hover:border-amber-400/40"
@@ -374,6 +387,7 @@ export default function CartDrawer() {
                                   </button>
                                 </div>
                               ))}
+                              </div>
                             </motion.div>
                           )}
                         </AnimatePresence>

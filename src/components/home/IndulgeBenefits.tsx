@@ -258,16 +258,7 @@ export default function IndulgeBenefits() {
       {/* Main Content Container */}
       <div className="container-x relative z-10">
         <Reveal>
-          {/* Olive / Sage green pre-title with pulsing status indicator */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#88b04b]/12 border border-[#88b04b]/25 backdrop-blur-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#88b04b] opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#88b04b]" />
-            </span>
-            <span className="text-[12px] font-semibold tracking-wider uppercase text-[#a5d259]">
-              Elegant benefits
-            </span>
-          </div>
+
 
           {/* Section Heading */}
           <h2 className="mt-3.5 sm:mt-4 font-heading font-bold text-[30px] sm:text-[42px] lg:text-[50px] leading-[1.12] tracking-tight text-white">

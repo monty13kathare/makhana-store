@@ -13,9 +13,9 @@ export default function Home() {
     <>
       <Hero />
       <Flavours />
+      <FlavourCombos />
       <BrandPillars />
       <IndulgeBenefits />
-      <FlavourCombos />
       <Gifting />
       <GlobalDelivery />
       <Testimonials />

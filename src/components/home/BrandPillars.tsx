@@ -55,13 +55,7 @@ export default function BrandPillars() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20" />
 
-              {/* Top micro-tag */}
-              <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-2.5 py-1 backdrop-blur-md">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                <span className="text-[10px] font-mono tracking-wider text-white/80 uppercase">
-                  01 / Precision
-                </span>
-              </div>
+
 
               {/* Bottom label */}
               <div className="absolute bottom-3 left-3 right-3 z-10">
@@ -85,13 +79,7 @@ export default function BrandPillars() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20" />
 
-              {/* Top micro-tag */}
-              <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-2.5 py-1 backdrop-blur-md">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                <span className="text-[10px] font-mono tracking-wider text-white/80 uppercase">
-                  02 / Standard
-                </span>
-              </div>
+
 
               {/* Circular callout badge on middle seed */}
               <div className="pointer-events-none absolute left-[44%] top-[34%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/15 bg-white/95 px-2 py-1 text-center shadow-md backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">

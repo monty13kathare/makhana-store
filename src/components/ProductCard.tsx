@@ -106,9 +106,9 @@ export default function ProductCard({
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.15 }}
-      transition={{ duration: 0.6, ease: EASE, delay: (index % 3) * 0.1 }}
+      transition={{ duration: 0.6, ease: EASE, delay: (index % 4) * 0.08 }}
       whileHover={{ y: -6 }}
-      className="group flex h-full flex-col justify-between overflow-hidden rounded-[22px] border border-white/10 bg-[#161616] p-4 transition-all duration-300 hover:border-white/25 hover:shadow-2xl hover:shadow-black/50"
+      className="group flex h-full flex-col justify-between overflow-hidden rounded-[20px] border border-white/10 bg-[#161616] p-3.5 transition-all duration-300 hover:border-white/25 hover:shadow-2xl hover:shadow-black/50"
     >
       {/* 1. Image Container with Fixed Equal Aspect Ratio */}
       <Link
@@ -119,7 +119,7 @@ export default function ProductCard({
           src={product.image}
           alt={product.name}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
           className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -156,10 +156,10 @@ export default function ProductCard({
         <div>
           {/* Title + Price */}
           <div className="flex items-start justify-between gap-3">
-            <h3 className="line-clamp-1 text-[17px] font-bold text-white transition-colors hover:text-amber-400 active:text-amber-300">
+            <h3 className="line-clamp-1 text-[15px] font-bold text-white transition-colors hover:text-amber-400 active:text-amber-300">
               <Link href={`/product/${product.slug}`}>{product.name}</Link>
             </h3>
-            <span className="shrink-0 rounded-lg bg-white/10 px-2.5 py-1 text-[14px] font-extrabold text-white">
+            <span className="shrink-0 rounded-lg bg-white/10 px-2 py-0.5 text-[13px] font-extrabold text-white">
               {formatUSD(product.price)}
             </span>
           </div>

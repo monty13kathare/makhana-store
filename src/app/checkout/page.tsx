@@ -81,6 +81,8 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMobileSummary, setShowMobileSummary] = useState(false);
   const [showCouponsList, setShowCouponsList] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "upi" | "paypal" | "cod">("card");
+  const [upiId, setUpiId] = useState("");
 
   // Coupon state
   const [couponCode, setCouponCode] = useState("");
@@ -190,15 +192,22 @@ export default function CheckoutPage() {
   // Step 3 Validation
   const validateStep3 = (): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
-    const cleanCard = form.cardNumber.replace(/\s/g, "");
-    if (!cleanCard || cleanCard.length < 15) {
-      newErrors.cardNumber = "Please enter a valid 16-digit card number";
+    if (paymentMethod === "card") {
+      const cleanCard = form.cardNumber.replace(/\s/g, "");
+      if (!cleanCard || cleanCard.length < 15) {
+        newErrors.cardNumber = "Please enter a valid 15–16 digit card number";
+      }
+      if (!form.expiry || form.expiry.length < 5) {
+        newErrors.expiry = "Enter expiry in MM/YY format";
+      }
+      if (!form.cvc || form.cvc.length < 3) {
+        newErrors.cvc = "Enter 3–4 digit CVC";
+      }
     }
-    if (!form.expiry || form.expiry.length < 5) {
-      newErrors.expiry = "MM/YY";
-    }
-    if (!form.cvc || form.cvc.length < 3) {
-      newErrors.cvc = "CVC";
+    if (paymentMethod === "upi") {
+      if (!upiId.trim() || !/^[\w.]+@[\w]+$/.test(upiId.trim())) {
+        newErrors.cardNumber = "Please enter a valid UPI ID (e.g. name@upi)";
+      }
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -370,12 +379,12 @@ export default function CheckoutPage() {
     );
   }
 
-  // Common input class matching the reference mockup
+  // Premium input class
   const inputClass =
-    "w-full rounded-lg border border-white/10 bg-[#161618] px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 outline-none transition-all focus:border-white/40 focus:ring-1 focus:ring-white/20";
+    "w-full rounded-xl border border-white/10 bg-[#16161a] px-4 py-3.5 text-[14px] text-white placeholder:text-zinc-500 outline-none transition-all duration-200 focus:border-amber-400 focus:bg-[#1a1a1f] focus:ring-1 focus:ring-amber-400/20 hover:border-white/20";
 
   return (
-    <section className="relative min-h-screen bg-[#0a0a0c] text-white pt-24 pb-20 sm:pt-28 sm:pb-28 overflow-hidden">
+    <section className="relative min-h-screen bg-[#0a0a0c] text-white pt-20 pb-20 sm:pt-28 sm:pb-28 overflow-x-hidden">
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Mobile Accordion Summary Bar (visible only on screens < lg) */}
@@ -517,7 +526,7 @@ export default function CheckoutPage() {
         </div>
 
         {/* Desktop 2-Column Responsive Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[390px_1fr] xl:grid-cols-[430px_1fr] gap-8 lg:gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] xl:grid-cols-[420px_1fr] gap-6 lg:gap-10 items-start">
           
           {/* ============================================================== */}
           {/* LEFT COLUMN: ORDER SUMMARY CARD (Matches reference screenshot) */}
@@ -539,8 +548,8 @@ export default function CheckoutPage() {
                 </span>
               </div>
 
-              {/* Items List */}
-              <div className="flex flex-col gap-3">
+              {/* Items List — scrollable when many items */}
+              <div className="flex flex-col gap-3 max-h-[280px] xl:max-h-[320px] overflow-y-auto pr-1 scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 hover:scrollbar-thumb-white/30">
                 <AnimatePresence initial={false}>
                   {detailed.map(({ product, qty }) => (
                     <motion.div
@@ -663,17 +672,6 @@ export default function CheckoutPage() {
                     <Tag className="h-3.5 w-3.5 text-amber-400" />
                     <span>Discount code</span>
                   </div>
-                  {!appliedCoupon && availableCoupons && availableCoupons.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowCouponsList(!showCouponsList)}
-                      className="flex items-center gap-1 text-[11.5px] font-semibold text-amber-400 hover:text-amber-300 transition-colors"
-                    >
-                      <Sparkles className="h-3 w-3" />
-                      <span>Offers ({availableCoupons.length})</span>
-                      {showCouponsList ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                    </button>
-                  )}
                 </div>
 
                 {appliedCoupon ? (
@@ -727,41 +725,6 @@ export default function CheckoutPage() {
                     {couponSuccess && (
                       <p className="mt-1.5 text-xs text-emerald-400">{couponSuccess}</p>
                     )}
-
-                    {/* Available Offers Accordion */}
-                    <AnimatePresence>
-                      {showCouponsList && availableCoupons && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="mt-2.5 space-y-2 overflow-hidden"
-                        >
-                          {availableCoupons.map((c: Coupon) => (
-                            <div
-                              key={c.code}
-                              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] p-2.5 transition-colors hover:border-amber-400/40"
-                            >
-                              <div className="min-w-0 pr-2">
-                                <span className="font-mono text-[12px] font-extrabold text-amber-300">
-                                  {c.code}
-                                </span>
-                                <p className="text-[11px] text-zinc-400 truncate">
-                                  {c.description}
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleApplyCoupon(c.code)}
-                                className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[11px] font-bold text-amber-300 hover:bg-amber-400 hover:text-black transition-colors shrink-0"
-                              >
-                                Apply
-                              </button>
-                            </div>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                 )}
               </div>
@@ -822,111 +785,117 @@ export default function CheckoutPage() {
           {/* ============================================================== */}
           <div className="w-full">
             
-            {/* STEPPER HEADER (Matches the exact circular icons and line style) */}
+            {/* STEPPER HEADER — Premium amber-accented progress UI */}
             <div className="mb-8 lg:mb-10">
-              <div className="flex items-center justify-between w-full max-w-xl">
+              <div className="flex items-center justify-between w-full">
                 
                 {/* STEP 1: Contact Details */}
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className="flex items-center gap-2.5 group text-left cursor-pointer transition-all"
+                  className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2.5 group text-left cursor-pointer transition-all"
                 >
-                  <div
-                    className={`grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full transition-all ${
+                  <motion.div
+                    animate={{
+                      scale: currentStep === 1 ? 1.05 : 1,
+                    }}
+                    transition={{ duration: 0.2 }}
+                    className={`grid h-11 w-11 place-items-center rounded-full transition-all duration-300 ${
                       currentStep === 1
-                        ? "bg-[#18181b] border-2 border-white ring-4 ring-white/20 text-white shadow-lg"
+                        ? "bg-gradient-to-br from-amber-400 to-amber-500 text-black shadow-lg shadow-amber-500/30 ring-4 ring-amber-400/20"
                         : currentStep > 1
-                        ? "bg-white text-black shadow-md"
-                        : "bg-[#18181b] border border-white/20 text-zinc-400"
+                        ? "bg-gradient-to-br from-amber-400 to-amber-500 text-black shadow-md shadow-amber-500/20"
+                        : "bg-transparent border-2 border-white text-white"
                     }`}
                   >
-                    <Contact className="h-5 w-5" />
+                    {currentStep > 1 ? <Check className="h-5 w-5 stroke-[2.5]" /> : <User className="h-5 w-5" />}
+                  </motion.div>
+                  <div className="text-center sm:text-left">
+                    <span
+                      className={`block text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors ${
+                        currentStep === 1 ? "text-amber-400" : currentStep > 1 ? "text-amber-400" : "text-white/80"
+                      }`}
+                    >
+                      Step 1
+                    </span>
+                    <span className={`hidden sm:block text-[13px] font-semibold transition-colors ${
+                      currentStep === 1 ? "text-white" : "text-zinc-400"
+                    }`}>Contact</span>
                   </div>
-                  <span
-                    className={`text-xs sm:text-sm font-medium transition-colors ${
-                      currentStep === 1
-                        ? "text-white font-bold"
-                        : currentStep > 1
-                        ? "text-zinc-200"
-                        : "text-zinc-500"
-                    }`}
-                  >
-                    <span className="hidden sm:inline">Contact Details</span>
-                    <span className="sm:hidden">Contact</span>
-                  </span>
                 </button>
 
-                {/* Connecting Line 1 */}
-                <div
-                  className={`flex-1 h-[1.5px] mx-2 sm:mx-4 transition-colors ${
-                    currentStep > 1 ? "bg-white/50" : "bg-white/15"
-                  }`}
-                />
+                {/* Connecting Line 1 — animated fill */}
+                <div className="flex-1 mx-3 sm:mx-4 h-[2px] rounded-full bg-white/10 overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-300"
+                    initial={{ width: "0%" }}
+                    animate={{ width: currentStep > 1 ? "100%" : "0%" }}
+                    transition={{ duration: 0.45, ease: EASE }}
+                  />
+                </div>
 
                 {/* STEP 2: Shipping Address */}
                 <button
                   type="button"
-                  onClick={() => {
-                    if (validateStep1()) setCurrentStep(2);
-                  }}
-                  className={`flex items-center gap-2.5 group text-left transition-all ${
+                  onClick={() => { if (validateStep1()) setCurrentStep(2); }}
+                  className={`flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2.5 group text-left transition-all ${
                     currentStep >= 2 ? "cursor-pointer" : "cursor-default"
                   }`}
                 >
-                  <div
-                    className={`grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full transition-all ${
+                  <motion.div
+                    animate={{ scale: currentStep === 2 ? 1.05 : 1 }}
+                    transition={{ duration: 0.2 }}
+                    className={`grid h-11 w-11 place-items-center rounded-full transition-all duration-300 ${
                       currentStep === 2
-                        ? "bg-[#18181b] border-2 border-white ring-4 ring-white/20 text-white shadow-lg"
+                        ? "bg-gradient-to-br from-amber-400 to-amber-500 text-black shadow-lg shadow-amber-500/30 ring-4 ring-amber-400/20"
                         : currentStep > 2
-                        ? "bg-white text-black shadow-md"
-                        : "bg-[#18181b] border border-white/20 text-zinc-400"
+                        ? "bg-gradient-to-br from-amber-400 to-amber-500 text-black shadow-md shadow-amber-500/20"
+                        : "bg-transparent border-2 border-white text-white"
                     }`}
                   >
-                    <Truck className="h-5 w-5" />
+                    {currentStep > 2 ? <Check className="h-5 w-5 stroke-[2.5]" /> : <Truck className="h-5 w-5" />}
+                  </motion.div>
+                  <div className="text-center sm:text-left">
+                    <span className={`block text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors ${
+                      currentStep === 2 ? "text-amber-400" : currentStep > 2 ? "text-amber-400" : "text-white/80"
+                    }`}>Step 2</span>
+                    <span className={`hidden sm:block text-[13px] font-semibold transition-colors ${
+                      currentStep === 2 ? "text-white" : "text-zinc-400"
+                    }`}>Shipping</span>
                   </div>
-                  <span
-                    className={`text-xs sm:text-sm font-medium transition-colors ${
-                      currentStep === 2
-                        ? "text-white font-bold"
-                        : currentStep > 2
-                        ? "text-zinc-200"
-                        : "text-zinc-500"
-                    }`}
-                  >
-                    <span className="hidden sm:inline">Shipping Address</span>
-                    <span className="sm:hidden">Shipping</span>
-                  </span>
                 </button>
 
                 {/* Connecting Line 2 */}
-                <div
-                  className={`flex-1 h-[1.5px] mx-2 sm:mx-4 transition-colors ${
-                    currentStep === 3 ? "bg-white/50" : "bg-white/15"
-                  }`}
-                />
+                <div className="flex-1 mx-3 sm:mx-4 h-[2px] rounded-full bg-white/10 overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-300"
+                    initial={{ width: "0%" }}
+                    animate={{ width: currentStep > 2 ? "100%" : "0%" }}
+                    transition={{ duration: 0.45, ease: EASE }}
+                  />
+                </div>
 
                 {/* STEP 3: Payment Details */}
-                <div className="flex items-center gap-2.5 text-left">
-                  <div
-                    className={`grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full transition-all ${
+                <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2.5 text-left">
+                  <motion.div
+                    animate={{ scale: currentStep === 3 ? 1.05 : 1 }}
+                    transition={{ duration: 0.2 }}
+                    className={`grid h-11 w-11 place-items-center rounded-full transition-all duration-300 ${
                       currentStep === 3
-                        ? "bg-[#18181b] border-2 border-white ring-4 ring-white/20 text-white shadow-lg"
-                        : "bg-[#18181b] border border-white/20 text-zinc-400"
+                        ? "bg-gradient-to-br from-amber-400 to-amber-500 text-black shadow-lg shadow-amber-500/30 ring-4 ring-amber-400/20"
+                        : "bg-transparent border-2 border-white text-white"
                     }`}
                   >
                     <CreditCard className="h-5 w-5" />
+                  </motion.div>
+                  <div className="text-center sm:text-left">
+                    <span className={`block text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors ${
+                      currentStep === 3 ? "text-amber-400" : "text-white/80"
+                    }`}>Step 3</span>
+                    <span className={`hidden sm:block text-[13px] font-semibold transition-colors ${
+                      currentStep === 3 ? "text-white" : "text-zinc-400"
+                    }`}>Payment</span>
                   </div>
-                  <span
-                    className={`text-xs sm:text-sm font-medium transition-colors ${
-                      currentStep === 3
-                        ? "text-white font-bold"
-                        : "text-zinc-500"
-                    }`}
-                  >
-                    <span className="hidden sm:inline">Payment Details</span>
-                    <span className="sm:hidden">Payment</span>
-                  </span>
                 </div>
               </div>
             </div>
@@ -941,82 +910,83 @@ export default function CheckoutPage() {
                 {currentStep === 1 && (
                   <motion.div
                     key="step-1"
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: 24 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3, ease: EASE }}
+                    exit={{ opacity: 0, x: -24 }}
+                    transition={{ duration: 0.32, ease: EASE }}
                   >
-                    <h1 className="text-[26px] sm:text-[30px] font-bold text-white mb-6 tracking-tight">
-                      Contact Details
-                    </h1>
+                    <div className="mb-7">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-[11.5px] font-bold text-amber-400 mb-3">
+                        <User className="h-3.5 w-3.5" /> Step 1 of 3
+                      </span>
+                      <h1 className="text-[28px] sm:text-[32px] font-extrabold text-white tracking-tight">
+                        Contact Details
+                      </h1>
+                      <p className="mt-1.5 text-sm text-zinc-400">We'll use this to send your order confirmation.</p>
+                    </div>
 
                     <form onSubmit={handleProceedToShipping} className="space-y-5">
                       <div>
-                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                        <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
                           Full Name
                         </label>
-                        <input
-                          type="text"
-                          required
-                          value={form.name}
-                          onChange={(e) => {
-                            setForm({ ...form, name: e.target.value });
-                            if (errors.name) setErrors({ ...errors, name: "" });
-                          }}
-                          placeholder="Enter your full name"
-                          className={inputClass}
-                        />
-                        {errors.name && (
-                          <p className="mt-1.5 text-xs text-red-400">{errors.name}</p>
-                        )}
+                        <div className="relative">
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                          <input
+                            type="text"
+                            required
+                            value={form.name}
+                            onChange={(e) => { setForm({ ...form, name: e.target.value }); if (errors.name) setErrors({ ...errors, name: "" }); }}
+                            placeholder="Enter your full name"
+                            className={inputClass + " pl-11"}
+                          />
+                        </div>
+                        {errors.name && <p className="mt-1.5 text-xs text-red-400">{errors.name}</p>}
                       </div>
 
                       <div>
-                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                        <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
                           Email Address
                         </label>
-                        <input
-                          type="email"
-                          required
-                          value={form.email}
-                          onChange={(e) => {
-                            setForm({ ...form, email: e.target.value });
-                            if (errors.email) setErrors({ ...errors, email: "" });
-                          }}
-                          placeholder="Enter your email address"
-                          className={inputClass}
-                        />
-                        {errors.email && (
-                          <p className="mt-1.5 text-xs text-red-400">{errors.email}</p>
-                        )}
+                        <div className="relative">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                          <input
+                            type="email"
+                            required
+                            value={form.email}
+                            onChange={(e) => { setForm({ ...form, email: e.target.value }); if (errors.email) setErrors({ ...errors, email: "" }); }}
+                            placeholder="Enter your email address"
+                            className={inputClass + " pl-11"}
+                          />
+                        </div>
+                        {errors.email && <p className="mt-1.5 text-xs text-red-400">{errors.email}</p>}
                       </div>
 
                       <div>
-                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                        <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
                           Mobile Phone Number
                         </label>
-                        <input
-                          type="tel"
-                          required
-                          value={form.phone}
-                          onChange={(e) => {
-                            setForm({ ...form, phone: e.target.value });
-                            if (errors.phone) setErrors({ ...errors, phone: "" });
-                          }}
-                          placeholder="Enter your phone number (e.g. +1 555 123 4567)"
-                          className={inputClass}
-                        />
-                        {errors.phone && (
-                          <p className="mt-1.5 text-xs text-red-400">{errors.phone}</p>
-                        )}
+                        <div className="relative">
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                          <input
+                            type="tel"
+                            required
+                            value={form.phone}
+                            onChange={(e) => { setForm({ ...form, phone: e.target.value }); if (errors.phone) setErrors({ ...errors, phone: "" }); }}
+                            placeholder="+1 555 123 4567"
+                            className={inputClass + " pl-11"}
+                          />
+                        </div>
+                        {errors.phone && <p className="mt-1.5 text-xs text-red-400">{errors.phone}</p>}
                       </div>
 
-                      <div className="pt-4 flex justify-end">
+                      <div className="pt-4">
                         <button
                           type="submit"
-                          className="w-full sm:w-auto rounded-lg bg-white px-8 py-3 text-[14px] font-bold text-black transition-all hover:bg-zinc-200 active:scale-95 shadow-md"
+                          className="w-full flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 py-3.5 text-[14px] font-bold text-black shadow-lg shadow-amber-500/25 transition-all duration-300 hover:scale-[1.02] hover:shadow-amber-500/40 active:scale-[0.98]"
                         >
                           Continue to Shipping
+                          <ArrowRight className="h-4 w-4" />
                         </button>
                       </div>
                     </form>
@@ -1150,19 +1120,21 @@ export default function CheckoutPage() {
                         </div>
                       </div>
 
-                      <div className="pt-6 flex items-center justify-between sm:justify-end gap-3">
+                      <div className="pt-6 flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => setCurrentStep(1)}
-                          className="rounded-lg border border-white/20 bg-[#161618] hover:bg-white/10 px-6 py-2.5 text-[14px] font-medium text-white transition-all"
+                          className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 px-5 py-3 text-[13.5px] font-semibold text-white transition-all active:scale-95"
                         >
+                          <ArrowLeft className="h-4 w-4" />
                           Back
                         </button>
                         <button
                           type="submit"
-                          className="rounded-lg bg-white hover:bg-zinc-200 px-7 py-2.5 text-[14px] font-bold text-black transition-all active:scale-95 shadow-md"
+                          className="flex-1 flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 py-3.5 text-[14px] font-bold text-black shadow-lg shadow-amber-500/25 transition-all duration-300 hover:scale-[1.01] hover:shadow-amber-500/40 active:scale-[0.98]"
                         >
                           Continue to Payment
+                          <ArrowRight className="h-4 w-4" />
                         </button>
                       </div>
                     </form>
@@ -1170,104 +1142,355 @@ export default function CheckoutPage() {
                 )}
 
                 {/* -------------------------------------------------------- */}
-                {/* STEP 3: PAYMENT DETAILS (EXACT MATCH TO REFERENCE IMAGE) */}
+                {/* STEP 3: PAYMENT DETAILS — MULTI-METHOD                   */}
                 {/* -------------------------------------------------------- */}
                 {currentStep === 3 && (
                   <motion.div
                     key="step-3"
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: 24 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3, ease: EASE }}
+                    exit={{ opacity: 0, x: -24 }}
+                    transition={{ duration: 0.32, ease: EASE }}
                   >
-                    <h1 className="text-[26px] sm:text-[30px] font-bold text-white mb-6 tracking-tight">
-                      Payment Details
-                    </h1>
+                    {/* Header */}
+                    <div className="mb-7">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-[11.5px] font-bold text-amber-400 mb-3">
+                        <Lock className="h-3.5 w-3.5" /> Step 3 of 3 · Secure Checkout
+                      </span>
+                      <h1 className="text-[28px] sm:text-[32px] font-extrabold text-white tracking-tight">
+                        Payment Details
+                      </h1>
+                      <p className="mt-1.5 text-sm text-zinc-400">Choose your preferred payment method.</p>
+                    </div>
 
-                    <form onSubmit={handleFinalSubmit} className="space-y-4">
-                      {/* Card Number */}
-                      <div>
-                        <label className="block text-[13px] font-medium text-white/80 mb-2">
-                          Card Number
-                        </label>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          required
-                          value={form.cardNumber}
-                          onChange={(e) => handleCardNumberChange(e.target.value)}
-                          placeholder="Enter Here"
-                          className={inputClass}
-                        />
-                        {errors.cardNumber && (
-                          <p className="mt-1.5 text-xs text-red-400">{errors.cardNumber}</p>
+                    {/* Payment Method Tabs */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-6">
+                      {(
+                        [
+                          { id: "card", label: "Card", icon: "💳" },
+                          { id: "upi", label: "UPI", icon: "📱" },
+                          { id: "paypal", label: "PayPal", icon: "🅿️" },
+                          { id: "cod", label: "Cash on Delivery", icon: "🏠" },
+                        ] as const
+                      ).map((method) => (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => setPaymentMethod(method.id)}
+                          className={`relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border py-3.5 px-2 text-center transition-all duration-200 active:scale-[0.97] ${
+                            paymentMethod === method.id
+                              ? "border-amber-400 bg-amber-400/10 shadow-lg shadow-amber-500/10"
+                              : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/5"
+                          }`}
+                        >
+                          {paymentMethod === method.id && (
+                            <motion.div
+                              layoutId="payment-active"
+                              className="absolute inset-0 rounded-2xl border border-amber-400/60 bg-amber-400/5"
+                              transition={{ duration: 0.2 }}
+                            />
+                          )}
+                          <span className="text-xl leading-none">{method.icon}</span>
+                          <span
+                            className={`text-[11px] font-bold leading-tight ${
+                              paymentMethod === method.id ? "text-amber-400" : "text-zinc-400"
+                            }`}
+                          >
+                            {method.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <form onSubmit={handleFinalSubmit} className="space-y-5">
+                      {/* ── CREDIT / DEBIT CARD ── */}
+                      <AnimatePresence mode="wait">
+                        {paymentMethod === "card" && (
+                          <motion.div
+                            key="card-form"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.22 }}
+                            className="space-y-4"
+                          >
+                            {/* Card Preview */}
+                            <div className="relative h-[140px] w-full max-w-sm rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-black border border-white/10 p-5 shadow-xl">
+                              <div className="absolute top-0 right-0 w-40 h-40 bg-amber-400/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+                              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/3 rounded-full translate-y-1/2 -translate-x-1/2" />
+                              <div className="relative z-10 flex flex-col h-full justify-between">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex gap-1">
+                                    <div className="h-5 w-7 rounded-sm bg-amber-400/80" />
+                                    <div className="h-5 w-7 rounded-sm bg-amber-400/40" />
+                                  </div>
+                                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                                    {form.cardNumber.startsWith("4") ? "VISA" : form.cardNumber.startsWith("5") ? "MASTERCARD" : "CARD"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="text-[13px] font-mono tracking-[0.2em] text-white/70">
+                                    {form.cardNumber || "•••• •••• •••• ••••"}
+                                  </p>
+                                  <div className="flex items-center justify-between mt-1.5">
+                                    <p className="text-[11px] text-zinc-500 uppercase tracking-wider">
+                                      {form.cardHolder || "Card Holder"}
+                                    </p>
+                                    <p className="text-[11px] text-zinc-500 font-mono">
+                                      {form.expiry || "MM/YY"}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Card Holder */}
+                            <div>
+                              <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                                Card Holder Name
+                              </label>
+                              <div className="relative">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                                <input
+                                  type="text"
+                                  value={form.cardHolder}
+                                  onChange={(e) => setForm({ ...form, cardHolder: e.target.value })}
+                                  placeholder="Name as on card"
+                                  className={inputClass + " pl-11"}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Card Number */}
+                            <div>
+                              <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                                Card Number
+                              </label>
+                              <div className="relative">
+                                <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={form.cardNumber}
+                                  onChange={(e) => handleCardNumberChange(e.target.value)}
+                                  placeholder="1234 5678 9012 3456"
+                                  className={inputClass + " pl-11 font-mono tracking-wider"}
+                                  maxLength={19}
+                                />
+                              </div>
+                              {errors.cardNumber && (
+                                <p className="mt-1.5 text-xs text-red-400">{errors.cardNumber}</p>
+                              )}
+                            </div>
+
+                            {/* Expiry + CVC */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                                  Expiry Date
+                                </label>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={form.expiry}
+                                  onChange={(e) => handleExpiryChange(e.target.value)}
+                                  placeholder="MM/YY"
+                                  className={inputClass + " font-mono"}
+                                />
+                                {errors.expiry && (
+                                  <p className="mt-1.5 text-xs text-red-400">{errors.expiry}</p>
+                                )}
+                              </div>
+                              <div>
+                                <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                                  CVC / CVV
+                                </label>
+                                <div className="relative">
+                                  <input
+                                    type="password"
+                                    inputMode="numeric"
+                                    maxLength={4}
+                                    value={form.cvc}
+                                    onChange={(e) => handleCvcChange(e.target.value)}
+                                    placeholder="•••"
+                                    className={inputClass + " font-mono"}
+                                  />
+                                </div>
+                                {errors.cvc && (
+                                  <p className="mt-1.5 text-xs text-red-400">{errors.cvc}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Security badge */}
+                            <div className="flex items-center gap-2 text-[11.5px] text-zinc-500">
+                              <ShieldCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                              <span>256-bit SSL encrypted. Your card details are never stored.</span>
+                            </div>
+                          </motion.div>
                         )}
-                      </div>
 
-                      {/* Expiration Date and CVC Columns */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[13px] font-medium text-white/80 mb-2">
-                            Expiration date (MM/YY)
-                          </label>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            required
-                            value={form.expiry}
-                            onChange={(e) => handleExpiryChange(e.target.value)}
-                            placeholder="MM/YY"
-                            className={inputClass}
-                          />
-                          {errors.expiry && (
-                            <p className="mt-1.5 text-xs text-red-400">{errors.expiry}</p>
-                          )}
-                        </div>
+                        {/* ── UPI ── */}
+                        {paymentMethod === "upi" && (
+                          <motion.div
+                            key="upi-form"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.22 }}
+                            className="space-y-4"
+                          >
+                            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+                              <p className="text-sm font-semibold text-white mb-1">Pay via UPI</p>
+                              <p className="text-[12.5px] text-zinc-400">Enter your UPI ID linked to any bank or wallet app.</p>
+                            </div>
 
-                        <div>
-                          <label className="block text-[13px] font-medium text-white/80 mb-2">
-                            CVC
-                          </label>
-                          <input
-                            type="password"
-                            inputMode="numeric"
-                            required
-                            maxLength={4}
-                            value={form.cvc}
-                            onChange={(e) => handleCvcChange(e.target.value)}
-                            placeholder="123"
-                            className={inputClass}
-                          />
-                          {errors.cvc && (
-                            <p className="mt-1.5 text-xs text-red-400">{errors.cvc}</p>
-                          )}
-                        </div>
-                      </div>
+                            <div>
+                              <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                                UPI ID
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm pointer-events-none">📱</span>
+                                <input
+                                  type="text"
+                                  value={upiId}
+                                  onChange={(e) => { setUpiId(e.target.value); if (errors.cardNumber) setErrors({ ...errors, cardNumber: "" }); }}
+                                  placeholder="yourname@upi"
+                                  className={inputClass + " pl-11"}
+                                />
+                              </div>
+                              {errors.cardNumber && (
+                                <p className="mt-1.5 text-xs text-red-400">{errors.cardNumber}</p>
+                              )}
+                            </div>
 
-                      {/* Buttons at bottom right matching the screenshot */}
-                      <div className="pt-6 flex items-center justify-end gap-3">
+                            {/* UPI App logos row */}
+                            <div>
+                              <p className="text-[11.5px] text-zinc-500 mb-3">Accepted UPI apps:</p>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                {["GPay", "PhonePe", "Paytm", "BHIM", "Amazon Pay"].map((app) => (
+                                  <span key={app} className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-zinc-300">
+                                    {app}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* ── PAYPAL ── */}
+                        {paymentMethod === "paypal" && (
+                          <motion.div
+                            key="paypal-form"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.22 }}
+                            className="space-y-4"
+                          >
+                            <div className="rounded-2xl border border-[#003087]/40 bg-[#003087]/10 p-5 flex items-center gap-4">
+                              <div className="text-4xl">🅿️</div>
+                              <div>
+                                <p className="text-sm font-bold text-white">PayPal</p>
+                                <p className="text-[12.5px] text-zinc-400 mt-0.5">
+                                  You'll be redirected to PayPal to complete your payment securely.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-[12.5px] text-zinc-400 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                                <span>No card details needed — pay with your PayPal balance or linked card</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                                <span>Protected by PayPal Buyer Protection</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                                <span>Instant payment confirmation</span>
+                              </div>
+                            </div>
+                            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-[12px] text-amber-300 flex items-start gap-2">
+                              <span className="text-base leading-none mt-0.5">ℹ️</span>
+                              <span>After clicking "Place Order Securely", you'll be redirected to PayPal to authorize the payment of <strong>${total.toFixed(2)}</strong>.</span>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* ── CASH ON DELIVERY ── */}
+                        {paymentMethod === "cod" && (
+                          <motion.div
+                            key="cod-form"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.22 }}
+                            className="space-y-4"
+                          >
+                            <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-5 flex items-center gap-4">
+                              <div className="text-4xl">🏠</div>
+                              <div>
+                                <p className="text-sm font-bold text-white">Cash on Delivery</p>
+                                <p className="text-[12.5px] text-zinc-400 mt-0.5">
+                                  Pay in cash when your order arrives at your door.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 space-y-3">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-zinc-400">Amount to pay on delivery</span>
+                                <span className="font-bold text-white text-base">${total.toFixed(2)}</span>
+                              </div>
+                              <div className="h-px bg-white/5" />
+                              <div className="text-[12px] text-zinc-500 space-y-1.5">
+                                <div className="flex items-center gap-2"><Check className="h-3 w-3 text-emerald-400" /> No online payment required</div>
+                                <div className="flex items-center gap-2"><Check className="h-3 w-3 text-emerald-400" /> Pay exact amount in cash to delivery agent</div>
+                                <div className="flex items-center gap-2"><Check className="h-3 w-3 text-zinc-500" /> COD fee may apply depending on your location</div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* CTA Buttons */}
+                      <div className="pt-6 flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => setCurrentStep(2)}
-                          className="rounded-lg border border-white/20 bg-[#161618] hover:bg-white/10 px-6 py-2.5 text-[14px] font-medium text-white transition-all active:scale-95"
+                          className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 px-5 py-3 text-[13.5px] font-semibold text-white transition-all active:scale-95"
                         >
+                          <ArrowLeft className="h-4 w-4" />
                           Back
                         </button>
                         <button
                           type="submit"
                           disabled={isSubmitting}
-                          className="rounded-lg bg-white hover:bg-zinc-200 px-8 py-2.5 text-[14px] font-bold text-black transition-all active:scale-95 shadow-md flex items-center justify-center gap-2"
+                          className="flex-1 flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 py-3.5 text-[14px] font-bold text-black shadow-lg shadow-amber-500/25 transition-all duration-300 hover:scale-[1.01] hover:shadow-amber-500/40 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           {isSubmitting ? (
-                            <div className="h-4 w-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                            <>
+                              <div className="h-4 w-4 rounded-full border-2 border-black/60 border-t-black animate-spin" />
+                              <span>Processing…</span>
+                            </>
                           ) : (
-                            "Submit"
+                            <>
+                              <Lock className="h-4 w-4" />
+                              <span>
+                                {paymentMethod === "paypal"
+                                  ? "Continue to PayPal"
+                                  : paymentMethod === "cod"
+                                  ? "Place Order (Pay on Delivery)"
+                                  : "Place Order Securely"}
+                              </span>
+                            </>
                           )}
                         </button>
                       </div>
                     </form>
                   </motion.div>
                 )}
+
 
               </AnimatePresence>
             </div>
