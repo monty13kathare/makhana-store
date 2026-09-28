@@ -49,7 +49,7 @@ export default function AuthModal() {
       setOtpDigits(Array(6).fill(""));
       setSeconds(30);
 
-      const prefId = modalOptions.prefill?.identifier;
+      const prefId = modalOptions.prefill?.phone || modalOptions.prefill?.email;
       if (prefId) {
         setIdentifier(prefId);
         startLogin(prefId);
