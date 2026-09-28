@@ -222,7 +222,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative bg-[#191919] pt-[76px] sm:pt-[88px] lg:pt-[100px] text-white">
+    <section className="relative bg-[#191919] pt-[112px] sm:pt-[128px] lg:pt-[144px] text-white overflow-x-clip">
       {/* Hidden preloader to guarantee 0ms instant display without load delays */}
       <div className="hidden pointer-events-none" aria-hidden="true">
         {slides.map((s) => (
@@ -238,7 +238,7 @@ export default function Hero() {
 
       <div className="container-x">
         {/* Main Hero Row */}
-        <div className="grid items-center gap-8 sm:gap-10 lg:grid-cols-[1.05fr_1.15fr] lg:gap-10 min-h-[480px] sm:min-h-[540px] lg:min-h-[640px] xl:min-h-[680px]">
+        <div className="grid items-center gap-6 sm:gap-10 lg:grid-cols-[1.05fr_1.15fr] lg:gap-10 min-h-[440px] sm:min-h-[540px] lg:min-h-[640px] xl:min-h-[680px]">
           
           {/* Left Column: Heading, Paragraph, Two Buttons */}
           <motion.div
@@ -248,21 +248,21 @@ export default function Hero() {
             className="relative z-10 max-w-xl"
           >
             {/* Header Title with Josefin Sans font */}
-            <h1 className="font-heading font-bold text-white text-[32px] xs:text-[38px] sm:text-[50px] lg:text-[62px] leading-[1.1] tracking-tight">
+            <h1 className="font-heading font-bold text-white text-[28px] xs:text-[36px] sm:text-[48px] lg:text-[58px] xl:text-[62px] leading-[1.12] tracking-tight break-words">
               Premium Makhana for
               <br className="hidden xs:inline" />{" "}
               the Modern World.
             </h1>
 
             {/* Paragraph Subtitle matching clone text */}
-            <p className="mt-4 sm:mt-6 text-[14px] sm:text-[16px] leading-[1.65] text-[#9a9a9a] max-w-lg">
+            <p className="mt-3.5 sm:mt-6 text-[13.5px] xs:text-[14.5px] sm:text-[16px] leading-[1.65] text-[#9a9a9a] max-w-lg break-words">
               Crafted for refined taste, elegant gifting, and everyday indulgence &mdash;
               our premium makhana collection is available for online purchase with
               worldwide shipping and free delivery on eligible orders.
             </p>
 
-            {/* Action Buttons */}
-            <div className="mt-7 sm:mt-9 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+            {/* Action Buttons (Desktop only - under subtitle) */}
+            <div className="mt-7 sm:mt-9 hidden lg:flex flex-row items-center gap-4">
               <Link
                 href="/shop"
                 className="w-full sm:w-auto text-center rounded-xl bg-white px-7 py-3.5 text-[14.5px] font-semibold text-[#111111] transition-all hover:bg-neutral-100 hover:shadow-[0_8px_24px_rgba(255,255,255,0.18)] active:scale-95"
@@ -283,19 +283,19 @@ export default function Hero() {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
-            className="relative flex flex-col items-center justify-center lg:items-end [perspective:1200px]"
+            className="relative flex flex-col items-center justify-center lg:items-end [perspective:1200px] w-full"
             onMouseMove={handleMouseMove}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={handleMouseLeave}
           >
-            {/* 3D Tilting Stage Wrapper - Enlarged for Desktop */}
+            {/* 3D Tilting Stage Wrapper - Responsive for all screens */}
             <motion.div
               style={{
                 rotateX,
                 rotateY,
                 transformStyle: "preserve-3d",
               }}
-              className="relative w-full max-w-[440px] sm:max-w-[520px] lg:max-w-[620px] xl:max-w-[680px] h-[360px] sm:h-[450px] lg:h-[550px] xl:h-[600px] flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
+              className="relative w-full max-w-[300px] xs:max-w-[360px] sm:max-w-[480px] lg:max-w-[620px] xl:max-w-[680px] h-[280px] xs:h-[330px] sm:h-[440px] lg:h-[550px] xl:h-[600px] flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
             >
               {/* Dynamic ambient spotlight glow behind active 3D product */}
               <motion.div
@@ -303,7 +303,7 @@ export default function Hero() {
                   background: `radial-gradient(circle, ${activeSlide?.glow || "rgba(235, 175, 70, 0.28)"} 0%, rgba(0,0,0,0) 70%)`,
                 }}
                 transition={{ duration: 1.2, ease: "easeInOut" }}
-                className="pointer-events-none absolute inset-[-20%] rounded-full blur-3xl -z-20"
+                className="pointer-events-none absolute inset-0 sm:inset-[-8%] lg:inset-[-15%] rounded-full blur-2xl sm:blur-3xl -z-20"
               />
 
               {/* Dynamic 3D Ground Contact Shadow */}
@@ -317,7 +317,7 @@ export default function Hero() {
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="pointer-events-none absolute bottom-0 sm:bottom-2 w-4/5 h-12 rounded-full bg-black/95 blur-3xl -z-10"
+                className="pointer-events-none absolute bottom-0 sm:bottom-2 w-4/5 h-10 sm:h-12 rounded-full bg-black/95 blur-2xl sm:blur-3xl -z-10"
               />
 
               {/* Instant In-Place Smooth Animated Auto-Transition */}
@@ -338,8 +338,8 @@ export default function Hero() {
                   {/* Organic floating levitation micro-animation - Scaled larger in desktop */}
                   <motion.div
                     animate={{
-                      y: [-16, 12, -16],
-                      rotate: [-1.6, 1.6, -1.6],
+                      y: [-14, 10, -14],
+                      rotate: [-1.4, 1.4, -1.4],
                     }}
                     transition={{
                       duration: 6.5,
@@ -359,6 +359,22 @@ export default function Hero() {
                 </motion.div>
               </AnimatePresence>
             </motion.div>
+
+            {/* Action Buttons (Mobile only - shown below product image) */}
+            <div className="mt-4 sm:mt-6 w-full max-w-sm flex lg:hidden flex-col xs:flex-row items-stretch xs:items-center justify-center gap-3 px-2 xs:px-0">
+              <Link
+                href="/shop"
+                className="w-full xs:w-auto text-center rounded-xl bg-white px-7 py-3.5 text-[14.5px] font-semibold text-[#111111] transition-all hover:bg-neutral-100 hover:shadow-[0_8px_24px_rgba(255,255,255,0.18)] active:scale-95"
+              >
+                Shop Collection
+              </Link>
+              <Link
+                href="/about"
+                className="w-full xs:w-auto text-center rounded-xl border border-white/25 bg-white/[0.04] px-7 py-3.5 text-[14.5px] font-semibold text-white transition-all hover:border-white/50 hover:bg-white/[0.08] active:scale-95"
+              >
+                Explore Brand Story
+              </Link>
+            </div>
           </motion.div>
         </div>
 
@@ -376,7 +392,7 @@ export default function Hero() {
               backdropFilter: "blur(89.5px)",
               WebkitBackdropFilter: "blur(89.5px)",
             }}
-            className="relative overflow-hidden rounded-[32px] sm:rounded-[36px] border border-white/[0.08] bg-[#222222]/70 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]"
+            className="relative overflow-hidden rounded-[24px] sm:rounded-[32px] lg:rounded-[36px] border border-white/[0.08] bg-[#222222]/70 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]"
           >
             {/* Inset vertical dividers matching reference image (y: 81 to 234) */}
             <div className="hidden lg:block pointer-events-none absolute top-[14%] bottom-[14%] left-1/4 w-[1px] bg-white/[0.08]" />
@@ -389,20 +405,20 @@ export default function Hero() {
                 return (
                   <div
                     key={pillar.title}
-                    className="flex flex-col p-6 sm:p-7 lg:py-9 lg:px-8 xl:px-9 transition-colors hover:bg-white/[0.02]"
+                    className="flex flex-col p-5 sm:p-7 lg:py-9 lg:px-8 xl:px-9 transition-colors hover:bg-white/[0.02]"
                   >
                     {/* Clean outline icon in white */}
                     <div className="text-white">
-                      <Icon className="h-8 w-8" />
+                      <Icon className="h-7 w-7 sm:h-8 sm:w-8" />
                     </div>
 
                     {/* Header Title with Josefin Sans and font-weight 500 */}
-                    <h3 className="mt-5 sm:mt-6 font-heading font-medium text-[19px] sm:text-[20px] text-white tracking-tight leading-snug">
+                    <h3 className="mt-4 sm:mt-6 font-heading font-medium text-[18px] sm:text-[20px] text-white tracking-tight leading-snug break-words">
                       {pillar.title}
                     </h3>
 
                     {/* Description paragraph with Montserrat */}
-                    <p className="mt-2.5 sm:mt-3 text-[13px] leading-[1.6] text-[#8a8a8a] max-w-[28ch] sm:max-w-none">
+                    <p className="mt-2 sm:mt-2.5 text-[12.5px] sm:text-[13px] leading-[1.6] text-[#8a8a8a] max-w-[28ch] sm:max-w-none break-words">
                       {pillar.desc}
                     </p>
                   </div>

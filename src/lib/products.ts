@@ -97,7 +97,7 @@ export const products: Product[] = [
       "Rich Spanish oak-smoked paprika dusted over crisp lotus pops with sharp aged white cheddar. A deep, savory umami burst.",
     price: 15,
     mrp: 19,
-    image: "/img/roasting-fire.jpg",
+    image: "/img/hero-platter.jpg",
     badge: "Chef's Special",
     rating: 4.9,
     reviews: 524,

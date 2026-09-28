@@ -40,19 +40,19 @@ export default function BrandLogo({
   className?: string;
 }) {
   const content = (
-    <div className={`group flex shrink-0 items-center gap-3 ${className}`}>
+    <div className={`group flex shrink-0 items-center gap-2 sm:gap-2.5 ${className}`}>
       <motion.div
         whileHover={{ scale: 1.05 }}
         transition={{ duration: 0.3, ease: EASE }}
       >
-        <LogoIcon size={size} />
+        <LogoIcon size={size} className="h-8 sm:h-9 md:h-10 px-1.5 sm:px-2" />
       </motion.div>
 
       <span className="leading-tight flex flex-col justify-center">
-        <span className="font-heading text-[21px] font-bold tracking-tight text-white transition-colors group-hover:text-amber-300">
+        <span className="font-heading text-[17px] sm:text-[19px] md:text-[21px] font-bold tracking-tight text-white transition-colors group-hover:text-amber-300">
           Makhana
         </span>
-        <span className="text-[10px] font-medium tracking-[0.06em] text-[#8e8e8e]">
+        <span className="text-[9px] sm:text-[10px] font-medium tracking-[0.06em] text-[#8e8e8e]">
           Premium
         </span>
       </span>

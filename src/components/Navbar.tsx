@@ -60,7 +60,7 @@ export default function Navbar() {
             : "border-b border-transparent bg-transparent"
         }`}
       >
-        <nav className="container-x flex h-[72px] sm:h-[88px] items-center justify-between gap-3 sm:gap-8">
+        <nav className="container-x flex h-[68px] sm:h-[80px] lg:h-[88px] items-center justify-between gap-2 sm:gap-8">
           <Logo />
 
           {/* Desktop links */}
@@ -93,7 +93,7 @@ export default function Navbar() {
           </ul>
 
           {/* Actions */}
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
             <Link
               href="/cart"
               aria-label={`Open cart, ${count} items`}

@@ -7,7 +7,7 @@ import ProductCard from "../ProductCard";
 import { Reveal } from "../motion-primitives";
 
 export default function Flavours() {
-  const collection = products.slice(0, 3);
+  const collection = products.slice(0, 4);
 
   return (
     <section id="collection" className="relative bg-[#0a0a0a] pt-28 sm:pt-36 lg:pt-40 pb-16 lg:pb-24">
@@ -33,8 +33,8 @@ export default function Flavours() {
           </Link>
         </div>
 
-        {/* Product Cards Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
+        {/* Product Cards Grid - 4 Columns */}
+        <div className="grid gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
           {collection.map((p, i) => (
             <div key={p.slug} className="h-full flex flex-col">
               <ProductCard product={p} index={i} />

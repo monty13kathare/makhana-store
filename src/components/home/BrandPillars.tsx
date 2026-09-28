@@ -11,8 +11,8 @@ const pillars = [
   },
   {
     number: "02",
-    title: "Built for only 3 products",
-    desc: "Instead of looking empty, the layout turns a small catalog into a focused premium collection.",
+    title: "Focused signature line",
+    desc: "Instead of overwhelming shoppers, the layout highlights a curated signature collection with clear buying clarity.",
   },
   {
     number: "03",

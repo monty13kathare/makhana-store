@@ -63,12 +63,12 @@ export default function RootLayout({
       lang="en"
       className={`${montserrat.variable} ${josefin.variable} ${playfair.variable}`}
     >
-      <body className="antialiased">
+      <body className="antialiased overflow-x-hidden min-h-screen w-full">
         <AuthProvider>
           <WishlistProvider>
             <CartProvider>
               <Navbar />
-              <main className="min-h-screen">{children}</main>
+              <main className="min-h-screen w-full max-w-full overflow-x-clip">{children}</main>
               <Footer />
               <CartDrawer />
               <AuthModal />
