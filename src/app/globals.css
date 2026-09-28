@@ -72,6 +72,15 @@
     font-family: var(--font-montserrat), "Montserrat", sans-serif;
   }
 
+  /* Form and Select dark theme support */
+  select {
+    color-scheme: dark;
+  }
+  select option {
+    background-color: #1a1a1a;
+    color: #ffffff;
+  }
+
   ::selection {
     background: var(--color-gold);
     color: var(--color-ink);

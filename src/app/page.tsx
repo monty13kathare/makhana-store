@@ -2,6 +2,7 @@ import Hero from "@/components/home/Hero";
 import Flavours from "@/components/home/Flavours";
 import BrandPillars from "@/components/home/BrandPillars";
 import IndulgeBenefits from "@/components/home/IndulgeBenefits";
+import FlavourCombos from "@/components/home/FlavourCombos";
 import Gifting from "@/components/home/Gifting";
 import GlobalDelivery from "@/components/home/GlobalDelivery";
 import Testimonials from "@/components/home/Testimonials";
@@ -14,6 +15,7 @@ export default function Home() {
       <Flavours />
       <BrandPillars />
       <IndulgeBenefits />
+      <FlavourCombos />
       <Gifting />
       <GlobalDelivery />
       <Testimonials />

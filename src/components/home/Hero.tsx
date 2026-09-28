@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { EASE } from "../motion-primitives";
 
 /* --------------------------------------------------------------------------
@@ -10,36 +10,28 @@ import { EASE } from "../motion-primitives";
    -------------------------------------------------------------------------- */
 const slides = [
   {
-    src: "/img/makhana-hero2.png",
-    alt: "Signature whole roasted makhana on rustic wooden platter",
-    title: "Artisanal Whole Roasted Makhana",
-    flavor: "Original Himalayan Crisp",
-    glow: "rgba(235, 175, 70, 0.20)",
+    src: "/img/hero-clean-jar.png",
+    alt: "Artisanal Truffle & Sea Salt whole roasted makhana in luxury gourmet glass jar",
+    title: "Truffle & Sea Salt Gourmet Jar",
+    flavor: "Gourmet Roasted Fox Nuts",
+    glow: "rgba(235, 175, 70, 0.28)",
     accent: "#EBAF46",
   },
   {
-    src: "/img/makhana-prod-salt.png",
-    alt: "Makhana Himalayan Pink Salt premium pouch with roasted lotus seeds",
-    title: "Himalayan Pink Salt Pouch",
-    flavor: "Slow-Roasted in Pure A2 Ghee",
-    glow: "rgba(244, 160, 160, 0.20)",
-    accent: "#F4A0A0",
+    src: "/img/hero-clean-canister.png",
+    alt: "Signature Truffle & Sea Salt roasted makhana in luxury black tin canister",
+    title: "Luxury Roasted Canister",
+    flavor: "Original Crisp & Golden Roasted",
+    glow: "rgba(235, 175, 70, 0.28)",
+    accent: "#EBAF46",
   },
   {
-    src: "/img/makhana-prod-peri.png",
-    alt: "Makhana Peri Peri Crunch spicy roasted lotus seeds snack pouch",
+    src: "/img/hero-clean-pouch.png",
+    alt: "Spicy Peri Peri Crunch roasted makhana in luxury stand-up pouch",
     title: "Peri Peri Crunch Pouch",
     flavor: "Scorching & Savory Spices",
-    glow: "rgba(255, 107, 74, 0.20)",
+    glow: "rgba(255, 107, 74, 0.28)",
     accent: "#FF6B4A",
-  },
-  {
-    src: "/img/makhana-prod-truffle.png",
-    alt: "Makhana Truffle & Sea Salt gourmet cylindrical tin canister",
-    title: "Truffle & Sea Salt Tin",
-    flavor: "Connoisseur Reserve Tin",
-    glow: "rgba(218, 165, 32, 0.22)",
-    accent: "#DAA520",
   },
 ];
 
@@ -180,16 +172,57 @@ export default function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Interactive 3D mouse parallax tracking
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [10, -10]), {
+    stiffness: 140,
+    damping: 18,
+  });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-10, 10]), {
+    stiffness: 140,
+    damping: 18,
+  });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+    setIsPaused(false);
+  };
+
+  // Reset slide index if slides array is shortened
+  useEffect(() => {
+    if (currentSlide >= slides.length) {
+      setCurrentSlide(0);
+    }
+  }, [currentSlide]);
+
   // Auto-slide every 3.8s with smooth instant in-place transition
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || slides.length === 0) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 3800);
+    }, 4200);
     return () => clearInterval(timer);
   }, [isPaused]);
 
-  const activeSlide = slides[currentSlide];
+  const safeIndex = slides.length > 0 ? currentSlide % slides.length : 0;
+  const activeSlide = slides[safeIndex] || slides[0] || {
+    src: "/img/hero-3d-jar.jpg",
+    alt: "Signature whole roasted makhana",
+    title: "Artisanal Whole Roasted Makhana",
+    flavor: "Original Himalayan Crisp",
+    glow: "rgba(235, 175, 70, 0.28)",
+    accent: "#EBAF46",
+  };
 
   return (
     <section className="relative bg-[#191919] pt-[76px] sm:pt-[88px] lg:pt-[100px] text-white">
@@ -248,30 +281,52 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Right Column: Instant In-Place Smooth Animated Product Showcase */}
+          {/* Right Column: 3D Animated Product Showcase with Interactive Parallax & Zero Cutoff */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
-            className="relative flex items-center justify-center lg:justify-end"
+            className="relative flex flex-col items-center justify-center lg:items-end [perspective:1200px]"
+            onMouseMove={handleMouseMove}
             onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
+            onMouseLeave={handleMouseLeave}
           >
-            {/* Stage wrapper holding the floating transparent PNG */}
-            <div className="relative w-full max-w-[420px] sm:max-w-[520px] lg:max-w-[560px] h-[280px] sm:h-[400px] lg:h-[480px] flex items-center justify-center">
-              {/* Dynamic ambient spotlight glow behind active product */}
+            {/* 3D Tilting Stage Wrapper */}
+            <motion.div
+              style={{
+                rotateX,
+                rotateY,
+                transformStyle: "preserve-3d",
+              }}
+              className="relative w-full max-w-[420px] sm:max-w-[500px] lg:max-w-[540px] h-[340px] sm:h-[420px] lg:h-[480px] flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
+            >
+              {/* Dynamic ambient spotlight glow behind active 3D product */}
               <motion.div
                 animate={{
-                  background: `radial-gradient(circle, ${activeSlide.glow} 0%, rgba(0,0,0,0) 70%)`,
+                  background: `radial-gradient(circle, ${activeSlide?.glow || "rgba(235, 175, 70, 0.28)"} 0%, rgba(0,0,0,0) 70%)`,
                 }}
                 transition={{ duration: 0.8, ease: "easeInOut" }}
-                className="pointer-events-none absolute inset-0 rounded-full blur-3xl -z-10"
+                className="pointer-events-none absolute inset-[-15%] rounded-full blur-3xl -z-20"
               />
 
-              {/* Instant In-Place Smooth Animated Auto-Transition (Zero Blank Wait) */}
+              {/* Dynamic 3D Ground Contact Shadow */}
+              <motion.div
+                animate={{
+                  scale: [0.85, 1.12, 0.85],
+                  opacity: [0.3, 0.6, 0.3],
+                }}
+                transition={{
+                  duration: 5.4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="pointer-events-none absolute bottom-2 w-3/4 h-10 rounded-full bg-black/95 blur-2xl -z-10"
+              />
+
+              {/* Instant In-Place Smooth Animated Auto-Transition */}
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.div
-                  key={currentSlide}
+                  key={safeIndex}
                   variants={fadeVariants}
                   initial="enter"
                   animate="center"
@@ -281,30 +336,51 @@ export default function Hero() {
                     ease: [0.16, 1, 0.3, 1],
                   }}
                   className="absolute inset-0 flex items-center justify-center"
+                  style={{ transform: "translateZ(25px)" }}
                 >
                   {/* Organic floating levitation micro-animation */}
                   <motion.div
                     animate={{
-                      y: [-8, 8, -8],
-                      rotate: [-0.8, 0.8, -0.8],
+                      y: [-12, 10, -12],
+                      rotate: [-1.2, 1.2, -1.2],
                     }}
                     transition={{
-                      duration: 5.2,
+                      duration: 5.4,
                       repeat: Infinity,
                       ease: "easeInOut",
                     }}
-                    className="relative h-full w-full flex items-center justify-center p-3 sm:p-5"
+                    className="relative h-full w-full flex items-center justify-center p-2 sm:p-4"
                   >
                     <img
-                      src={activeSlide.src}
-                      alt={activeSlide.alt}
+                      src={activeSlide?.src || "/img/hero-clean-jar.png"}
+                      alt={activeSlide?.alt || "Artisanal 3D Makhana"}
                       decoding="sync"
                       loading="eager"
-                      className="h-full w-full object-contain drop-shadow-[0_28px_45px_rgba(0,0,0,0.85)] filter select-none pointer-events-none"
+                      className="h-full w-full object-contain drop-shadow-[0_24px_45px_rgba(0,0,0,0.85)] filter select-none pointer-events-none"
                     />
                   </motion.div>
                 </motion.div>
               </AnimatePresence>
+            </motion.div>
+
+            {/* Interactive Slide Indicator Pills */}
+            <div className="mt-4 flex items-center gap-2.5 z-20">
+              {slides.map((s, idx) => {
+                const isActive = idx === safeIndex;
+                return (
+                  <button
+                    key={s.title}
+                    type="button"
+                    onClick={() => setCurrentSlide(idx)}
+                    aria-label={`Show ${s.title}`}
+                    className={`h-2 transition-all rounded-full cursor-pointer ${
+                      isActive
+                        ? "w-8 bg-amber-400 shadow-[0_0_12px_rgba(235,175,70,0.6)]"
+                        : "w-2 bg-white/25 hover:bg-white/50"
+                    }`}
+                  />
+                );
+              })}
             </div>
           </motion.div>
         </div>

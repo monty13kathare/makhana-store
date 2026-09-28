@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Clock, Mail, MapPin, Phone } from "lucide-react";
 import { EASE, Reveal } from "@/components/motion-primitives";
+import CustomDropdown from "@/components/ui/CustomDropdown";
 
 const details = [
   { icon: Mail, label: "Email", value: "hello@yourbrand.com" },
@@ -109,21 +110,22 @@ export default function ContactPage() {
                 </label>
               </div>
 
-              <label className="mt-4 block">
+              <div className="mt-4 block relative z-20">
                 <span className="mb-2 block text-[12.5px] font-semibold text-muted">
                   Subject
                 </span>
-                <select
+                <CustomDropdown
+                  options={[
+                    "General",
+                    "Bulk / corporate gifting",
+                    "Order support",
+                    "Wholesale enquiry",
+                  ]}
                   value={form.subject}
-                  onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                  className={field}
-                >
-                  <option>General</option>
-                  <option>Bulk / corporate gifting</option>
-                  <option>Order support</option>
-                  <option>Wholesale enquiry</option>
-                </select>
-              </label>
+                  onChange={(val) => setForm({ ...form, subject: String(val) })}
+                  triggerClassName="py-3 px-4 rounded-full border-border bg-ink/40 text-[13.5px]"
+                />
+              </div>
 
               <label className="mt-4 block">
                 <span className="mb-2 block text-[12.5px] font-semibold text-muted">

@@ -7,39 +7,39 @@ import { Check } from "lucide-react";
 import { Reveal, EASE } from "../motion-primitives";
 
 const perks = [
-  "Includes all 3 signature flavours in airtight presentation jars",
-  "Crafted with recycled luxury matte board packaging",
-  "Custom gift ribbon & personalized message note options",
+  "Includes all 3 signature flavours in one premium presentation.",
+  "Perfect for boosting average order value and creating a hero product.",
+  "Strong option for luxury gifting, festive campaigns, and global customers.",
 ];
 
 export default function Gifting() {
   return (
-    <section className="py-12 lg:py-20">
+    <section className="py-14 lg:py-24 relative overflow-hidden bg-[#0a0a0a]">
       <div className="container-x">
         <motion.div
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.8, ease: EASE }}
-          className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#161616] p-7 sm:p-10 lg:p-14"
+          className="relative overflow-hidden rounded-[32px] sm:rounded-[40px] lg:rounded-[48px] border border-white/[0.08] bg-[#1d1d1d] p-8 sm:p-12 lg:p-16 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]"
         >
-          {/* Subtle golden background glow */}
-          <div className="pointer-events-none absolute right-0 top-1/2 h-[450px] w-[450px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(229,169,60,0.12)_0%,transparent_70%)] blur-2xl" />
+          {/* Subtle warm ambient background glow */}
+          <div className="pointer-events-none absolute right-1/4 top-1/2 h-[450px] w-[450px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(229,169,60,0.08)_0%,transparent_70%)] blur-3xl" />
 
           <div className="relative z-10 grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
-            {/* Left Copy */}
+            {/* Left Column: Heading, Subtitle, Checkmarks, Buy Gift Box button */}
             <div>
               <Reveal>
-                <h2 className="text-[30px] font-bold tracking-tight text-white sm:text-[40px]">
+                <h2 className="text-[34px] sm:text-[44px] lg:text-[52px] font-heading font-medium tracking-tight text-white leading-[1.15]">
                   The Premium Gifting Box
                 </h2>
 
-                <p className="mt-4 max-w-xl text-[14.5px] leading-relaxed text-[#949494] sm:text-[15.5px]">
-                  An exquisite curation crafted for festive celebrations,
-                  corporate gifting, and luxury snacking boxes.
+                <p className="mt-5 max-w-xl text-[14.5px] leading-relaxed text-[#9e9e9e] sm:text-[15.5px]">
+                  A curated gift-ready box featuring all three makhana variants &mdash; ideal for
+                  first-time buyers, festive gifting, and premium brand positioning.
                 </p>
 
-                <ul className="mt-6 flex flex-col gap-3.5">
+                <ul className="mt-7 flex flex-col gap-4">
                   {perks.map((p, i) => (
                     <motion.li
                       key={p}
@@ -47,9 +47,9 @@ export default function Gifting() {
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.5, ease: EASE, delay: i * 0.1 }}
-                      className="flex items-center gap-3 text-[14px] text-white/90"
+                      className="flex items-center gap-3.5 text-[14px] sm:text-[14.5px] text-[#b0b0b0]"
                     >
-                      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 text-white">
+                      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/10 text-white/70">
                         <Check className="h-3 w-3 stroke-[2.5]" />
                       </span>
                       <span>{p}</span>
@@ -57,33 +57,40 @@ export default function Gifting() {
                   ))}
                 </ul>
 
-                <div className="mt-8">
+                <div className="mt-9">
                   <Link
                     href="/gifting"
-                    className="inline-block rounded-full border border-white/20 bg-white/5 px-7 py-3 text-[14px] font-semibold text-white transition-all hover:border-amber-400/40 hover:text-amber-400 hover:bg-amber-400/10 active:text-amber-300 active:scale-95"
+                    className="inline-block rounded-full border border-white/20 bg-transparent px-8 py-3.5 text-[14px] font-medium text-white transition-all hover:bg-white hover:text-black hover:border-white active:scale-95"
                   >
-                    Buy Gift Box
+                    Buy Gift box
                   </Link>
                 </div>
               </Reveal>
             </div>
 
-            {/* Right Image: Luxury Gift Box */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.8, ease: EASE }}
-              className="relative aspect-[4/3] w-full overflow-hidden rounded-[20px] bg-[#1a1a1a] shadow-2xl"
-            >
-              <Image
-                src="/img/gift-box.jpg"
-                alt="The Premium Gifting Box with curated makhana"
-                fill
-                sizes="(max-width: 1024px) 100vw, 45vw"
-                className="object-cover"
-              />
-            </motion.div>
+            {/* Right Column: Inner Rounded Card Backdrop + Open 3-Section Makhana Box PNG */}
+            <div className="relative flex items-center justify-center">
+              {/* Inner grey backdrop card matching screenshot */}
+              <div className="absolute inset-x-4 inset-y-4 sm:inset-x-6 sm:inset-y-6 rounded-[28px] sm:rounded-[36px] bg-[#2a2a2a] -z-0" />
+
+              {/* Floating Gift Box with red ribbon (makhana-1.png) */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.8, ease: EASE }}
+                className="relative z-10 w-full aspect-[4/3] flex items-center justify-center p-3 sm:p-5"
+              >
+                <Image
+                  src="/img/makhana-1.png"
+                  alt="The Premium Gifting Box featuring all 3 roasted makhana flavours"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-contain drop-shadow-[0_24px_36px_rgba(0,0,0,0.7)] transition-transform duration-700 hover:scale-105"
+                  priority
+                />
+              </motion.div>
+            </div>
           </div>
         </motion.div>
       </div>
