@@ -28,7 +28,7 @@ export default function Gifting() {
 
           <div className="relative z-10 grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
             {/* Left Column: Heading, Subtitle, Checkmarks, Buy Gift Box button */}
-            <div>
+            <div className="order-2 lg:order-1">
               <Reveal>
                 <h2 className="text-[34px] sm:text-[44px] lg:text-[52px] font-heading font-medium tracking-tight text-white leading-[1.15]">
                   The Premium Gifting Box
@@ -69,7 +69,7 @@ export default function Gifting() {
             </div>
 
             {/* Right Column: Inner Rounded Card Backdrop + Open 3-Section Makhana Box PNG */}
-            <div className="relative flex items-center justify-center">
+            <div className="relative order-1 lg:order-2 flex items-center justify-center">
               {/* Inner grey backdrop card matching screenshot */}
               <div className="absolute inset-x-4 inset-y-4 sm:inset-x-6 sm:inset-y-6 rounded-[28px] sm:rounded-[36px] bg-[#2a2a2a] -z-0" />
 
