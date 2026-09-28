@@ -194,17 +194,7 @@ export default function AddedToCartModal() {
               </button>
             </div>
 
-            {/* Trust badge footer */}
-            <div className="mt-4 flex items-center justify-center gap-3 text-[11px] text-white/40">
-              <span className="flex items-center gap-1">
-                <ShieldCheck className="h-3.5 w-3.5 text-amber-400/70" />
-                Authentic Fox Nuts
-              </span>
-              <span>•</span>
-              <span>Direct Farm to Bag</span>
-              <span>•</span>
-              <span>Zero Palm Oil</span>
-            </div>
+
           </motion.div>
         </div>
       )}

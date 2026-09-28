@@ -27,7 +27,7 @@ import { EASE } from "./motion-primitives";
 
 export default function CartDrawer() {
   const router = useRouter();
-  const { requireAuth } = useAuth();
+
   const {
     isOpen,
     closeCart,
@@ -128,35 +128,7 @@ export default function CartDrawer() {
               </button>
             </header>
 
-            {/* 2. Free Shipping Threshold Bar */}
-            {detailed.length > 0 && (
-              <div className="border-b border-white/10 px-6 py-4 bg-gradient-to-r from-amber-500/[0.04] to-transparent">
-                <p className="mb-2 text-[12.5px] text-[#a0a0a0]">
-                  {isFreeShipping ? (
-                    <span className="flex items-center gap-1.5 font-bold text-emerald-400">
-                      <Truck className="h-3.5 w-3.5" />
-                      Free Worldwide Express Shipping unlocked!
-                    </span>
-                  ) : (
-                    <>
-                      Add{" "}
-                      <strong className="font-extrabold text-amber-300">
-                        {formatUSD(remaining)}
-                      </strong>{" "}
-                      more for <span className="text-white font-semibold">Free Express Shipping</span>
-                    </>
-                  )}
-                </p>
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                  <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-300 shadow-sm shadow-amber-400/50"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${isFreeShipping ? 100 : progress}%` }}
-                    transition={{ duration: 0.6, ease: EASE }}
-                  />
-                </div>
-              </div>
-            )}
+
 
             {/* 3. Items List Container — only this region scrolls */}
             <div className="cart-items-scroll min-h-0 flex-1 overflow-y-auto px-6 py-5">
@@ -443,20 +415,10 @@ export default function CartDrawer() {
 
                 {/* Checkout CTA */}
                 <button
-                  onClick={() =>
-                    requireAuth(
-                      () => {
-                        closeCart();
-                        router.push("/checkout");
-                      },
-                      {
-                        title: "Sign in to Checkout",
-                        message:
-                          "Please sign in with your phone or email to complete your order and track delivery.",
-                        redirectUrl: "/checkout",
-                      }
-                    )
-                  }
+                  onClick={() => {
+                    closeCart();
+                    router.push("/checkout");
+                  }}
                   className="w-full flex items-center justify-center gap-2 rounded-full bg-white py-3.5 text-center font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-[0.98] shadow-lg shadow-white/5 text-[14px]"
                 >
                   <span>Proceed to Checkout</span>

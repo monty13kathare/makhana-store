@@ -45,12 +45,22 @@ export default function AuthModal() {
   // Reset state whenever modal is opened
   useEffect(() => {
     if (isAuthModalOpen) {
-      setStep("input");
       setError("");
       setOtpDigits(Array(6).fill(""));
       setSeconds(30);
+
+      const prefId = modalOptions.prefill?.identifier;
+      if (prefId) {
+        setIdentifier(prefId);
+        startLogin(prefId);
+        setStep("verify");
+      } else {
+        setIdentifier("");
+        setStep("input");
+      }
+      setFullName(modalOptions.prefill?.name || "");
     }
-  }, [isAuthModalOpen]);
+  }, [isAuthModalOpen, modalOptions]);
 
   // Resend countdown
   useEffect(() => {
@@ -425,7 +435,7 @@ export default function AuthModal() {
                 className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-xl shadow-white/5"
               >
                 <Check className="h-4 w-4 stroke-[3]" />
-                <span>Verify &amp; Add to Bag</span>
+                <span>{modalOptions.actionText || "Verify & Continue"}</span>
               </motion.button>
 
               {/* Resend and Back */}

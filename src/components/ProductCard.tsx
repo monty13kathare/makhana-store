@@ -5,11 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Heart, Sparkles } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { formatUSD, type Product } from "@/lib/products";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { useWishlist } from "@/context/WishlistContext";
 import { EASE } from "./motion-primitives";
 
 export default function ProductCard({
@@ -20,9 +19,7 @@ export default function ProductCard({
   index?: number;
 }) {
   const { add, lines, openAddedModal } = useCart();
-  const { requireAuth } = useAuth();
-  const { isLiked, toggleLike } = useWishlist();
-  const liked = isLiked(product.slug);
+
   const [justAdded, setJustAdded] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [confetti, setConfetti] = useState<
@@ -46,22 +43,8 @@ export default function ProductCard({
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    requireAuth(
-      () => {
-        add(product.slug, 1, false);
-        router.push("/checkout");
-      },
-      {
-        title: "Sign in to Order",
-        message: `Please sign in to order ${product.name} and track your delivery.`,
-        redirectUrl: "/checkout",
-        product: {
-          name: product.name,
-          image: product.image,
-          price: product.price,
-        },
-      }
-    );
+    add(product.slug, 1, false);
+    router.push("/checkout");
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -128,27 +111,7 @@ export default function ProductCard({
             {product.badge}
           </span>
         )}
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.8 }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleLike(product.slug);
-          }}
-          aria-label={liked ? "Unlike product" : "Like product"}
-          className={`absolute top-2.5 right-2.5 z-10 grid h-8 w-8 place-items-center rounded-full border backdrop-blur-md transition-all ${
-            liked
-              ? "border-rose-500/50 bg-black/80 text-rose-500 shadow-md"
-              : "border-white/20 bg-black/60 text-white/70 hover:border-rose-400 hover:text-rose-400"
-          }`}
-        >
-          <Heart
-            className={`h-4 w-4 transition-colors ${
-              liked ? "fill-rose-500 text-rose-500" : ""
-            }`}
-          />
-        </motion.button>
+
       </Link>
 
       {/* 2. Content Container - flex-1 with uniform spacing */}
@@ -192,7 +155,7 @@ export default function ProductCard({
             className={`relative flex items-center justify-center rounded-full py-2.5 text-center text-[13px] font-semibold transition-all shadow-sm overflow-visible ${
               isAdded
                 ? "bg-amber-400 text-black font-bold ring-2 ring-amber-400/40 shadow-[0_0_20px_rgba(245,158,11,0.35)]"
-                : "bg-white text-black hover:bg-amber-400 hover:text-black active:bg-amber-300"
+                : "border border-white/15 bg-[#161616] text-white hover:bg-white/10"
             }`}
           >
             {/* Confetti Explosion Burst */}
@@ -263,7 +226,7 @@ export default function ProductCard({
 
           <button
             onClick={handleBuyNow}
-            className="rounded-full border border-white/15 bg-white/5 py-2.5 text-center text-[13px] font-semibold text-white transition-all hover:border-amber-400/40 hover:text-amber-400 hover:bg-amber-400/10 active:text-amber-300 active:scale-95"
+            className="rounded-full bg-white py-2.5 text-center text-[13px] font-bold text-black transition-all hover:bg-amber-400 active:bg-amber-300 active:scale-95"
           >
             Buy Now
           </button>

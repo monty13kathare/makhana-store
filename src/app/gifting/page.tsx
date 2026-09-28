@@ -186,7 +186,7 @@ const steps = [
 
 export default function GiftingPage() {
   const { addBundle } = useCart();
-  const { requireAuth } = useAuth();
+
   const [picked, setPicked] = useState("festival");
   const [giftNote, setGiftNote] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -196,26 +196,13 @@ export default function GiftingPage() {
   const totalMrpSavings = selectedBox.mrp - selectedBox.discountedPrice;
 
   const handleAddGiftBox = () => {
-    requireAuth(
-      () => {
-        setIsAdding(true);
-        // Add all items in the bundle and automatically apply the special gift discount code
-        addBundle(
-          selectedBox.items.map((it) => ({ slug: it.slug, qty: it.qty })),
-          selectedBox.discountCode
-        );
-        setTimeout(() => setIsAdding(false), 500);
-      },
-      {
-        title: "Sign in to Order Gift Box",
-        message: `Sign in to personalize your gift card and claim the exclusive ${selectedBox.discountPercent}% discount.`,
-        product: {
-          name: selectedBox.name,
-          image: selectedBox.items[0]?.image || "/img/gift-box.jpg",
-          price: selectedBox.discountedPrice,
-        },
-      }
+    setIsAdding(true);
+    // Add all items in the bundle and automatically apply the special gift discount code
+    addBundle(
+      selectedBox.items.map((it) => ({ slug: it.slug, qty: it.qty })),
+      selectedBox.discountCode
     );
+    setTimeout(() => setIsAdding(false), 500);
   };
 
   return (

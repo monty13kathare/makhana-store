@@ -56,7 +56,7 @@ export default function ProductClient({
 }) {
   const router = useRouter();
   const { add, lines, openAddedModal } = useCart();
-  const { requireAuth } = useAuth();
+
   const { isLiked, toggleLike } = useWishlist();
 
   const liked = isLiked(product.slug);
@@ -123,22 +123,8 @@ export default function ProductClient({
   };
 
   const handleBuyNow = () => {
-    requireAuth(
-      () => {
-        add(product.slug, qty);
-        router.push("/checkout");
-      },
-      {
-        title: "Sign in to Order",
-        message: `Please sign in to order ${product.name} (${selectedWeight}) and track your delivery.`,
-        redirectUrl: "/checkout",
-        product: {
-          name: `${product.name} (${selectedWeight})`,
-          image: product.image,
-          price: effectivePrice,
-        },
-      }
-    );
+    add(product.slug, qty);
+    router.push("/checkout");
   };
 
   return (

@@ -27,9 +27,10 @@ function Logo() {
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const pathname = usePathname();
   const { count, openCart } = useCart();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -47,6 +48,8 @@ export default function Navbar() {
       document.body.style.overflow = "";
     };
   }, [menuOpen]);
+
+  if (pathname.startsWith("/login")) return null;
 
   return (
     <>
@@ -123,25 +126,76 @@ export default function Navbar() {
               </AnimatePresence>
             </button>
 
-            {/* Desktop User Pill Button: User DP + User Name (Gretchen Rosser matching clone) */}
-            <Link
-              href={user ? "/profile" : "/login"}
-              aria-label="My Account & Track Orders"
-              className="group hidden items-center gap-2.5 rounded-full bg-white py-1.5 pl-1.5 pr-4 text-black transition-all hover:bg-neutral-100 hover:shadow-md active:scale-95 sm:flex"
-            >
-              <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full ring-1 ring-black/10">
-                <Image
-                  src={user?.avatar || "/img/avatar-1.jpg"}
-                  alt={user?.name || "Gretchen Rosser"}
-                  fill
-                  sizes="28px"
-                  className="object-cover"
-                />
-              </span>
-              <span className="text-[12.5px] font-semibold tracking-tight text-neutral-900">
-                {user?.name || "Gretchen Rosser"}
-              </span>
-            </Link>
+            {/* Desktop User Pill Button & Dropdown */}
+            {user ? (
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  aria-label="My Account & Track Orders"
+                  className="group flex items-center gap-2.5 rounded-full bg-white py-1.5 pl-1.5 pr-4 text-black transition-all hover:bg-neutral-100 hover:shadow-md active:scale-95"
+                >
+                  <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full ring-1 ring-black/10">
+                    <Image
+                      src={user?.avatar || "/img/avatar-1.jpg"}
+                      alt={user?.name || "User"}
+                      fill
+                      sizes="28px"
+                      className="object-cover"
+                    />
+                  </span>
+                  <span className="text-[12.5px] font-semibold tracking-tight text-neutral-900">
+                    {user?.name || "User"}
+                  </span>
+                </button>
+
+                <AnimatePresence>
+                  {isProfileDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-white/10 bg-[#141414] shadow-xl backdrop-blur-xl overflow-hidden"
+                    >
+                      <div className="flex flex-col p-1.5">
+                        <Link
+                          href="/profile"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                          className="rounded-xl px-4 py-2.5 text-[13.5px] font-medium text-white/80 hover:bg-white/10 hover:text-amber-400 transition-colors"
+                        >
+                          Profile
+                        </Link>
+                        <Link
+                          href="/orders"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                          className="rounded-xl px-4 py-2.5 text-[13.5px] font-medium text-white/80 hover:bg-white/10 hover:text-amber-400 transition-colors"
+                        >
+                          My Order
+                        </Link>
+                        <div className="my-1 h-[1px] bg-white/10"></div>
+                        <button
+                          onClick={() => {
+                            logout();
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="rounded-xl px-4 py-2.5 text-left text-[13.5px] font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                aria-label="Sign In"
+                className="group hidden items-center gap-2.5 rounded-full bg-white py-1.5 px-5 text-black transition-all hover:bg-neutral-100 hover:shadow-md active:scale-95 sm:flex font-semibold text-[13px]"
+              >
+                Sign In
+              </Link>
+            )}
 
             {/* Mobile User Icon (< sm) */}
             <Link

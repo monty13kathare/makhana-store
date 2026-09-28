@@ -73,7 +73,7 @@ export default function CheckoutPage() {
     clear,
   } = useCart();
 
-  const { user } = useAuth();
+  const { user, requireAuth } = useAuth();
 
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [placed, setPlaced] = useState(false);
@@ -233,13 +233,27 @@ export default function CheckoutPage() {
   const handleFinalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateStep3()) {
-      setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setOrderNumber(`MK-${Math.floor(100000 + Math.random() * 900000)}`);
-        setPlaced(true);
-        clear();
-      }, 900);
+      requireAuth(
+        () => {
+          setIsSubmitting(true);
+          setTimeout(() => {
+            setIsSubmitting(false);
+            setOrderNumber(`MK-${Math.floor(100000 + Math.random() * 900000)}`);
+            setPlaced(true);
+            clear();
+          }, 900);
+        },
+        {
+          title: "Verify to Complete Order",
+          message: "Please verify your phone or email to track your order and receive updates.",
+          prefill: {
+            phone: form.phone,
+            email: form.email,
+            name: form.name
+          },
+          actionText: "Verify & Complete Order"
+        }
+      );
     }
   };
 
@@ -638,32 +652,7 @@ export default function CheckoutPage() {
                 </AnimatePresence>
               </div>
 
-              {/* Free Shipping Progress Indicator */}
-              <div className="mt-4 rounded-xl border border-white/10 bg-gradient-to-r from-amber-500/[0.05] to-transparent p-3">
-                <div className="flex items-center justify-between text-[12px] mb-1.5">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <Truck className="h-3.5 w-3.5 text-amber-400" />
-                    {isFreeShipping ? (
-                      <span className="text-emerald-400 font-semibold">Free Express Shipping unlocked!</span>
-                    ) : (
-                      <span className="text-zinc-300">
-                        Add <strong className="text-amber-300 font-bold">{formatPrice(remainingForFreeShipping)}</strong> more for Free Shipping
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-zinc-500 font-bold text-[11px]">
-                    {Math.min(100, Math.round(freeShippingProgress))}%
-                  </span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                  <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-300 shadow-sm shadow-amber-400/40"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${isFreeShipping ? 100 : freeShippingProgress}%` }}
-                    transition={{ duration: 0.5, ease: EASE }}
-                  />
-                </div>
-              </div>
+
 
               {/* Discount Code Section */}
               <div className="mt-5 pt-4 border-t border-white/10">

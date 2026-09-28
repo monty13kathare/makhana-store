@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 
 export type UserAddress = {
   id: string;
@@ -42,6 +43,12 @@ export type AuthModalOptions = {
     image: string;
     price: number;
   };
+  prefill?: {
+    phone?: string;
+    email?: string;
+    name?: string;
+  };
+  actionText?: string;
 };
 
 export type OtpNotice = {
@@ -114,6 +121,7 @@ const INITIAL_USERS: Record<string, User> = {
 const AuthContext = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   // Guests start as null (authentic production e-commerce model)
   const [user, setUser] = useState<User | null>(null);
   const [pendingIdentifier, setPendingIdentifier] = useState<string | null>(null);
@@ -255,13 +263,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         addresses: [],
       };
 
-      // Save to directory
-      directory[normalizedKey] = authenticatedUser;
-      try {
-        localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(directory));
-      } catch {
-        // Ignore
-      }
+    }
+
+    // Apply prefill data if available (e.g. from checkout)
+    if (modalOptions.prefill) {
+      if (modalOptions.prefill.name) authenticatedUser.name = modalOptions.prefill.name;
+      if (modalOptions.prefill.email) authenticatedUser.email = modalOptions.prefill.email;
+      if (modalOptions.prefill.phone) authenticatedUser.phone = modalOptions.prefill.phone;
+    }
+
+    // Save to directory to ensure any new prefill data persists
+    directory[normalizedKey] = authenticatedUser;
+    try {
+      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(directory));
+    } catch {
+      // Ignore
     }
 
     setUser(authenticatedUser);
@@ -309,6 +325,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore
     }
+    router.push("/");
   };
 
   const value = useMemo<AuthValue>(

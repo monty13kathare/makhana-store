@@ -309,61 +309,7 @@ export default function GlobalDelivery() {
                 );
               })}
 
-              {/* Top Status Bar: Live Dispatch Activity */}
-              <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/75 px-3.5 py-2 backdrop-blur-md z-20">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                  </span>
-                  <span className="text-[11.5px] font-medium text-white/90">
-                    Live Dispatch: <span className="text-emerald-400 font-semibold">Online &amp; Active</span>
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-amber-300/80 font-mono">
-                  <Plane className="h-3.5 w-3.5 text-amber-400" />
-                  <span>20+ Countries</span>
-                </div>
-              </div>
 
-              {/* Bottom Interactive Route Card */}
-              <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/15 bg-[#121212]/90 p-3.5 backdrop-blur-md z-20 shadow-xl">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-400/10 border border-amber-400/25 text-amber-400">
-                      <Navigation className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[13px] font-bold text-white">
-                          {activeHub.city}, {activeHub.country}
-                        </span>
-                        <span className="rounded-full bg-amber-400/15 border border-amber-400/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                          {activeHub.status}
-                        </span>
-                      </div>
-                      <p className="text-[11.5px] text-[#8e8e8e]">
-                        Via {activeHub.courier} &bull; Expected transit:{" "}
-                        <span className="text-white font-semibold">{activeHub.days}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Hub Switcher Dots */}
-                  <div className="hidden sm:flex items-center gap-1.5">
-                    {shippingHubs.map((h) => (
-                      <button
-                        key={h.id}
-                        onClick={() => setActiveHub(h)}
-                        title={h.city}
-                        className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                          activeHub.id === h.id ? "w-6 bg-amber-400" : "w-2 bg-white/20 hover:bg-white/50"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
             </motion.div>
           </div>
 
