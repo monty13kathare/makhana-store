@@ -198,7 +198,7 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="container-x flex flex-col sm:flex-row items-center justify-between gap-2 py-5 text-[11.5px] text-white/40 text-center sm:text-left">
           <span>&copy; {new Date().getFullYear()} Makhana Connoisseur. All rights reserved.</span>
-          <span>Veloc Atelier | Design Beyond Ordinary</span>
+          <span>Design and Developed by Veloc</span>
         </div>
       </div>
     </footer>

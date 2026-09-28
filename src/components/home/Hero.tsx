@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, animate } from "framer-motion";
 import { EASE } from "../motion-primitives";
 
 /* --------------------------------------------------------------------------
@@ -148,17 +148,23 @@ const trustPillars = [
 const fadeVariants = {
   enter: {
     opacity: 0,
-    scale: 0.94,
+    x: 60,
+    scale: 0.95,
+    filter: "blur(8px)",
   },
   center: {
     zIndex: 1,
     opacity: 1,
+    x: 0,
     scale: 1,
+    filter: "blur(0px)",
   },
   exit: {
     zIndex: 0,
     opacity: 0,
-    scale: 1.04,
+    x: -60,
+    scale: 1.05,
+    filter: "blur(8px)",
   },
 };
 
@@ -188,6 +194,31 @@ export default function Hero() {
     mouseX.set(x);
     mouseY.set(y);
   };
+
+  // Auto-animate 3D parallax when not hovered
+  useEffect(() => {
+    if (isPaused) return;
+
+    // Smooth continuous 3D rotation
+    const controlsX = animate(mouseX, [0, 0.12, 0, -0.12, 0], {
+      duration: 10,
+      ease: "easeInOut",
+      repeat: Infinity,
+      times: [0, 0.25, 0.5, 0.75, 1]
+    });
+
+    const controlsY = animate(mouseY, [0, -0.08, 0, 0.08, 0], {
+      duration: 10,
+      ease: "easeInOut",
+      repeat: Infinity,
+      times: [0, 0.25, 0.5, 0.75, 1]
+    });
+
+    return () => {
+      controlsX.stop();
+      controlsY.stop();
+    };
+  }, [isPaused, mouseX, mouseY]);
 
   const handleMouseLeave = () => {
     mouseX.set(0);

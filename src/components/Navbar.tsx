@@ -19,8 +19,18 @@ const links = [
   { href: "/contact", label: "Contact" },
 ];
 
-function Logo() {
-  return <BrandLogo size={40} />;
+function Logo({ pathname }: { pathname: string }) {
+  const handleClick = () => {
+    if (pathname === "/") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  return (
+    <div onClick={handleClick}>
+      <BrandLogo size={40} />
+    </div>
+  );
 }
 
 export default function Navbar() {
@@ -63,7 +73,7 @@ export default function Navbar() {
         }`}
       >
         <nav className="container-x flex h-[68px] sm:h-[80px] lg:h-[88px] items-center justify-between gap-2 sm:gap-8">
-          <Logo />
+          <Logo pathname={pathname} />
 
           {/* Desktop links */}
           <ul className="hidden items-center gap-1.5 xl:flex">
