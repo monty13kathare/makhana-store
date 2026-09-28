@@ -148,20 +148,17 @@ const trustPillars = [
 const fadeVariants = {
   enter: {
     opacity: 0,
-    scale: 0.93,
-    filter: "blur(3px)",
+    scale: 0.94,
   },
   center: {
     zIndex: 1,
     opacity: 1,
     scale: 1,
-    filter: "blur(0px)",
   },
   exit: {
     zIndex: 0,
     opacity: 0,
     scale: 1.04,
-    filter: "blur(3px)",
   },
 };
 
@@ -175,13 +172,13 @@ export default function Hero() {
   // Interactive 3D mouse parallax tracking
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [10, -10]), {
-    stiffness: 140,
-    damping: 18,
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [8, -8]), {
+    stiffness: 90,
+    damping: 22,
   });
-  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-10, 10]), {
-    stiffness: 140,
-    damping: 18,
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-8, 8]), {
+    stiffness: 90,
+    damping: 22,
   });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -205,18 +202,18 @@ export default function Hero() {
     }
   }, [currentSlide]);
 
-  // Auto-slide every 3.8s with smooth instant in-place transition
+  // Auto-slide every 5.2s with silky smooth crossfade transition
   useEffect(() => {
     if (isPaused || slides.length === 0) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 4200);
+    }, 5200);
     return () => clearInterval(timer);
   }, [isPaused]);
 
   const safeIndex = slides.length > 0 ? currentSlide % slides.length : 0;
   const activeSlide = slides[safeIndex] || slides[0] || {
-    src: "/img/hero-3d-jar.jpg",
+    src: "/img/hero-clean-jar.png",
     alt: "Signature whole roasted makhana",
     title: "Artisanal Whole Roasted Makhana",
     flavor: "Original Himalayan Crisp",
@@ -241,7 +238,7 @@ export default function Hero() {
 
       <div className="container-x">
         {/* Main Hero Row */}
-        <div className="grid items-center gap-8 sm:gap-10 lg:grid-cols-[1.1fr_1.1fr] lg:gap-12 min-h-[460px] sm:min-h-[520px] lg:min-h-[580px]">
+        <div className="grid items-center gap-8 sm:gap-10 lg:grid-cols-[1.05fr_1.15fr] lg:gap-10 min-h-[480px] sm:min-h-[540px] lg:min-h-[640px] xl:min-h-[680px]">
           
           {/* Left Column: Heading, Paragraph, Two Buttons */}
           <motion.div
@@ -291,36 +288,36 @@ export default function Hero() {
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={handleMouseLeave}
           >
-            {/* 3D Tilting Stage Wrapper */}
+            {/* 3D Tilting Stage Wrapper - Enlarged for Desktop */}
             <motion.div
               style={{
                 rotateX,
                 rotateY,
                 transformStyle: "preserve-3d",
               }}
-              className="relative w-full max-w-[420px] sm:max-w-[500px] lg:max-w-[540px] h-[340px] sm:h-[420px] lg:h-[480px] flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
+              className="relative w-full max-w-[440px] sm:max-w-[520px] lg:max-w-[620px] xl:max-w-[680px] h-[360px] sm:h-[450px] lg:h-[550px] xl:h-[600px] flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
             >
               {/* Dynamic ambient spotlight glow behind active 3D product */}
               <motion.div
                 animate={{
                   background: `radial-gradient(circle, ${activeSlide?.glow || "rgba(235, 175, 70, 0.28)"} 0%, rgba(0,0,0,0) 70%)`,
                 }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
-                className="pointer-events-none absolute inset-[-15%] rounded-full blur-3xl -z-20"
+                transition={{ duration: 1.2, ease: "easeInOut" }}
+                className="pointer-events-none absolute inset-[-20%] rounded-full blur-3xl -z-20"
               />
 
               {/* Dynamic 3D Ground Contact Shadow */}
               <motion.div
                 animate={{
-                  scale: [0.85, 1.12, 0.85],
-                  opacity: [0.3, 0.6, 0.3],
+                  scale: [0.88, 1.15, 0.88],
+                  opacity: [0.35, 0.68, 0.35],
                 }}
                 transition={{
-                  duration: 5.4,
+                  duration: 6.5,
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="pointer-events-none absolute bottom-2 w-3/4 h-10 rounded-full bg-black/95 blur-2xl -z-10"
+                className="pointer-events-none absolute bottom-0 sm:bottom-2 w-4/5 h-12 rounded-full bg-black/95 blur-3xl -z-10"
               />
 
               {/* Instant In-Place Smooth Animated Auto-Transition */}
@@ -332,56 +329,36 @@ export default function Hero() {
                   animate="center"
                   exit="exit"
                   transition={{
-                    duration: 0.65,
-                    ease: [0.16, 1, 0.3, 1],
+                    duration: 0.85,
+                    ease: [0.22, 1, 0.36, 1],
                   }}
                   className="absolute inset-0 flex items-center justify-center"
                   style={{ transform: "translateZ(25px)" }}
                 >
-                  {/* Organic floating levitation micro-animation */}
+                  {/* Organic floating levitation micro-animation - Scaled larger in desktop */}
                   <motion.div
                     animate={{
-                      y: [-12, 10, -12],
-                      rotate: [-1.2, 1.2, -1.2],
+                      y: [-16, 12, -16],
+                      rotate: [-1.6, 1.6, -1.6],
                     }}
                     transition={{
-                      duration: 5.4,
+                      duration: 6.5,
                       repeat: Infinity,
                       ease: "easeInOut",
                     }}
-                    className="relative h-full w-full flex items-center justify-center p-2 sm:p-4"
+                    className="relative h-full w-full flex items-center justify-center p-0 scale-100 lg:scale-[1.14] xl:scale-[1.20] transition-transform duration-500"
                   >
                     <img
                       src={activeSlide?.src || "/img/hero-clean-jar.png"}
                       alt={activeSlide?.alt || "Artisanal 3D Makhana"}
                       decoding="sync"
                       loading="eager"
-                      className="h-full w-full object-contain drop-shadow-[0_24px_45px_rgba(0,0,0,0.85)] filter select-none pointer-events-none"
+                      className="h-full w-full object-contain drop-shadow-[0_28px_52px_rgba(0,0,0,0.85)] filter select-none pointer-events-none"
                     />
                   </motion.div>
                 </motion.div>
               </AnimatePresence>
             </motion.div>
-
-            {/* Interactive Slide Indicator Pills */}
-            <div className="mt-4 flex items-center gap-2.5 z-20">
-              {slides.map((s, idx) => {
-                const isActive = idx === safeIndex;
-                return (
-                  <button
-                    key={s.title}
-                    type="button"
-                    onClick={() => setCurrentSlide(idx)}
-                    aria-label={`Show ${s.title}`}
-                    className={`h-2 transition-all rounded-full cursor-pointer ${
-                      isActive
-                        ? "w-8 bg-amber-400 shadow-[0_0_12px_rgba(235,175,70,0.6)]"
-                        : "w-2 bg-white/25 hover:bg-white/50"
-                    }`}
-                  />
-                );
-              })}
-            </div>
           </motion.div>
         </div>
 
