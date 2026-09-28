@@ -133,6 +133,18 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+export type AddedModalProduct = {
+  slug: string;
+  name: string;
+  price: number;
+  image: string;
+  mrp?: number;
+  badge?: string;
+  description?: string;
+  tagline?: string;
+  weight?: string;
+};
+
 type CartContextValue = {
   lines: CartLine[];
   detailed: { product: Product; qty: number }[];
@@ -149,7 +161,11 @@ type CartContextValue = {
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  add: (slug: string, qty?: number) => void;
+  addedProduct: AddedModalProduct | null;
+  isAddedModalOpen: boolean;
+  openAddedModal: (product: AddedModalProduct) => void;
+  closeAddedModal: () => void;
+  add: (slug: string, qty?: number, openDrawer?: boolean) => void;
   addBundle: (items: { slug: string; qty: number }[], couponCode?: string) => void;
   remove: (slug: string) => void;
   setQty: (slug: string, qty: number) => void;
@@ -164,6 +180,8 @@ const SHIPPING_FEE = 5;
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { lines: [] });
   const [isOpen, setIsOpen] = useState(false);
+  const [addedProduct, setAddedProduct] = useState<AddedModalProduct | null>(null);
+  const [isAddedModalOpen, setIsAddedModalOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
 
@@ -310,9 +328,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       isOpen,
       openCart: () => setIsOpen(true),
       closeCart: () => setIsOpen(false),
-      add: (slug, qty) => {
+      addedProduct,
+      isAddedModalOpen,
+      openAddedModal: (product: AddedModalProduct) => {
+        setAddedProduct(product);
+        setIsAddedModalOpen(true);
+      },
+      closeAddedModal: () => setIsAddedModalOpen(false),
+      add: (slug, qty, openDrawer = false) => {
         dispatch({ type: "add", slug, qty });
-        setIsOpen(true);
+        if (openDrawer) {
+          setIsOpen(true);
+        }
       },
       addBundle: (items, couponCode) => {
         dispatch({ type: "addMultiple", items });
@@ -343,6 +370,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       appliedCoupon,
       total,
       isOpen,
+      addedProduct,
+      isAddedModalOpen,
     ],
   );
 

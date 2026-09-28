@@ -76,15 +76,23 @@ const comboItems: ComboItem[] = [
 function ComboCard({ item }: { item: ComboItem }) {
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [added, setAdded] = useState(false);
-  const { add, openCart } = useCart();
+  const { add, openCart, openAddedModal } = useCart();
   const router = useRouter();
 
   const currentVariant = item.variants[selectedVariant];
 
   const handleAddToCart = () => {
-    add(item.slug, 1);
+    add(item.slug, 1, false);
     setAdded(true);
-    openCart();
+    openAddedModal({
+      slug: item.slug,
+      name: `${item.title} (${currentVariant.label})`,
+      price: currentVariant.price,
+      mrp: currentVariant.mrp,
+      image: item.image,
+      badge: item.badge,
+      weight: currentVariant.label,
+    });
     setTimeout(() => setAdded(false), 1800);
   };
 

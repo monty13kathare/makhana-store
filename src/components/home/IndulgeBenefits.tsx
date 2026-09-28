@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Reveal, EASE } from "../motion-primitives";
 
 /* --------------------------------------------------------------------------
-   Custom Vector Icons matching Reference UI Screenshot Exactly
+   Custom Vector Icons matching Reference UI
    -------------------------------------------------------------------------- */
 
 // 1. Four-pointed sparkle star icon
@@ -82,130 +82,255 @@ function DottedCircleIcon({ className = "" }: { className?: string }) {
 }
 
 /* --------------------------------------------------------------------------
-   Benefits Data matching Reference UI Texts Exactly
+   Benefits Data matching Reference UI Texts
    -------------------------------------------------------------------------- */
 const benefits = [
   {
+    number: "01",
+    tag: "Aesthetic",
     icon: SparkleStarIcon,
     title: "Minimal luxury presentation",
     desc: "Clean spacing, elegant typography, and premium tones create a strong first impression.",
   },
   {
+    number: "02",
+    tag: "Bespoke",
     icon: DiamondClusterIcon,
     title: "Premium Packaging",
     desc: "Luxury-led visual presentation helps justify premium pricing and gifting appeal.",
   },
   {
+    number: "03",
+    tag: "Direct",
     icon: TargetConcentricIcon,
     title: "Online Purchase Ready",
     desc: "Simple product layout, focused CTAs, and a strong e-commerce buying journey.",
   },
   {
+    number: "04",
+    tag: "Global",
     icon: DottedCircleIcon,
     title: "Worldwide Appeal",
     desc: "The brand identity is tailored to work for both domestic and international customers.",
   },
 ];
 
+/* Ambient golden shimmer particles */
+const ambientParticles = [
+  { x: "12%", y: "24%", size: 3, delay: 0, duration: 4.5 },
+  { x: "28%", y: "65%", size: 4, delay: 1.2, duration: 5.6 },
+  { x: "46%", y: "20%", size: 3, delay: 0.6, duration: 4.8 },
+  { x: "64%", y: "78%", size: 5, delay: 1.9, duration: 6.2 },
+  { x: "82%", y: "26%", size: 3, delay: 2.3, duration: 4.4 },
+  { x: "92%", y: "62%", size: 4, delay: 0.8, duration: 5.4 },
+];
+
 export default function IndulgeBenefits() {
   return (
-    <section className="relative overflow-hidden bg-[#111111] py-14 sm:py-20 lg:py-28 text-white">
+    <section className="relative overflow-hidden bg-[#101010] py-16 sm:py-24 lg:py-32 text-white">
       {/* --------------------------------------------------------------------
-          Background Scattered & Depth-of-Field Makhana Seeds (Matching Reference)
+          Subtle Ambient Background Lighting & Radial Gradients
+          -------------------------------------------------------------------- */}
+      <div className="pointer-events-none absolute -top-24 left-1/4 h-96 w-96 rounded-full bg-amber-500/10 blur-[120px] -z-0" />
+      <div className="pointer-events-none absolute -bottom-24 right-1/4 h-96 w-96 rounded-full bg-amber-500/10 blur-[120px] -z-0" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(245,158,11,0.08),transparent)]" />
+
+      {/* Floating Ambient Shimmer Particles */}
+      {ambientParticles.map((p, idx) => (
+        <motion.span
+          key={idx}
+          className="pointer-events-none absolute rounded-full bg-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.7)]"
+          style={{
+            left: p.x,
+            top: p.y,
+            width: p.size,
+            height: p.size,
+          }}
+          animate={{
+            y: [-10, 10, -10],
+            opacity: [0.25, 0.85, 0.25],
+            scale: [0.8, 1.25, 0.8],
+          }}
+          transition={{
+            duration: p.duration,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: p.delay,
+          }}
+        />
+      ))}
+
+      {/* --------------------------------------------------------------------
+          Dynamic Floating Makhana Seeds with Natural Organic Levitation
           -------------------------------------------------------------------- */}
 
-      {/* Top-left: Blurred out-of-focus makhana seed with warm golden glow */}
-      <div className="pointer-events-none absolute -top-10 left-2 sm:left-10 h-28 w-28 sm:h-44 sm:w-44 opacity-50 sm:opacity-80 blur-[8px] -z-0">
+      {/* Top-left: Blurred out-of-focus makhana seed with slow floating drift */}
+      <motion.div
+        animate={{
+          y: [0, -12, 0],
+          x: [0, 6, 0],
+          scale: [1, 1.06, 1],
+        }}
+        transition={{
+          duration: 8.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="pointer-events-none absolute -top-8 left-2 sm:left-10 h-32 w-32 sm:h-44 sm:w-44 opacity-50 sm:opacity-75 blur-[7px] -z-0"
+      >
         <Image
           src="/img/makhana-two-seeds.png"
           alt=""
           fill
           className="object-contain"
         />
-      </div>
-      <div className="pointer-events-none absolute -top-12 -left-12 h-64 w-64 rounded-full bg-amber-500/12 blur-3xl -z-0" />
+      </motion.div>
 
-      {/* Bottom-left: Crisp Indian popped makhana cluster sitting at the bottom edge */}
-      <div className="pointer-events-none absolute -bottom-8 -left-8 sm:-left-4 h-32 w-32 sm:h-56 sm:w-56 opacity-40 sm:opacity-100 z-10">
+      {/* Bottom-left: Crisp popped makhana cluster with organic floating levitation */}
+      <motion.div
+        animate={{
+          y: [0, -14, 2, 0],
+          rotate: [0, 2.5, -1.5, 0],
+        }}
+        transition={{
+          duration: 6.8,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="pointer-events-none absolute -bottom-6 -left-6 sm:-left-3 sm:-bottom-5 h-36 w-36 sm:h-60 sm:w-60 opacity-60 sm:opacity-100 z-10"
+      >
+        {/* Soft amber backlight bloom */}
+        <div className="absolute inset-0 bg-amber-500/20 blur-2xl rounded-full scale-75 animate-pulse" />
         <Image
           src="/img/makhana-cluster.png"
           alt="Crisp popped makhana lotus seeds cluster"
           fill
-          className="object-contain drop-shadow-[0_18px_35px_rgba(0,0,0,0.9)]"
+          className="object-contain drop-shadow-[0_22px_45px_rgba(0,0,0,0.95)]"
         />
-      </div>
+      </motion.div>
 
-      {/* Bottom-right: Two golden roasted makhana seeds resting on the bottom right */}
-      <div className="pointer-events-none absolute -bottom-6 -right-6 sm:right-10 h-28 w-28 sm:h-48 sm:w-48 opacity-40 sm:opacity-100 z-10">
+      {/* Bottom-right: Two golden roasted makhana seeds with asynchronous floating */}
+      <motion.div
+        animate={{
+          y: [0, 12, -6, 0],
+          rotate: [0, -2.8, 2, 0],
+        }}
+        transition={{
+          duration: 7.4,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 0.6,
+        }}
+        className="pointer-events-none absolute -bottom-4 -right-4 sm:right-10 sm:-bottom-4 h-32 w-32 sm:h-52 sm:w-52 opacity-60 sm:opacity-100 z-10"
+      >
+        {/* Soft golden backlight */}
+        <div className="absolute inset-0 bg-amber-400/20 blur-2xl rounded-full scale-75 animate-pulse" />
         <Image
           src="/img/makhana-two-seeds.png"
           alt="Two roasted makhana seeds"
           fill
-          className="object-contain drop-shadow-[0_18px_35px_rgba(0,0,0,0.9)]"
+          className="object-contain drop-shadow-[0_22px_45px_rgba(0,0,0,0.95)]"
         />
-      </div>
+      </motion.div>
 
-      {/* Far-right: Softly blurred makhana seed in the mid-background for camera bokeh depth */}
-      <div className="pointer-events-none absolute top-1/2 -right-8 h-40 w-40 opacity-40 blur-[10px] -z-0">
+      {/* Far-right: Depth-of-field blurred seed floating in background */}
+      <motion.div
+        animate={{
+          y: [0, 15, 0],
+          rotate: [0, 6, 0],
+        }}
+        transition={{
+          duration: 9.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 1.2,
+        }}
+        className="pointer-events-none absolute top-1/2 -right-8 h-40 w-40 opacity-40 blur-[9px] -z-0"
+      >
         <Image
           src="/img/makhana-two-seeds.png"
           alt=""
           fill
           className="object-contain"
         />
-      </div>
-
-      {/* Ambient warm lighting */}
-      <div className="pointer-events-none absolute right-1/4 top-1/3 h-80 w-80 rounded-full bg-amber-500/6 blur-3xl -z-0" />
+      </motion.div>
 
       {/* Main Content Container */}
       <div className="container-x relative z-10">
         <Reveal>
-          {/* Olive / Sage green pre-title */}
-          <p className="text-[14px] font-medium tracking-wide text-[#88b04b]">
-            Elegant benefits
-          </p>
+          {/* Olive / Sage green pre-title with pulsing status indicator */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#88b04b]/12 border border-[#88b04b]/25 backdrop-blur-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#88b04b] opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#88b04b]" />
+            </span>
+            <span className="text-[12px] font-semibold tracking-wider uppercase text-[#a5d259]">
+              Elegant benefits
+            </span>
+          </div>
 
-          {/* Section Heading with Josefin Sans font */}
-          <h2 className="mt-2.5 sm:mt-3 font-heading font-bold text-[28px] sm:text-[40px] lg:text-[48px] leading-[1.12] tracking-tight text-white">
-            A smarter way to indulge.
+          {/* Section Heading */}
+          <h2 className="mt-3.5 sm:mt-4 font-heading font-bold text-[30px] sm:text-[42px] lg:text-[50px] leading-[1.12] tracking-tight text-white">
+            A smarter way to{" "}
+            <span className="bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 bg-clip-text text-transparent">
+              indulge.
+            </span>
           </h2>
 
           {/* Subtitle Description */}
-          <p className="mt-3 sm:mt-4 max-w-2xl text-[14px] sm:text-[16px] leading-[1.65] text-[#8e8e8e]">
+          <p className="mt-3 sm:mt-4 max-w-2xl text-[14.5px] sm:text-[16px] leading-[1.7] text-[#9a9a9a]">
             Present the product as a premium lifestyle snack — wholesome,
             beautiful, and crafted for a modern audience.
           </p>
         </Reveal>
 
-        {/* 4 Cards Grid */}
+        {/* 4 Luxury Cards Grid */}
         <div className="mt-10 sm:mt-14 grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {benefits.map((b, i) => {
             const Icon = b.icon;
             return (
               <motion.div
                 key={b.title}
-                initial={{ opacity: 0, y: 22 }}
+                initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.6, ease: EASE, delay: i * 0.08 }}
-                whileHover={{ y: -5 }}
-                className="group flex flex-col rounded-[20px] sm:rounded-[22px] border border-white/20 bg-[#161616]/95 p-5 sm:p-7 lg:p-8 backdrop-blur-sm transition-all duration-300 hover:border-white/40 hover:bg-[#1a1a1a] shadow-[0_10px_28px_rgba(0,0,0,0.5)]"
+                whileHover={{ y: -7 }}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-[22px] sm:rounded-[24px] border border-white/[0.08] bg-gradient-to-b from-[#191919]/95 via-[#131313]/95 to-[#0e0e0e]/98 p-6 sm:p-7 backdrop-blur-md transition-all duration-300 hover:border-amber-400/40 shadow-[0_12px_30px_rgba(0,0,0,0.6)] hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.9),0_0_30px_rgba(245,158,11,0.12)]"
               >
-                {/* Direct Vector Icon without square container matching Reference Screenshot */}
-                <div className="mb-5 sm:mb-7 text-white/95 transition-transform duration-300 group-hover:scale-105">
-                  <Icon className="h-7 w-7 text-white" />
+                {/* Radial golden glow sheen on hover */}
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(245,158,11,0.12),transparent_70%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+                <div>
+                  {/* Top Row: Glowing Icon Frame & Number Badge */}
+                  <div className="flex items-center justify-between mb-5 sm:mb-6">
+                    <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400/15 via-white/[0.04] to-transparent border border-amber-400/25 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.12)] transition-all duration-300 group-hover:scale-105 group-hover:border-amber-400/60 group-hover:shadow-[0_0_22px_rgba(245,158,11,0.28)]">
+                      <Icon className="h-6 w-6 text-amber-300 group-hover:text-amber-200 transition-colors" />
+                    </div>
+
+                    <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-0.5 text-[11px] font-mono tracking-wider text-amber-300/80 transition-all duration-300 group-hover:border-amber-400/50 group-hover:bg-amber-400/20 group-hover:text-amber-200">
+                      {b.number}
+                    </span>
+                  </div>
+
+                  {/* Card Title */}
+                  <h3 className="font-heading font-bold text-[17.5px] sm:text-[18.5px] text-white tracking-tight group-hover:text-amber-100 transition-colors duration-200">
+                    {b.title}
+                  </h3>
+
+                  {/* Card Description */}
+                  <p className="mt-2.5 text-[13.5px] leading-[1.65] text-[#8e8e8e] group-hover:text-[#a8a8a8] transition-colors duration-200">
+                    {b.desc}
+                  </p>
                 </div>
 
-                {/* Card Title with Josefin Sans */}
-                <h3 className="font-heading font-bold text-[17px] text-white tracking-tight">
-                  {b.title}
-                </h3>
-
-                {/* Card Description */}
-                <p className="mt-2.5 text-[13.5px] leading-[1.65] text-[#888888]">
-                  {b.desc}
-                </p>
+                {/* Bottom Card Footer with Tag and Dynamic Progress Line */}
+                <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between">
+                  <span className="text-[11px] font-medium tracking-wider uppercase text-white/35 transition-colors duration-300 group-hover:text-amber-400/80">
+                    {b.tag}
+                  </span>
+                  <span className="h-[2px] w-6 rounded-full bg-white/10 transition-all duration-300 group-hover:w-12 group-hover:bg-amber-400/80" />
+                </div>
               </motion.div>
             );
           })}

@@ -94,10 +94,11 @@ export default function Navbar() {
 
           {/* Actions */}
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-            <Link
-              href="/cart"
+            <button
+              type="button"
+              onClick={openCart}
               aria-label={`Open cart, ${count} items`}
-              className="relative grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
+              className="relative grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10 cursor-pointer"
             >
               <motion.div
                 key={`bag-${count}`}
@@ -120,7 +121,7 @@ export default function Navbar() {
                   </motion.span>
                 )}
               </AnimatePresence>
-            </Link>
+            </button>
 
             {/* Desktop User Pill Button: User DP + User Name (Gretchen Rosser matching clone) */}
             <Link

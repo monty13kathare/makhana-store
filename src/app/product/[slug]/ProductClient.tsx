@@ -55,7 +55,7 @@ export default function ProductClient({
   related: Product[];
 }) {
   const router = useRouter();
-  const { add, lines } = useCart();
+  const { add, lines, openAddedModal } = useCart();
   const { requireAuth } = useAuth();
   const { isLiked, toggleLike } = useWishlist();
 
@@ -113,24 +113,13 @@ export default function ProductClient({
   };
 
   const handleAddToCart = () => {
-    requireAuth(
-      () => {
-        add(product.slug, qty);
-        setJustAdded(true);
-        showToast(
-          `Added ${qty}x ${product.name} (${selectedWeight}) to bag! 🛍️`
-        );
-      },
-      {
-        title: "Sign in to Add to Bag",
-        message: `Please log in to add ${product.name} (${selectedWeight}) to your bag and continue shopping.`,
-        product: {
-          name: `${product.name} (${selectedWeight})`,
-          image: product.image,
-          price: effectivePrice,
-        },
-      }
-    );
+    add(product.slug, qty, false);
+    setJustAdded(true);
+    openAddedModal({
+      ...product,
+      name: `${product.name} (${selectedWeight})`,
+      price: effectivePrice,
+    });
   };
 
   const handleBuyNow = () => {

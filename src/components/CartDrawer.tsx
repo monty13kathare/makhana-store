@@ -18,6 +18,7 @@ import {
   Sparkles,
   Percent,
   Truck,
+  Zap,
 } from "lucide-react";
 import { FREE_SHIPPING_OVER, useCart, type Coupon } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -100,16 +101,16 @@ export default function CartDrawer() {
             {/* 1. Header */}
             <header className="flex items-center justify-between border-b border-white/10 px-6 py-5 bg-[#141414]">
               <h2 className="flex items-center gap-2.5 text-[17px] font-bold">
-                <ShoppingBag className="h-[19px] w-[19px] text-amber-400" />
+                <ShoppingBag className="h-[20px] w-[20px] text-amber-400" />
                 <span>Your Bag</span>
-                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11.5px] font-extrabold text-amber-300">
-                  {detailed.length}
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10 border border-white/10">
+                  <Zap className="h-3 w-3 text-amber-400 fill-amber-400" />
                 </span>
               </h2>
               <button
                 onClick={closeCart}
                 aria-label="Close cart"
-                className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-white/80 transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
+                className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/5 text-white/70 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
               >
                 <X className="h-4 w-4" />
               </button>

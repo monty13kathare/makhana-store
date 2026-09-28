@@ -6,7 +6,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
-
+import AddedToCartModal from "@/components/AddedToCartModal";
 import AuthModal from "@/components/AuthModal";
 import { WishlistProvider } from "@/context/WishlistContext";
 
@@ -71,6 +71,7 @@ export default function RootLayout({
               <main className="min-h-screen w-full max-w-full overflow-x-clip">{children}</main>
               <Footer />
               <CartDrawer />
+              <AddedToCartModal />
               <AuthModal />
             </CartProvider>
           </WishlistProvider>
