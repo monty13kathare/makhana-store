@@ -107,6 +107,8 @@ export default function VerifyPage() {
   return (
     <AuthShell
       title="Verification Code"
+      backHref="/login"
+      backLabel="Change number"
       subtitle={`Enter the 6-digit code sent to ${masked} to securely access your account.`}
       footer={
         <div className="flex items-center justify-center gap-2 text-[12px] text-white/50">
@@ -200,7 +202,7 @@ export default function VerifyPage() {
         <motion.button
           type="submit"
           whileTap={{ scale: 0.98 }}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-md"
+          className="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-md"
         >
           <span>Verify &amp; Continue</span>
           <ArrowRight className="h-4 w-4" />

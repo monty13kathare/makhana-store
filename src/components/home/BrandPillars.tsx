@@ -27,7 +27,7 @@ const pillars = [
 
 export default function BrandPillars() {
   return (
-    <section className="relative overflow-hidden bg-[#0d0d0d] py-12 sm:py-16 lg:py-20 text-white">
+    <section className="relative overflow-hidden bg-[#0d0d0d] py-10 sm:py-16 lg:py-20 text-white">
       {/* Soft subtle dark ambient vignette */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,255,255,0.015),transparent_70%)]" />
 
@@ -42,14 +42,14 @@ export default function BrandPillars() {
           transition={{ duration: 0.7, ease: EASE }}
           className="mx-auto max-w-7xl"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+          <div className="swipe-row gap-3 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
             {/* 1. Card 1: Digital Caliper 19.05 mm */}
-            <div className="group relative aspect-[4/3] overflow-hidden rounded-[20px] sm:rounded-[22px] border border-white/[0.08] bg-[#141414] hover:border-amber-400/40 transition-all duration-500 shadow-xl shadow-black/60 hover:shadow-2xl hover:shadow-amber-500/10">
+            <div className="group relative aspect-[4/3] w-[72vw] max-w-[300px] shrink-0 snap-start sm:w-auto sm:max-w-none overflow-hidden rounded-[20px] sm:rounded-[22px] border border-white/[0.08] bg-[#141414] hover:border-amber-400/40 transition-all duration-500 shadow-xl shadow-black/60 hover:shadow-2xl hover:shadow-amber-500/10">
               <Image
                 src="/img/size-caliper.jpg"
                 alt="Digital caliper measuring jumbo 19.05mm makhana"
                 fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                sizes="(max-width: 640px) 75vw, (max-width: 1024px) 50vw, 25vw"
                 className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-108"
                 priority
               />
@@ -69,12 +69,12 @@ export default function BrandPillars() {
             </div>
 
             {/* 2. Card 2: Ruler & 6 Suta Size Guide */}
-            <div className="group relative aspect-[4/3] overflow-hidden rounded-[20px] sm:rounded-[22px] border border-white/[0.08] bg-[#141414] hover:border-amber-400/40 transition-all duration-500 shadow-xl shadow-black/60 hover:shadow-2xl hover:shadow-amber-500/10">
+            <div className="group relative aspect-[4/3] w-[72vw] max-w-[300px] shrink-0 snap-start sm:w-auto sm:max-w-none overflow-hidden rounded-[20px] sm:rounded-[22px] border border-white/[0.08] bg-[#141414] hover:border-amber-400/40 transition-all duration-500 shadow-xl shadow-black/60 hover:shadow-2xl hover:shadow-amber-500/10">
               <Image
                 src="/img/size-ruler.jpg"
                 alt="6 Suta 0.75 inch size guide with ruler"
                 fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                sizes="(max-width: 640px) 75vw, (max-width: 1024px) 50vw, 25vw"
                 className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-108"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20" />
@@ -103,12 +103,12 @@ export default function BrandPillars() {
             </div>
 
             {/* 3. Card 3: Hand holding pristine jumbo makhana */}
-            <div className="group relative aspect-[4/3] overflow-hidden rounded-[20px] sm:rounded-[22px] border border-white/[0.08] bg-[#141414] hover:border-amber-400/40 transition-all duration-500 shadow-xl shadow-black/60 hover:shadow-2xl hover:shadow-amber-500/10">
+            <div className="group relative aspect-[4/3] w-[72vw] max-w-[300px] shrink-0 snap-start sm:w-auto sm:max-w-none overflow-hidden rounded-[20px] sm:rounded-[22px] border border-white/[0.08] bg-[#141414] hover:border-amber-400/40 transition-all duration-500 shadow-xl shadow-black/60 hover:shadow-2xl hover:shadow-amber-500/10">
               <Image
                 src="/img/size-hand.jpg"
                 alt="Hand holding premium grade 6 suta makhana"
                 fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                sizes="(max-width: 640px) 75vw, (max-width: 1024px) 50vw, 25vw"
                 className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-108"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20" />
@@ -134,12 +134,12 @@ export default function BrandPillars() {
             </div>
 
             {/* 4. Card 4: Makhana close-up with dimension overlay */}
-            <div className="group relative aspect-[4/3] overflow-hidden rounded-[20px] sm:rounded-[22px] border border-white/[0.08] bg-[#141414] hover:border-amber-400/40 transition-all duration-500 shadow-xl shadow-black/60 hover:shadow-2xl hover:shadow-amber-500/10">
+            <div className="group relative aspect-[4/3] w-[72vw] max-w-[300px] shrink-0 snap-start sm:w-auto sm:max-w-none overflow-hidden rounded-[20px] sm:rounded-[22px] border border-white/[0.08] bg-[#141414] hover:border-amber-400/40 transition-all duration-500 shadow-xl shadow-black/60 hover:shadow-2xl hover:shadow-amber-500/10">
               <Image
                 src="/img/size-ruler.jpg"
                 alt="Diameter ~19mm 6 suta close-up"
                 fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                sizes="(max-width: 640px) 75vw, (max-width: 1024px) 50vw, 25vw"
                 className="scale-125 object-cover object-[50%_28%] transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-135"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20" />
@@ -185,7 +185,7 @@ export default function BrandPillars() {
         {/* ------------------------------------------------------------------
             Middle Header Text Block (Compact & Well-proportioned)
             ------------------------------------------------------------------ */}
-        <div className="mt-10 sm:mt-12">
+        <div className="mt-8 sm:mt-12">
           <Reveal>
             {/* Olive Green Subtitle Tag */}
             <p className="text-[13px] font-medium tracking-wide text-[#8da366]">
@@ -209,7 +209,7 @@ export default function BrandPillars() {
         {/* ------------------------------------------------------------------
             Bottom 3 Luxury Numbered Cards (Compact & Elegant)
             ------------------------------------------------------------------ */}
-        <div className="mt-8 sm:mt-10 grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 sm:mt-10 grid gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {pillars.map((pillar, i) => (
             <motion.div
               key={pillar.number}
@@ -218,7 +218,7 @@ export default function BrandPillars() {
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.5, ease: EASE, delay: i * 0.08 }}
               whileHover={{ y: -5 }}
-              className="group flex flex-col justify-between rounded-[18px] sm:rounded-[20px] border border-white/[0.08] bg-[#141414] p-5 sm:p-6 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-[#171717] shadow-md shadow-black/30"
+              className="group flex flex-col justify-between rounded-[18px] sm:rounded-[20px] border border-white/[0.08] bg-[#141414] p-4 sm:p-6 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-[#171717] shadow-md shadow-black/30"
             >
               <div>
                 {/* Circular Number Pill (01, 02, 03) */}
@@ -227,7 +227,7 @@ export default function BrandPillars() {
                 </span>
 
                 {/* Card Title */}
-                <h3 className="mt-4 font-heading font-bold text-[16.5px] sm:text-[17.5px] text-white tracking-tight transition-colors duration-200 group-hover:text-white">
+                <h3 className="mt-3 sm:mt-4 font-heading font-bold text-[16.5px] sm:text-[17.5px] text-white tracking-tight transition-colors duration-200 group-hover:text-white">
                   {pillar.title}
                 </h3>
 
@@ -238,7 +238,7 @@ export default function BrandPillars() {
               </div>
 
               {/* Bottom subtle accent bar */}
-              <div className="mt-5 pt-3 border-t border-white/[0.05] flex items-center justify-between">
+              <div className="mt-5 pt-3 border-t border-white/[0.05] hidden sm:flex items-center justify-between">
                 <span className="text-[10.5px] font-mono uppercase tracking-wider text-white/30 transition-colors duration-300 group-hover:text-amber-400/70">
                   Pillar {pillar.number}
                 </span>

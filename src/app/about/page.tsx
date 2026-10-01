@@ -18,23 +18,23 @@ const milestones = [
 export default function AboutPage() {
   return (
     <>
-      <section className="pt-[116px] pb-16 lg:pt-[140px] lg:pb-20">
+      <section className="pt-[92px] pb-8 sm:pt-[116px] sm:pb-16 lg:pt-[140px] lg:pb-20">
         <div className="container-x">
           <Reveal className="max-w-[56ch]">
             <p className="mb-3 text-[11.5px] font-semibold uppercase tracking-[0.22em] text-gold">
               Our story
             </p>
-            <h1 className="text-[34px] font-extrabold leading-[1.08] tracking-[-0.025em] sm:text-[48px]">
+            <h1 className="text-[28px] xs:text-[30px] font-extrabold leading-[1.08] tracking-[-0.025em] sm:text-[48px]">
               From a pond in Mithila to{" "}
               <span className="font-display italic text-gold">your desk drawer</span>
             </h1>
-            <p className="mt-5 text-[15px] leading-relaxed text-muted">
+            <p className="mt-3 text-[14.5px] leading-relaxed text-muted sm:mt-5 sm:text-[15px]">
               Makhana has been farmed in Bihar for centuries, almost entirely by
               hand. Divers go down into chest-deep water to collect the pods, the
               seeds are sun-dried, graded by size, then popped over an open flame
               in seconds. It is skilled, punishing work that has never paid well.
             </p>
-            <p className="mt-4 text-[15px] leading-relaxed text-muted">
+            <p className="mt-3 text-[14.5px] leading-relaxed text-muted sm:mt-4 sm:text-[15px]">
               We built our brand to change one part of that: pay the growers properly,
               roast the crop ourselves, and sell it fresh instead of letting it sit
               in a warehouse for a year.
@@ -44,46 +44,51 @@ export default function AboutPage() {
       </section>
 
       {/* Image band */}
-      <section className="pb-20 lg:pb-24">
+      <section className="pb-12 sm:pb-20 lg:pb-24">
         <div className="container-x">
-          <div className="grid gap-4 sm:grid-cols-3">
+          {/* Phones: swipeable row. The group (not each image) watches the
+              viewport so images that start off-screen to the right still reveal. */}
+          <StaggerGroup className="swipe-row gap-3 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0">
             {[
               { src: "/img/farm-harvest.jpg", alt: "Harvesting lotus pods" },
               { src: "/img/roasting-fire.jpg", alt: "Roasting over an open flame" },
               { src: "/img/lifestyle-snack.jpg", alt: "A bowl of roasted makhana" },
-            ].map((img, i) => (
-              <Reveal key={img.src} delay={i * 0.1}>
-                <div className="relative aspect-[4/5] overflow-hidden rounded-[20px] border border-white/10">
+            ].map((img) => (
+              <StaggerItem
+                key={img.src}
+                className="w-[72%] max-w-[300px] shrink-0 snap-start sm:w-auto sm:max-w-none"
+              >
+                <div className="relative aspect-[4/5] overflow-hidden rounded-[18px] border border-white/10 sm:rounded-[20px]">
                   <Image
                     src={img.src}
                     alt={img.alt}
                     fill
-                    sizes="(max-width: 640px) 100vw, 33vw"
+                    sizes="(max-width: 640px) 72vw, 33vw"
                     className="object-cover"
                   />
                 </div>
-              </Reveal>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGroup>
         </div>
       </section>
 
       {/* Sourcing */}
-      <section id="sourcing" className="pb-20 lg:pb-28">
+      <section id="sourcing" className="pb-12 sm:pb-20 lg:pb-28">
         <div className="container-x">
-          <Reveal className="mb-10 max-w-[48ch]">
-            <h2 className="text-[26px] font-extrabold leading-[1.14] tracking-[-0.02em] sm:text-[36px]">
+          <Reveal className="mb-5 max-w-[48ch] sm:mb-10">
+            <h2 className="text-[24px] font-extrabold leading-[1.14] tracking-[-0.02em] sm:text-[36px]">
               How we got{" "}
               <span className="font-display italic text-gold">here</span>
             </h2>
           </Reveal>
 
-          <StaggerGroup className="grid gap-px overflow-hidden rounded-[24px] border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
+          <StaggerGroup className="grid grid-cols-2 gap-px overflow-hidden rounded-[20px] border border-white/10 bg-white/10 sm:rounded-[24px] lg:grid-cols-4">
             {milestones.map((m) => (
-              <StaggerItem key={m.year} className="bg-ink-soft px-7 py-9">
-                <p className="mb-3 text-[13px] font-bold text-gold">{m.year}</p>
-                <h3 className="mb-2 text-[17px] font-bold">{m.title}</h3>
-                <p className="text-[13.5px] leading-relaxed text-dim">{m.body}</p>
+              <StaggerItem key={m.year} className="bg-ink-soft px-4 py-5 sm:px-7 sm:py-9">
+                <p className="mb-1.5 text-[12.5px] font-bold text-gold sm:mb-3 sm:text-[13px]">{m.year}</p>
+                <h3 className="mb-1 text-[15px] font-bold sm:mb-2 sm:text-[17px]">{m.title}</h3>
+                <p className="text-[12.5px] leading-relaxed text-dim sm:text-[13.5px]">{m.body}</p>
               </StaggerItem>
             ))}
           </StaggerGroup>

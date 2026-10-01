@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Minus, Plus } from "lucide-react";
 import { formatUSD, type Product } from "@/lib/products";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -18,7 +18,7 @@ export default function ProductCard({
   product: Product;
   index?: number;
 }) {
-  const { add, lines, openAddedModal } = useCart();
+  const { add, setQty, lines, openAddedModal } = useCart();
 
   const [justAdded, setJustAdded] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
@@ -76,6 +76,8 @@ export default function ProductCard({
     setTimeout(() => {
       add(product.slug, 1, false);
       openAddedModal(product);
+      // From here on the real cart line drives the "added" state
+      setJustAdded(false);
     }, 280);
 
     setTimeout(() => {
@@ -84,6 +86,59 @@ export default function ProductCard({
     }, 1200);
   };
 
+  const qty = cartItem?.qty ?? 0;
+  const hasDiscount = product.mrp > product.price;
+  // Phones: swap the Add button for a stepper once the celebration has played
+  const showStepper = inCart && !celebrating;
+
+  const stepQty = (e: React.MouseEvent, delta: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (delta > 0) add(product.slug, 1, false);
+    else setQty(product.slug, qty - 1);
+  };
+
+  // Confetti burst — rendered inside whichever add button is visible
+  const burst = (
+    <AnimatePresence>
+      {celebrating && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center overflow-visible">
+          {/* Expanding golden shockwave ring */}
+          <motion.span
+            initial={{ scale: 0.8, opacity: 0.9 }}
+            animate={{ scale: 1.8, opacity: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="absolute inset-0 rounded-full border-2 border-amber-400 bg-amber-400/25"
+          />
+
+          {/* Confetti pieces */}
+          {confetti.map((p) => (
+            <motion.span
+              key={p.id}
+              initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
+              animate={{
+                x: p.x,
+                y: p.y,
+                opacity: [1, 1, 0],
+                scale: [1, 1.25, 0.3],
+                rotate: p.rotate,
+              }}
+              transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                backgroundColor: p.color,
+                width: p.size,
+                height: p.isDiamond ? p.size : p.size * 0.75,
+                borderRadius: p.isDiamond ? "1px" : "999px",
+              }}
+              className="absolute shadow-sm"
+            />
+          ))}
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 30 }}
@@ -91,31 +146,123 @@ export default function ProductCard({
       viewport={{ once: true, amount: 0.15 }}
       transition={{ duration: 0.6, ease: EASE, delay: (index % 4) * 0.08 }}
       whileHover={{ y: -6 }}
-      className="group flex h-full flex-col justify-between overflow-hidden rounded-[20px] border border-white/10 bg-[#161616] p-3.5 transition-all duration-300 hover:border-white/25 hover:shadow-2xl hover:shadow-black/50"
+      className="@container group flex h-full flex-col justify-between overflow-hidden rounded-[16px] border border-white/10 bg-[#161616] p-2 transition-all duration-300 hover:border-white/25 hover:shadow-2xl hover:shadow-black/50 sm:rounded-[20px] sm:p-3.5"
     >
-      {/* 1. Image Container with Fixed Equal Aspect Ratio */}
+      {/* 1. Image Container — square on compact phone cards, 4:3 when roomy / sm+ */}
       <Link
         href={`/product/${product.slug}`}
-        className="relative block aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[16px] bg-[#1a1a1a]"
+        className="relative block aspect-square w-full shrink-0 overflow-hidden rounded-[12px] bg-[#1a1a1a] @[15rem]:aspect-[4/3] sm:aspect-[4/3] sm:rounded-[16px]"
       >
         <Image
           src={product.image}
           alt={product.name}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+          sizes="(max-width: 640px) 80vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
           className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         {product.badge && (
-          <span className="absolute top-2.5 left-2.5 z-10 rounded-full border border-amber-400/40 bg-black/75 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300 backdrop-blur-md shadow-md">
+          <span className="absolute top-2 left-2 z-10 rounded-full border border-amber-400/40 bg-black/75 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300 backdrop-blur-md shadow-md sm:top-2.5 sm:left-2.5 sm:px-2.5">
             {product.badge}
           </span>
         )}
-
       </Link>
 
-      {/* 2. Content Container - flex-1 with uniform spacing */}
-      <div className="flex flex-1 flex-col justify-between pt-4">
+      {/* 2a. Compact phone content (Blinkit-style): name, price, one add action */}
+      <div className="flex flex-1 flex-col justify-between px-0.5 pt-2.5 sm:hidden">
+        <div>
+          <h3 className="text-[13.5px] font-bold leading-snug text-white @[15rem]:text-[15px]">
+            <Link
+              href={`/product/${product.slug}`}
+              className="line-clamp-2 min-h-[2.75em] active:text-amber-300"
+            >
+              {product.name}
+            </Link>
+          </h3>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
+            <span className="text-[15px] font-extrabold text-white">
+              {formatUSD(product.price)}
+            </span>
+            {hasDiscount && (
+              <span className="text-[11.5px] font-medium text-white/40 line-through">
+                {formatUSD(product.mrp)}
+              </span>
+            )}
+            <span className="text-[11px] font-medium text-white/40">
+              · {product.weight}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-2.5 h-10">
+          <AnimatePresence mode="wait" initial={false}>
+            {showStepper ? (
+              <motion.div
+                key="stepper"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 500, damping: 28 }}
+                className="flex h-10 w-full items-center justify-between rounded-full bg-amber-400 text-black shadow-[0_0_18px_rgba(245,158,11,0.3)]"
+              >
+                <button
+                  type="button"
+                  onClick={(e) => stepQty(e, -1)}
+                  aria-label={`Remove one ${product.name}`}
+                  className="flex h-10 w-11 items-center justify-center rounded-full active:bg-black/10"
+                >
+                  <Minus className="h-4 w-4 stroke-[3]" />
+                </button>
+                <span
+                  className="min-w-[2ch] text-center text-[14px] font-extrabold tabular-nums"
+                  aria-live="polite"
+                >
+                  {qty}
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => stepQty(e, 1)}
+                  aria-label={`Add one more ${product.name}`}
+                  className="flex h-10 w-11 items-center justify-center rounded-full active:bg-black/10"
+                >
+                  <Plus className="h-4 w-4 stroke-[3]" />
+                </button>
+              </motion.div>
+            ) : (
+              <motion.button
+                key="add"
+                type="button"
+                onClick={handleAddToCart}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={
+                  celebrating
+                    ? { opacity: 1, scale: [1, 0.9, 1.1, 0.97, 1] }
+                    : { opacity: 1, scale: 1 }
+                }
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                whileTap={{ scale: 0.94 }}
+                className={`relative flex h-10 w-full items-center justify-center gap-1.5 overflow-visible rounded-full text-[13.5px] font-bold transition-colors ${
+                  isAdded
+                    ? "bg-amber-400 text-black"
+                    : "border border-amber-400/60 bg-amber-400/10 text-amber-300 active:bg-amber-400/20"
+                }`}
+              >
+                {burst}
+                {isAdded ? (
+                  <Check className="h-4 w-4 stroke-[3]" />
+                ) : (
+                  <Plus className="h-4 w-4 stroke-[2.75]" />
+                )}
+                {isAdded ? "Added" : "Add"}
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* 2b. Content Container (sm and up) - flex-1 with uniform spacing */}
+      <div className="hidden flex-1 flex-col justify-between pt-4 sm:flex">
         <div>
           {/* Title + Price */}
           <div className="flex items-start justify-between gap-3">
@@ -159,43 +306,7 @@ export default function ProductCard({
             }`}
           >
             {/* Confetti Explosion Burst */}
-            <AnimatePresence>
-              {celebrating && (
-                <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center overflow-visible">
-                  {/* Expanding golden shockwave ring */}
-                  <motion.span
-                    initial={{ scale: 0.8, opacity: 0.9 }}
-                    animate={{ scale: 1.8, opacity: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    className="absolute inset-0 rounded-full border-2 border-amber-400 bg-amber-400/25"
-                  />
-
-                  {/* Confetti pieces */}
-                  {confetti.map((p) => (
-                    <motion.span
-                      key={p.id}
-                      initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
-                      animate={{
-                        x: p.x,
-                        y: p.y,
-                        opacity: [1, 1, 0],
-                        scale: [1, 1.25, 0.3],
-                        rotate: p.rotate,
-                      }}
-                      transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
-                      style={{
-                        backgroundColor: p.color,
-                        width: p.size,
-                        height: p.isDiamond ? p.size : p.size * 0.75,
-                        borderRadius: p.isDiamond ? "1px" : "999px",
-                      }}
-                      className="absolute shadow-sm"
-                    />
-                  ))}
-                </div>
-              )}
-            </AnimatePresence>
+            {burst}
 
             <AnimatePresence mode="wait">
               {isAdded ? (

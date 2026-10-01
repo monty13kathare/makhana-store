@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { ChevronDown, HelpCircle, ArrowRight } from "lucide-react";
 import { Reveal, EASE } from "../motion-primitives";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 
 /* --------------------------------------------------------------------------
    FAQ Questions Data
@@ -78,6 +79,8 @@ const seasoningParticles = [
 
 export default function Faq() {
   const [open, setOpen] = useState<number | null>(0); // First item open by default
+  // The decorative visual is desktop-only; don't mount (and animate) it on phones.
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   // Interactive 3D mouse parallax tracking
   const mouseX = useMotionValue(0);
@@ -109,22 +112,22 @@ export default function Faq() {
   };
 
   return (
-    <section id="faq" className="relative py-16 lg:py-24 bg-[#0a0a0a] text-white overflow-hidden">
+    <section id="faq" className="relative py-12 sm:py-16 lg:py-24 bg-[#0a0a0a] text-white overflow-hidden">
       {/* Background warm golden ambient bloom */}
       <div className="pointer-events-none absolute right-1/4 top-1/2 h-[550px] w-[550px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(229,169,60,0.07)_0%,transparent_70%)] blur-3xl -z-0" />
 
       <div className="container-x relative z-10">
         
         {/* Section Header */}
-        <div className="max-w-2xl mb-12">
+        <div className="max-w-2xl mb-6 sm:mb-12">
           <Reveal>
             <p className="text-[13.5px] font-medium tracking-wide text-[#8da366]">
               Frequently asked questions
             </p>
-            <h2 className="mt-2 text-[32px] sm:text-[44px] font-heading font-medium tracking-tight text-white leading-[1.12]">
+            <h2 className="mt-1.5 sm:mt-2 text-[26px] xs:text-[28px] sm:text-[44px] font-heading font-medium tracking-tight text-white leading-[1.12]">
               Everything customers want to know
             </h2>
-            <p className="mt-3 text-[14.5px] sm:text-[15.5px] text-[#8e8e8e] leading-relaxed">
+            <p className="mt-2 sm:mt-3 text-[13.5px] sm:text-[15.5px] text-[#8e8e8e] leading-relaxed">
               Got questions? Explore answers about our grade selection, roasting process, and international delivery.
             </p>
           </Reveal>
@@ -228,8 +231,9 @@ export default function Faq() {
           </div>
 
           {/* Right Column: 3D Animated Artisanal Seasoning Visual (makhana-3.png) */}
+          {isDesktop && (
           <div
-            className="relative flex items-center justify-center order-1 lg:order-2 [perspective:1200px]"
+            className="relative hidden lg:flex items-center justify-center order-1 lg:order-2 [perspective:1200px]"
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
           >
@@ -380,6 +384,7 @@ export default function Faq() {
               />
             </motion.div>
           </div>
+          )}
         </div>
       </div>
     </section>

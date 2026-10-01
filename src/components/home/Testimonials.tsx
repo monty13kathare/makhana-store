@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Star,
@@ -176,6 +176,20 @@ const initialSlides: Slide[] = [
   },
 ];
 
+/** True below the sm breakpoint (640px); false during SSR. */
+const PHONE_QUERY = "(max-width: 639px)";
+function useIsPhone() {
+  return useSyncExternalStore(
+    (cb) => {
+      const mq = window.matchMedia(PHONE_QUERY);
+      mq.addEventListener("change", cb);
+      return () => mq.removeEventListener("change", cb);
+    },
+    () => window.matchMedia(PHONE_QUERY).matches,
+    () => false
+  );
+}
+
 export default function Testimonials() {
   const [slides, setSlides] = useState<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -193,14 +207,28 @@ export default function Testimonials() {
   const [reviewComment, setReviewComment] = useState("");
   const [submittedToast, setSubmittedToast] = useState(false);
 
-  // Auto-slide every 6 seconds when not paused
+  const isPhone = useIsPhone();
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  // Auto-slide when not paused. Phones: glide the swipe row one card to the
+  // left every 4s, then move on to the next group once the last card is shown.
+  // Larger screens: swap the whole group every 6s.
   useEffect(() => {
     if (isPaused || isModalOpen) return;
     const timer = setInterval(() => {
+      const row = rowRef.current;
+      if (isPhone && row) {
+        const card = row.firstElementChild as HTMLElement | null;
+        const step = card ? card.offsetWidth + 12 : row.clientWidth;
+        if (row.scrollLeft + row.clientWidth < row.scrollWidth - 8) {
+          row.scrollBy({ left: step, behavior: "smooth" });
+          return;
+        }
+      }
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
+    }, isPhone ? 4000 : 6000);
     return () => clearInterval(timer);
-  }, [isPaused, isModalOpen, slides.length]);
+  }, [isPaused, isModalOpen, isPhone, slides.length]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -265,7 +293,7 @@ export default function Testimonials() {
   return (
     <section
       id="reviews"
-      className="relative py-16 lg:py-24 bg-[#0a0a0a] text-white overflow-hidden"
+      className="relative py-12 sm:py-16 lg:py-24 bg-[#0a0a0a] text-white overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -273,7 +301,7 @@ export default function Testimonials() {
       <div className="pointer-events-none absolute left-1/4 top-1/2 h-[500px] w-[500px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(229,169,60,0.06)_0%,transparent_70%)] blur-3xl -z-0" />
 
       <div className="container-x relative z-10">
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.15fr] lg:gap-16 items-start">
+        <div className="grid gap-8 sm:gap-12 lg:grid-cols-[1fr_1.15fr] lg:gap-16 items-start">
           
           {/* Left Column: Heading, Rating Card, and Functional Slider Controls */}
           <div className="flex flex-col justify-between h-full">
@@ -283,12 +311,12 @@ export default function Testimonials() {
               </p>
 
               {/* Title with Josefin Sans */}
-              <h2 className="mt-2 text-[32px] sm:text-[44px] font-heading font-medium tracking-tight text-white leading-[1.12]">
+              <h2 className="mt-1.5 sm:mt-2 text-[26px] xs:text-[28px] sm:text-[44px] font-heading font-medium tracking-tight text-white leading-[1.12]">
                 A premium experience people remember.
               </h2>
 
               {/* Description */}
-              <p className="mt-4 max-w-md text-[14.5px] sm:text-[15.5px] leading-relaxed text-[#8e8e8e]">
+              <p className="mt-2.5 sm:mt-4 max-w-md text-[13.5px] sm:text-[15.5px] leading-relaxed text-[#8e8e8e]">
                 Read genuine reviews from over 2,800+ customers worldwide who have upgraded their daily snacking to artisanal lotus seeds.
               </p>
 
@@ -332,7 +360,7 @@ export default function Testimonials() {
                       aria-label={`Go to slide ${i + 1}: ${slide.category}`}
                       aria-selected={isActive}
                       role="tab"
-                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                      className={`relative h-2 rounded-full transition-all duration-300 cursor-pointer before:absolute before:-inset-x-1.5 before:-inset-y-4 before:content-[''] ${
                         isActive
                           ? "w-8 bg-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
                           : "w-2 bg-white/20 hover:bg-white/50"
@@ -350,21 +378,21 @@ export default function Testimonials() {
                 <button
                   onClick={prevSlide}
                   aria-label="Previous slide"
-                  className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/5 text-white transition-all hover:border-amber-400/50 hover:bg-amber-400/10 hover:text-amber-400 active:scale-95 cursor-pointer"
+                  className="grid h-11 w-11 sm:h-9 sm:w-9 place-items-center rounded-full border border-white/15 bg-white/5 text-white transition-all hover:border-amber-400/50 hover:bg-amber-400/10 hover:text-amber-400 active:scale-95 cursor-pointer"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   onClick={nextSlide}
                   aria-label="Next slide"
-                  className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/5 text-white transition-all hover:border-amber-400/50 hover:bg-amber-400/10 hover:text-amber-400 active:scale-95 cursor-pointer"
+                  className="grid h-11 w-11 sm:h-9 sm:w-9 place-items-center rounded-full border border-white/15 bg-white/5 text-white transition-all hover:border-amber-400/50 hover:bg-amber-400/10 hover:text-amber-400 active:scale-95 cursor-pointer"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
 
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-3.5 py-1.5 text-[12.5px] font-semibold text-amber-300 transition-all hover:bg-amber-400 hover:text-black active:scale-95 cursor-pointer shadow-sm"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 h-11 px-4 sm:h-auto sm:px-3.5 py-1.5 text-[12.5px] font-semibold text-amber-300 transition-all hover:bg-amber-400 hover:text-black active:scale-95 cursor-pointer shadow-sm"
                 >
                   <MessageSquarePlus className="h-3.5 w-3.5" />
                   <span>Review</span>
@@ -374,15 +402,20 @@ export default function Testimonials() {
           </div>
 
           {/* Right Column: Animated Reviews Track with Luxury Graphite Cards */}
-          <div className="relative min-h-[460px]">
+          <div
+            className="relative min-w-0 sm:min-h-[460px]"
+            onTouchStart={() => setIsPaused(true)}
+            onTouchEnd={() => setIsPaused(false)}
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentSlide}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -16 }}
+                ref={rowRef}
+                initial={isPhone ? { opacity: 0, x: 48 } : { opacity: 0, y: 16 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                exit={isPhone ? { opacity: 0, x: -48 } : { opacity: 0, y: -16 }}
                 transition={{ duration: 0.45, ease: EASE }}
-                className="flex flex-col gap-4"
+                className="swipe-row gap-3 pb-1 sm:mx-0 sm:flex sm:flex-col sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0"
               >
                 {activeReviews.map((t) => {
                   const voteCount = helpfulVotes[t.id] ?? t.helpful;
@@ -392,7 +425,7 @@ export default function Testimonials() {
                     <motion.figure
                       key={t.id}
                       whileHover={{ y: -3 }}
-                      className="group relative flex flex-col justify-between rounded-[22px] border border-white/10 bg-[#161616] p-5 sm:p-6 transition-all duration-300 hover:border-amber-400/40 hover:bg-[#1a1a1a] shadow-[0_12px_32px_rgba(0,0,0,0.5)]"
+                      className="group relative flex w-[85vw] max-w-[340px] shrink-0 snap-start flex-col justify-between rounded-[22px] border border-white/10 bg-[#161616] p-5 sm:w-auto sm:max-w-none sm:p-6 transition-all duration-300 hover:border-amber-400/40 hover:bg-[#1a1a1a] shadow-[0_12px_32px_rgba(0,0,0,0.5)]"
                     >
                       <div>
                         {/* Top Metadata: 5 Golden Stars + Product Flavor Pill */}
@@ -448,7 +481,7 @@ export default function Testimonials() {
                             onClick={() => handleVoteHelpful(t.id, t.helpful)}
                             disabled={hasVoted}
                             title={hasVoted ? "You marked this as helpful" : "Helpful review"}
-                            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
+                            className={`flex min-h-10 items-center gap-1.5 rounded-full px-3 py-1 text-[12px] sm:min-h-0 sm:px-2.5 sm:text-[11px] font-medium transition-all ${
                               hasVoted
                                 ? "bg-amber-400/20 text-amber-300 border border-amber-400/40"
                                 : "text-white/40 hover:text-amber-400 hover:bg-white/5 border border-transparent"

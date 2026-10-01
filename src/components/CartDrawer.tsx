@@ -111,7 +111,7 @@ export default function CartDrawer() {
             className="fixed right-0 top-0 z-[71] flex h-full w-full max-w-[460px] flex-col border-l border-white/10 bg-[#121212] shadow-2xl text-white overflow-hidden"
           >
             {/* 1. Header */}
-            <header className="flex items-center justify-between border-b border-white/10 px-6 py-5 bg-[#141414]">
+            <header className="flex items-center justify-between border-b border-white/10 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-6 sm:py-5 bg-[#141414]">
               <h2 className="flex items-center gap-2.5 text-[17px] font-bold">
                 <ShoppingBag className="h-[20px] w-[20px] text-amber-400" />
                 <span>Your Bag</span>
@@ -122,7 +122,7 @@ export default function CartDrawer() {
               <button
                 onClick={closeCart}
                 aria-label="Close cart"
-                className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/5 text-white/70 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
+                className="grid h-10 w-10 sm:h-9 sm:w-9 place-items-center rounded-full border border-white/15 bg-white/5 text-white/70 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -131,7 +131,7 @@ export default function CartDrawer() {
 
 
             {/* 3. Items List Container — only this region scrolls */}
-            <div className="cart-items-scroll min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            <div className="cart-items-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
               {detailed.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                   <div className="grid h-16 w-16 place-items-center rounded-2xl border border-white/10 bg-white/5">
@@ -146,13 +146,13 @@ export default function CartDrawer() {
                   <Link
                     href="/shop"
                     onClick={closeCart}
-                    className="mt-2 rounded-full bg-white px-7 py-3 text-sm font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-md"
+                    className="mt-2 flex h-12 items-center rounded-full bg-white px-7 sm:block sm:h-auto sm:py-3 text-[15px] sm:text-sm font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-md"
                   >
                     Explore Flavours
                   </Link>
                 </div>
               ) : (
-                <ul className="flex flex-col gap-3.5">
+                <ul className="flex flex-col gap-3 sm:gap-3.5">
                   <AnimatePresence initial={false}>
                     {detailed.map(({ product, qty }) => (
                       <motion.li
@@ -162,7 +162,7 @@ export default function CartDrawer() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 30, height: 0, marginBottom: 0 }}
                         transition={{ duration: 0.3, ease: EASE }}
-                        className="flex gap-3.5 rounded-2xl border border-white/10 bg-[#161616] p-3.5 transition-colors hover:border-white/20 shadow-sm"
+                        className="flex gap-3 sm:gap-3.5 rounded-2xl border border-white/10 bg-[#161616] p-3 sm:p-3.5 transition-colors hover:border-white/20 shadow-sm"
                       >
                         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-neutral-900">
                           <Image
@@ -177,7 +177,7 @@ export default function CartDrawer() {
                         <div className="flex min-w-0 flex-1 flex-col">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="truncate text-[14px] font-bold text-white">
+                              <p className="truncate text-[15px] sm:text-[14px] font-bold text-white">
                                 {product.name}
                               </p>
                               <p className="text-[12px] text-[#808080]">
@@ -187,33 +187,33 @@ export default function CartDrawer() {
                             <button
                               onClick={() => remove(product.slug)}
                               aria-label={"Remove " + product.name}
-                              className="text-white/40 transition-colors hover:text-red-400 p-1"
+                              className="-mr-2 -mt-2 grid h-10 w-10 shrink-0 place-items-center rounded-full sm:m-0 sm:block sm:h-auto sm:w-auto sm:rounded-none text-white/40 transition-colors hover:text-red-400 active:text-red-400 p-1"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
 
-                          <div className="mt-auto flex items-center justify-between pt-2">
+                          <div className="mt-auto flex items-center justify-between pt-1.5 sm:pt-2">
                             <div className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 p-0.5">
                               <button
                                 onClick={() => setQty(product.slug, qty - 1)}
                                 aria-label="Decrease quantity"
-                                className="grid h-6 w-6 place-items-center rounded-full transition-colors hover:bg-amber-400/20 hover:text-amber-400 active:text-amber-300"
+                                className="-my-1.5 grid h-10 w-10 sm:my-0 sm:h-6 sm:w-6 place-items-center rounded-full transition-colors active:bg-amber-400/20 sm:active:bg-transparent hover:bg-amber-400/20 hover:text-amber-400 active:text-amber-300"
                               >
-                                <Minus className="h-3 w-3" />
+                                <Minus className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                               </button>
-                              <span className="w-6 text-center text-xs font-bold tabular-nums text-white">
+                              <span className="w-5 sm:w-6 text-center text-[13px] sm:text-xs font-bold tabular-nums text-white">
                                 {qty}
                               </span>
                               <button
                                 onClick={() => setQty(product.slug, qty + 1)}
                                 aria-label="Increase quantity"
-                                className="grid h-6 w-6 place-items-center rounded-full transition-colors hover:bg-amber-400/20 hover:text-amber-400 active:text-amber-300"
+                                className="-my-1.5 grid h-10 w-10 sm:my-0 sm:h-6 sm:w-6 place-items-center rounded-full transition-colors active:bg-amber-400/20 sm:active:bg-transparent hover:bg-amber-400/20 hover:text-amber-400 active:text-amber-300"
                               >
-                                <Plus className="h-3 w-3" />
+                                <Plus className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                               </button>
                             </div>
-                            <span className="text-[14px] font-extrabold text-white">
+                            <span className="text-[15px] sm:text-[14px] font-extrabold text-white">
                               {formatUSD(product.price * qty)}
                             </span>
                           </div>
@@ -227,11 +227,11 @@ export default function CartDrawer() {
 
             {/* 4. Coupons & Summary Footer */}
             {detailed.length > 0 && (
-              <footer className="shrink-0 border-t border-white/10 px-6 py-5 bg-[#141414]">
+              <footer className="shrink-0 border-t border-white/10 px-4 pt-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-5 bg-[#141414]">
                 {/* =========================================================================
                     COUPON FEATURE UI
                    ========================================================================= */}
-                <div className="mb-4">
+                <div className="mb-3 sm:mb-4">
                   {appliedCoupon ? (
                     /* Applied Coupon State */
                     <motion.div
@@ -260,7 +260,7 @@ export default function CartDrawer() {
 
                       <button
                         onClick={handleRemoveCoupon}
-                        className="text-[12px] font-semibold text-red-400 hover:text-red-300 transition-colors shrink-0 ml-2"
+                        className="min-h-10 px-2 -mr-1 sm:min-h-0 sm:px-0 sm:mr-0 text-[13px] sm:text-[12px] font-semibold text-red-400 hover:text-red-300 transition-colors shrink-0 ml-2"
                       >
                         Remove
                       </button>
@@ -285,13 +285,17 @@ export default function CartDrawer() {
                               }
                             }}
                             placeholder="Enter coupon code (e.g. ROAST20)"
-                            className="w-full rounded-xl border border-white/15 bg-white/[0.03] py-2.5 pl-9 pr-3 text-[13px] font-mono uppercase text-white placeholder:text-white/30 placeholder:normal-case focus:border-amber-400 focus:outline-none"
+                            aria-label="Coupon code"
+                            autoComplete="off"
+                            autoCapitalize="characters"
+                            enterKeyHint="go"
+                            className="w-full rounded-xl border border-white/15 bg-white/[0.03] py-2.5 pl-9 pr-3 text-[16px] sm:text-[13px] font-mono uppercase text-white placeholder:text-white/30 placeholder:normal-case focus:border-amber-400 focus:outline-none"
                           />
                         </div>
                         <button
                           type="button"
                           onClick={() => handleApplyCoupon()}
-                          className="rounded-xl bg-white px-4 py-2.5 text-[12.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-95 shadow-sm"
+                          className="shrink-0 rounded-xl bg-white px-4 py-2.5 text-[14px] sm:text-[12.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-95 shadow-sm"
                         >
                           Apply
                         </button>
@@ -311,11 +315,12 @@ export default function CartDrawer() {
                       )}
 
                       {/* Available Coupons Accordion Toggle */}
-                      <div className="mt-2.5">
+                      <div className="mt-1 sm:mt-2.5">
                         <button
                           type="button"
                           onClick={() => setShowCouponsList((prev) => !prev)}
-                          className="flex items-center gap-1.5 text-[11.5px] font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                          aria-expanded={showCouponsList}
+                          className="flex min-h-10 sm:min-h-0 items-center gap-1.5 text-[13px] sm:text-[11.5px] font-semibold text-amber-400 hover:text-amber-300 transition-colors"
                         >
                           <Sparkles className="h-3 w-3" />
                           <span>View Available Offers ({availableCoupons.slice(0, 3).length})</span>
@@ -346,14 +351,14 @@ export default function CartDrawer() {
                                         {c.code}
                                       </span>
                                     </div>
-                                    <p className="text-[11px] text-[#8e8e8e]">
+                                    <p className="text-[12px] sm:text-[11px] text-[#8e8e8e]">
                                       {c.description}
                                     </p>
                                   </div>
                                   <button
                                     type="button"
                                     onClick={() => handleApplyCoupon(c.code)}
-                                    className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[11px] font-bold text-amber-300 hover:bg-amber-400 hover:text-black transition-colors shrink-0"
+                                    className="min-h-10 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 sm:min-h-0 sm:px-2.5 sm:py-1 text-[12.5px] sm:text-[11px] font-bold text-amber-300 hover:bg-amber-400 hover:text-black transition-colors shrink-0"
                                   >
                                     Apply
                                   </button>
@@ -369,7 +374,7 @@ export default function CartDrawer() {
                 </div>
 
                 {/* Pricing Breakdown Summary */}
-                <dl className="mb-4 flex flex-col gap-2 border-t border-white/10 pt-3.5 text-[13.5px]">
+                <dl className="mb-3 sm:mb-4 flex flex-col gap-1.5 sm:gap-2 border-t border-white/10 pt-3 sm:pt-3.5 text-[13.5px]">
                   <div className="flex justify-between text-[#9a9a9a]">
                     <dt>Subtotal</dt>
                     <dd className="font-semibold text-white">{formatUSD(subtotal)}</dd>
@@ -407,7 +412,7 @@ export default function CartDrawer() {
                     </dd>
                   </div>
 
-                  <div className="mt-1 flex justify-between border-t border-white/10 pt-3 text-[17px] font-extrabold text-white">
+                  <div className="mt-1 flex justify-between border-t border-white/10 pt-2.5 sm:pt-3 text-[17px] font-extrabold text-white">
                     <dt>Total</dt>
                     <dd className="text-amber-400">{formatUSD(total)}</dd>
                   </div>
@@ -419,13 +424,13 @@ export default function CartDrawer() {
                     closeCart();
                     router.push("/checkout");
                   }}
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-white py-3.5 text-center font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-[0.98] shadow-lg shadow-white/5 text-[14px]"
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-white min-h-[52px] sm:min-h-0 py-3.5 text-center font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-[0.98] shadow-lg shadow-white/5 text-[15px] sm:text-[14px]"
                 >
                   <span>Proceed to Checkout</span>
                   <span>({formatUSD(total)})</span>
                 </button>
 
-                <p className="mt-2.5 text-center text-[11.5px] text-[#7a7a7a]">
+                <p className="mt-2 sm:mt-2.5 text-center text-[11.5px] text-[#7a7a7a]">
                   Taxes calculated at checkout &middot; 100% secure payment
                 </p>
               </footer>

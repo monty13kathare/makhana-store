@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, animate } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { AnimatePresence, motion, useInView, useMotionValue, useSpring, useTransform, animate } from "framer-motion";
 import { EASE } from "../motion-primitives";
+import { useMediaQuery, DESKTOP_POINTER } from "@/lib/useMediaQuery";
 
 /* --------------------------------------------------------------------------
    Makhana Slides Data (Real Makhana Product PNGs - Top Luxury Web UI)
@@ -150,21 +151,18 @@ const fadeVariants = {
     opacity: 0,
     x: 60,
     scale: 0.95,
-    filter: "blur(8px)",
   },
   center: {
     zIndex: 1,
     opacity: 1,
     x: 0,
     scale: 1,
-    filter: "blur(0px)",
   },
   exit: {
     zIndex: 0,
     opacity: 0,
     x: -60,
     scale: 1.05,
-    filter: "blur(8px)",
   },
 };
 
@@ -174,6 +172,12 @@ const fadeVariants = {
 export default function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  // Ambient motion only runs while the hero is on screen; the 3D sway only on
+  // mouse-driven desktops (touch devices can't tilt it, and the loop costs
+  // main-thread time every frame).
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef);
+  const hasMouse = useMediaQuery(DESKTOP_POINTER);
 
   // Interactive 3D mouse parallax tracking
   const mouseX = useMotionValue(0);
@@ -197,7 +201,7 @@ export default function Hero() {
 
   // Auto-animate 3D parallax when not hovered
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || !hasMouse || !inView) return;
 
     // Smooth continuous 3D rotation
     const controlsX = animate(mouseX, [0, 0.12, 0, -0.12, 0], {
@@ -218,7 +222,7 @@ export default function Hero() {
       controlsX.stop();
       controlsY.stop();
     };
-  }, [isPaused, mouseX, mouseY]);
+  }, [isPaused, hasMouse, inView, mouseX, mouseY]);
 
   const handleMouseLeave = () => {
     mouseX.set(0);
@@ -235,12 +239,12 @@ export default function Hero() {
 
   // Auto-slide every 5.2s with silky smooth crossfade transition
   useEffect(() => {
-    if (isPaused || slides.length === 0) return;
+    if (isPaused || !inView || slides.length === 0) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 5200);
     return () => clearInterval(timer);
-  }, [isPaused]);
+  }, [isPaused, inView]);
 
   const safeIndex = slides.length > 0 ? currentSlide % slides.length : 0;
   const activeSlide = slides[safeIndex] || slides[0] || {
@@ -253,7 +257,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative bg-[#191919] pt-[112px] sm:pt-[128px] lg:pt-[144px] text-white overflow-x-clip">
+    <section ref={sectionRef} className="relative bg-[#191919] pt-[84px] pb-8 sm:pb-0 sm:pt-[128px] lg:pt-[144px] text-white overflow-x-clip">
       {/* Hidden preloader to guarantee 0ms instant display without load delays */}
       <div className="hidden pointer-events-none" aria-hidden="true">
         {slides.map((s) => (
@@ -269,7 +273,7 @@ export default function Hero() {
 
       <div className="container-x">
         {/* Main Hero Row */}
-        <div className="grid items-center gap-6 sm:gap-10 lg:grid-cols-[1.05fr_1.15fr] lg:gap-10 min-h-[440px] sm:min-h-[540px] lg:min-h-[640px] xl:min-h-[680px]">
+        <div className="grid items-center gap-2 sm:gap-10 lg:grid-cols-[1.05fr_1.15fr] lg:gap-10 sm:min-h-[540px] lg:min-h-[640px] xl:min-h-[680px]">
           
           {/* Left Column: Heading, Paragraph, Two Buttons */}
           <motion.div
@@ -278,18 +282,27 @@ export default function Hero() {
             transition={{ duration: 0.7, ease: EASE }}
             className="relative z-10 max-w-xl"
           >
+            {/* Mobile eyebrow chip */}
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold sm:hidden">
+              <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+              6-suta · Zero palm oil
+            </span>
+
             {/* Header Title with Josefin Sans font */}
-            <h1 className="font-heading font-bold text-white text-[28px] xs:text-[36px] sm:text-[48px] lg:text-[58px] xl:text-[62px] leading-[1.12] tracking-tight break-words">
+            <h1 className="font-heading font-bold text-white text-[30px] xs:text-[34px] sm:text-[48px] lg:text-[58px] xl:text-[62px] leading-[1.12] tracking-tight break-words">
               Premium Makhana for
-              <br className="hidden xs:inline" />{" "}
+              <br className="hidden xs:inline sm:hidden" />{" "}
               the Modern World.
             </h1>
 
             {/* Paragraph Subtitle matching clone text */}
-            <p className="mt-3.5 sm:mt-6 text-[13.5px] xs:text-[14.5px] sm:text-[16px] leading-[1.65] text-[#9a9a9a] max-w-lg break-words">
-              Crafted for refined taste, elegant gifting, and everyday indulgence &mdash;
-              our premium makhana collection is available for online purchase with
-              worldwide shipping and free delivery on eligible orders.
+            <p className="mt-3 sm:mt-6 text-[14px] sm:text-[16px] leading-[1.65] text-[#9a9a9a] max-w-lg break-words">
+              Crafted for refined taste, elegant gifting, and everyday indulgence
+              <span className="hidden sm:inline">
+                {" "}&mdash; our premium makhana collection is available for online purchase with
+                worldwide shipping and free delivery on eligible orders
+              </span>
+              .
             </p>
 
             {/* Action Buttons (Desktop only - under subtitle) */}
@@ -338,18 +351,7 @@ export default function Hero() {
               />
 
               {/* Dynamic 3D Ground Contact Shadow */}
-              <motion.div
-                animate={{
-                  scale: [0.88, 1.15, 0.88],
-                  opacity: [0.35, 0.68, 0.35],
-                }}
-                transition={{
-                  duration: 6.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="pointer-events-none absolute bottom-0 sm:bottom-2 w-4/5 h-10 sm:h-12 rounded-full bg-black/95 blur-2xl sm:blur-3xl -z-10"
-              />
+              <div className="pointer-events-none absolute bottom-0 sm:bottom-2 w-4/5 h-10 sm:h-12 rounded-full bg-black/95 blur-2xl sm:blur-3xl -z-10 anim-breathe" />
 
               {/* Instant In-Place Smooth Animated Auto-Transition */}
               <AnimatePresence initial={false} mode="popLayout">
@@ -367,18 +369,8 @@ export default function Hero() {
                   style={{ transform: "translateZ(25px)" }}
                 >
                   {/* Organic floating levitation micro-animation - Scaled larger in desktop */}
-                  <motion.div
-                    animate={{
-                      y: [-14, 10, -14],
-                      rotate: [-1.4, 1.4, -1.4],
-                    }}
-                    transition={{
-                      duration: 6.5,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                    className="relative h-full w-full flex items-center justify-center p-0 scale-100 lg:scale-[1.14] xl:scale-[1.20] transition-transform duration-500"
-                  >
+                  {/* CSS keyframes (compositor) rather than a JS loop */}
+                  <div className="relative h-full w-full flex items-center justify-center p-0 scale-100 lg:scale-[1.14] xl:scale-[1.20] anim-levitate">
                     <img
                       src={activeSlide?.src || "/img/hero-clean-jar.png"}
                       alt={activeSlide?.alt || "Artisanal 3D Makhana"}
@@ -386,24 +378,44 @@ export default function Hero() {
                       loading="eager"
                       className="h-full w-full object-contain drop-shadow-[0_28px_52px_rgba(0,0,0,0.85)] filter select-none pointer-events-none"
                     />
-                  </motion.div>
+                  </div>
                 </motion.div>
               </AnimatePresence>
             </motion.div>
 
-            {/* Action Buttons (Mobile only - shown below product image) */}
-            <div className="mt-4 sm:mt-6 w-full max-w-sm flex lg:hidden flex-col xs:flex-row items-stretch xs:items-center justify-center gap-3 px-2 xs:px-0">
+            {/* Slide indicators */}
+            <div className="mt-1 flex items-center justify-center gap-2 lg:hidden">
+              {slides.map((s, i) => (
+                <button
+                  key={s.src}
+                  type="button"
+                  onClick={() => setCurrentSlide(i)}
+                  aria-label={`Show ${s.title}`}
+                  aria-current={i === safeIndex}
+                  className="grid h-10 min-w-9 place-items-center px-1 sm:h-6 sm:min-w-0 sm:px-0.5"
+                >
+                  <span
+                    className={`block h-1.5 rounded-full transition-all duration-500 ${
+                      i === safeIndex ? "w-6 bg-gold" : "w-1.5 bg-white/25"
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+
+            {/* Action Buttons (Mobile/tablet - shown below product image) */}
+            <div className="mt-4 sm:mt-6 grid w-full max-w-md grid-cols-2 gap-3 lg:hidden">
               <Link
                 href="/shop"
-                className="w-full xs:w-auto text-center rounded-xl bg-white px-7 py-3.5 text-[14.5px] font-semibold text-[#111111] transition-all hover:bg-neutral-100 hover:shadow-[0_8px_24px_rgba(255,255,255,0.18)] active:scale-95"
+                className="flex h-12 items-center justify-center rounded-2xl bg-white px-4 text-[14px] font-bold text-[#111111] transition-all active:scale-95"
               >
-                Shop Collection
+                Shop now
               </Link>
               <Link
                 href="/about"
-                className="w-full xs:w-auto text-center rounded-xl border border-white/25 bg-white/[0.04] px-7 py-3.5 text-[14.5px] font-semibold text-white transition-all hover:border-white/50 hover:bg-white/[0.08] active:scale-95"
+                className="flex h-12 items-center justify-center rounded-2xl border border-white/20 bg-white/[0.04] px-4 text-[14px] font-semibold text-white transition-all active:scale-95"
               >
-                Explore Brand Story
+                Our story
               </Link>
             </div>
           </motion.div>
@@ -413,43 +425,40 @@ export default function Hero() {
             Bottom 4 Trust Pillars (Single Rounded Card matching Screenshot)
             Centered card overflowing across the hero boundary into the next section
             ------------------------------------------------------------- */}
-        <div className="relative z-20 mt-12 sm:mt-16 lg:mt-20 -mb-20 sm:-mb-24 lg:-mb-28">
+        <div className="relative z-20 mt-8 sm:mt-16 lg:mt-20 sm:-mb-24 lg:-mb-28">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: EASE, delay: 0.15 }}
-            style={{
-              backdropFilter: "blur(89.5px)",
-              WebkitBackdropFilter: "blur(89.5px)",
-            }}
-            className="relative overflow-hidden rounded-[24px] sm:rounded-[32px] lg:rounded-[36px] border border-white/[0.08] bg-[#222222]/70 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]"
+            className="relative overflow-hidden rounded-[24px] sm:rounded-[32px] lg:rounded-[36px] border border-white/[0.08] bg-[#202020] sm:bg-[#222222]/70 sm:backdrop-blur-[90px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]"
           >
             {/* Inset vertical dividers matching reference image (y: 81 to 234) */}
             <div className="hidden lg:block pointer-events-none absolute top-[14%] bottom-[14%] left-1/4 w-[1px] bg-white/[0.08]" />
             <div className="hidden lg:block pointer-events-none absolute top-[14%] bottom-[14%] left-2/4 w-[1px] bg-white/[0.08]" />
             <div className="hidden lg:block pointer-events-none absolute top-[14%] bottom-[14%] left-3/4 w-[1px] bg-white/[0.08]" />
 
-            <div className="grid grid-cols-1 divide-y divide-white/[0.08] sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:divide-x-0 lg:grid-cols-4">
+            {/* 2x2 on phones/tablets (inner borders via nth-child), 4-up on desktop */}
+            <div className="grid grid-cols-2 lg:grid-cols-4">
               {trustPillars.map((pillar) => {
                 const Icon = pillar.icon;
                 return (
                   <div
                     key={pillar.title}
-                    className="flex flex-col p-5 sm:p-7 lg:py-9 lg:px-8 xl:px-9 transition-colors hover:bg-white/[0.02]"
+                    className="flex flex-col border-white/[0.08] p-4 sm:p-7 lg:py-9 lg:px-8 xl:px-9 transition-colors hover:bg-white/[0.02] even:border-l nth-[n+3]:border-t lg:even:border-l-0 lg:nth-[n+3]:border-t-0"
                   >
-                    {/* Clean outline icon in white */}
-                    <div className="text-white">
-                      <Icon className="h-7 w-7 sm:h-8 sm:w-8" />
+                    {/* Clean outline icon (gold on phones for quick scanning) */}
+                    <div className="text-gold sm:text-white">
+                      <Icon className="h-6 w-6 sm:h-8 sm:w-8" />
                     </div>
 
                     {/* Header Title with Josefin Sans and font-weight 500 */}
-                    <h3 className="mt-4 sm:mt-6 font-heading font-medium text-[18px] sm:text-[20px] text-white tracking-tight leading-snug break-words">
+                    <h3 className="mt-3 sm:mt-6 font-heading font-medium text-[15px] sm:text-[20px] text-white tracking-tight leading-snug break-words">
                       {pillar.title}
                     </h3>
 
                     {/* Description paragraph with Montserrat */}
-                    <p className="mt-2 sm:mt-2.5 text-[12.5px] sm:text-[13px] leading-[1.6] text-[#8a8a8a] max-w-[28ch] sm:max-w-none break-words">
+                    <p className="mt-1 sm:mt-2.5 line-clamp-2 sm:line-clamp-none text-[11.5px] sm:text-[13px] leading-[1.5] sm:leading-[1.6] text-[#8a8a8a] break-words">
                       {pillar.desc}
                     </p>
                   </div>

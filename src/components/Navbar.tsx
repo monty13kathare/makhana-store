@@ -110,7 +110,7 @@ export default function Navbar() {
               type="button"
               onClick={openCart}
               aria-label={`Open cart, ${count} items`}
-              className="relative grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10 cursor-pointer"
+              className="relative hidden md:grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10 cursor-pointer"
             >
               <motion.div
                 key={`bag-${count}`}
@@ -206,27 +206,12 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* Mobile User Icon (< sm) */}
-            <Link
-              href={user ? "/profile" : "/login"}
-              aria-label="Account"
-              className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-white/15 transition-colors hover:border-amber-400/50 sm:hidden"
-            >
-              <Image
-                src={user?.avatar || "/img/avatar-1.jpg"}
-                alt={user?.name || "Gretchen Rosser"}
-                fill
-                sizes="36px"
-                className="object-cover"
-              />
-            </Link>
-
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Open menu"
-              className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 xl:hidden"
+              className="grid h-11 w-11 sm:h-10 sm:w-10 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 xl:hidden"
             >
-              <Menu className="h-[17px] w-[17px]" />
+              <Menu className="h-5 w-5 sm:h-[17px] sm:w-[17px]" />
             </button>
           </div>
         </nav>
@@ -249,20 +234,27 @@ export default function Navbar() {
               exit={{ x: "100%" }}
               transition={{ duration: 0.45, ease: EASE }}
               className="fixed right-0 top-0 z-[61] flex h-full w-[84vw] max-w-sm flex-col border-l border-white/10 bg-[#141414] p-6 xl:hidden"
+              style={{
+                paddingTop: "calc(env(safe-area-inset-top) + 24px)",
+                paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)",
+              }}
             >
               <div className="mb-8 flex items-center justify-between">
                 <span className="font-extrabold text-white">Menu</span>
                 <button
                   onClick={() => setMenuOpen(false)}
                   aria-label="Close menu"
-                  className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300"
+                  className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
               <ul className="flex flex-col gap-1">
-                {links.map((l, i) => (
+                {links.map((l, i) => {
+                  const active =
+                    l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+                  return (
                   <motion.li
                     key={l.href}
                     initial={{ opacity: 0, x: 24 }}
@@ -271,12 +263,16 @@ export default function Navbar() {
                   >
                     <Link
                       href={l.href}
-                      className="block rounded-xl px-4 py-3 text-[16px] font-semibold text-white/85 transition-colors hover:bg-amber-400/10 hover:text-amber-400 active:text-amber-300"
+                      aria-current={active ? "page" : undefined}
+                      className={`flex min-h-12 items-center rounded-xl px-4 py-3 text-[16px] font-semibold transition-colors hover:bg-amber-400/10 hover:text-amber-400 active:text-amber-300 ${
+                        active ? "bg-amber-400/10 text-amber-400" : "text-white/85"
+                      }`}
                     >
                       {l.label}
                     </Link>
                   </motion.li>
-                ))}
+                  );
+                })}
               </ul>
 
               <div className="mt-auto flex flex-col gap-3 border-t border-white/10 pt-5">

@@ -171,12 +171,12 @@ export default function GlobalDelivery() {
   };
 
   return (
-    <section className="relative py-16 lg:py-24 bg-[#0a0a0a] text-white overflow-hidden">
+    <section className="relative py-12 sm:py-16 lg:py-24 bg-[#0a0a0a] text-white overflow-hidden">
       {/* Subtle warm ambient background glow */}
       <div className="pointer-events-none absolute left-1/3 top-1/2 h-[500px] w-[500px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(229,169,60,0.06)_0%,transparent_70%)] blur-3xl -z-0" />
 
       <div className="container-x relative z-10">
-        <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
+        <div className="grid items-center gap-7 sm:gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
           
           {/* Left Column: Interactive 3D World Map with Live Glowing Transit Arcs */}
           <div
@@ -320,17 +320,17 @@ export default function GlobalDelivery() {
                 Worldwide delivery
               </p>
 
-              <h2 className="mt-2 text-[32px] sm:text-[44px] font-heading font-medium tracking-tight text-white leading-[1.12]">
+              <h2 className="mt-1.5 sm:mt-2 text-[26px] xs:text-[28px] sm:text-[44px] font-heading font-medium tracking-tight text-white leading-[1.12]">
                 Delivered Across the World
               </h2>
 
-              <p className="mt-3.5 text-[14.5px] sm:text-[15.5px] leading-relaxed text-[#8e8e8e] max-w-lg">
+              <p className="mt-2.5 sm:mt-3.5 text-[13.5px] sm:text-[15.5px] leading-relaxed text-[#8e8e8e] max-w-lg">
                 Reliable express international logistics direct to your doorstep with end-to-end tracked courier dispatch.
               </p>
             </Reveal>
 
             {/* 2x2 Grid of dark luxury cards */}
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-3 sm:gap-4">
               {deliveryFeatures.map((feat, i) => {
                 const Icon = feat.icon;
                 return (
@@ -341,11 +341,11 @@ export default function GlobalDelivery() {
                     viewport={{ once: true, amount: 0.2 }}
                     transition={{ duration: 0.55, ease: EASE, delay: i * 0.08 }}
                     whileHover={{ y: -4 }}
-                    className="group relative flex flex-col justify-between rounded-[22px] border border-white/10 bg-[#161616] p-5 sm:p-6 transition-all duration-300 hover:border-amber-400/40 hover:bg-[#1a1a1a] shadow-lg hover:shadow-amber-500/5 cursor-default"
+                    className="group relative flex flex-col justify-between rounded-[18px] sm:rounded-[22px] border border-white/10 bg-[#161616] p-4 sm:p-6 transition-all duration-300 hover:border-amber-400/40 hover:bg-[#1a1a1a] shadow-lg hover:shadow-amber-500/5 cursor-default"
                   >
                     <div>
                       {/* Top icon + badge */}
-                      <div className="flex items-center justify-between gap-2 mb-4">
+                      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
                         <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-white transition-colors group-hover:border-amber-400/40 group-hover:text-amber-400 group-hover:bg-amber-400/10">
                           <Icon className="h-5 w-5 text-white/90 group-hover:text-amber-400 transition-colors" />
                         </span>
@@ -355,11 +355,11 @@ export default function GlobalDelivery() {
                         </span>
                       </div>
 
-                      <h3 className="text-[15px] font-bold text-white transition-colors group-hover:text-amber-400 tracking-tight">
+                      <h3 className="text-[14px] sm:text-[15px] font-bold leading-snug text-white transition-colors group-hover:text-amber-400 tracking-tight">
                         {feat.title}
                       </h3>
 
-                      <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#8a8a8a]">
+                      <p className="mt-1.5 line-clamp-3 sm:line-clamp-none text-[12px] sm:text-[12.5px] leading-relaxed text-[#8a8a8a]">
                         {feat.desc}
                       </p>
                     </div>

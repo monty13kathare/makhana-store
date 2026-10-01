@@ -161,7 +161,7 @@ function ComboCard({ item }: { item: ComboItem }) {
       <div className="mt-5 grid grid-cols-2 gap-2">
         <button
           onClick={handleAddToCart}
-          className={`rounded-full border py-2.5 text-[12px] font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+          className={`rounded-full border py-3 sm:py-2.5 text-[13px] sm:text-[12px] font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
             added
               ? "border-amber-400 bg-amber-400/20 text-amber-300"
               : "border-white/20 bg-white/5 text-white hover:border-amber-400/50 hover:text-amber-300 hover:bg-amber-400/10"
@@ -179,7 +179,7 @@ function ComboCard({ item }: { item: ComboItem }) {
 
         <button
           onClick={handleBuyNow}
-          className="rounded-full bg-white py-2.5 text-[12px] font-semibold text-black transition-all hover:bg-amber-400 hover:text-black hover:shadow-[0_4px_16px_rgba(235,175,70,0.3)] active:scale-95 text-center"
+          className="rounded-full bg-white py-3 sm:py-2.5 text-[13px] sm:text-[12px] font-semibold text-black transition-all hover:bg-amber-400 hover:text-black hover:shadow-[0_4px_16px_rgba(235,175,70,0.3)] active:scale-95 text-center"
         >
           Buy Now
         </button>
@@ -190,25 +190,25 @@ function ComboCard({ item }: { item: ComboItem }) {
 
 export default function FlavourCombos() {
   return (
-    <section className="py-16 lg:py-24 relative overflow-hidden bg-[#0d0d0d]">
+    <section className="py-10 sm:py-16 lg:py-24 relative overflow-hidden bg-[#0d0d0d]">
       {/* Background warm ambient glow */}
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-[550px] w-[550px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(229,169,60,0.07)_0%,transparent_70%)] blur-3xl" />
 
       <div className="container-x relative z-10">
-        {/* Section Heading */}
-        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
+        {/* Section Heading — left-aligned app-style on phones, centred from sm up */}
+        <div className="sm:text-center max-w-2xl sm:mx-auto mb-5 sm:mb-12">
           <Reveal>
-            <h2 className="text-[32px] sm:text-[42px] lg:text-[46px] font-heading font-medium tracking-tight text-white">
+            <h2 className="text-[24px] xs:text-[26px] sm:text-[42px] lg:text-[46px] font-heading font-medium leading-tight tracking-tight text-white">
               Mix Your Favourite Flavours
             </h2>
-            <p className="mt-2.5 text-[14.5px] sm:text-[15.5px] text-[#8a8a8a]">
+            <p className="mt-1.5 sm:mt-2.5 text-[13px] sm:text-[15.5px] text-[#8a8a8a]">
               All our roasted &amp; raw makhana curated into signature gift boxes &amp; variety combos
             </p>
           </Reveal>
         </div>
 
-        {/* Responsive Cards Grid / Track (Clean without arrow buttons) */}
-        <div className="flex gap-5 sm:gap-6 overflow-x-auto scroll-smooth scrollbar-none pb-4 pt-2 snap-x snap-mandatory lg:grid lg:grid-cols-4 lg:overflow-visible">
+        {/* Swipe row until lg, 4-up grid on desktop */}
+        <div className="swipe-row gap-3.5 sm:gap-6 pb-4 pt-2 sm:-mx-6 sm:px-6 sm:scroll-px-6 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
           {comboItems.map((item, i) => (
             <motion.div
               key={item.id}
@@ -216,7 +216,7 @@ export default function FlavourCombos() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.5, ease: EASE, delay: i * 0.08 }}
-              className="min-w-[270px] sm:min-w-[300px] lg:min-w-0 snap-start flex-1"
+              className="w-[78vw] max-w-[300px] shrink-0 snap-start sm:w-[300px] lg:w-auto lg:max-w-none"
             >
               <ComboCard item={item} />
             </motion.div>
@@ -224,10 +224,10 @@ export default function FlavourCombos() {
         </div>
 
         {/* Bottom CTA Button */}
-        <div className="mt-10 sm:mt-12 flex justify-center">
+        <div className="mt-6 sm:mt-12 flex justify-center">
           <Link
             href="/gifting"
-            className="group inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-8 py-3.5 text-[14px] font-semibold text-amber-300 transition-all hover:bg-amber-400 hover:text-black hover:shadow-[0_8px_24px_rgba(235,175,70,0.25)] active:scale-95"
+            className="group inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl sm:rounded-full border border-amber-400/40 bg-amber-400/10 px-8 py-3.5 text-[14px] font-semibold text-amber-300 transition-all hover:bg-amber-400 hover:text-black hover:shadow-[0_8px_24px_rgba(235,175,70,0.25)] active:scale-95"
           >
             <span>View All Combos</span>
             <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />

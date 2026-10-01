@@ -33,6 +33,7 @@ import {
 import { useCart, type Coupon } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { EASE, Reveal } from "@/components/motion-primitives";
+import { CardIcon, UpiIcon, PayPalIcon, CodIcon } from "@/components/PaymentIcons";
 
 type Step = 1 | 2 | 3;
 
@@ -282,12 +283,12 @@ export default function CheckoutPage() {
   // 1. ORDER PLACED SCREEN
   if (placed) {
     return (
-      <section className="relative min-h-screen grid place-items-center px-4 pt-28 pb-16 bg-[#0a0a0c] text-white">
+      <section className="relative min-h-screen grid place-items-center px-4 pt-24 pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pt-28 sm:pb-16 bg-[#0a0a0c] text-white">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: EASE }}
-          className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#141416] p-8 text-center shadow-2xl relative overflow-hidden"
+          className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#141416] p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden"
         >
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 rounded-b-full shadow-[0_0_20px_rgba(245,158,11,0.5)]" />
 
@@ -295,16 +296,16 @@ export default function CheckoutPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-            className="mx-auto mb-6 grid h-20 w-20 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-black shadow-lg"
+            className="mx-auto mb-5 sm:mb-6 grid h-16 w-16 sm:h-20 sm:w-20 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-black shadow-lg"
           >
-            <Check className="h-10 w-10 stroke-[2.5]" />
+            <Check className="h-8 w-8 sm:h-10 sm:w-10 stroke-[2.5]" />
           </motion.div>
 
           <span className="inline-block rounded-full bg-amber-400/10 border border-amber-400/20 px-3.5 py-1 text-xs font-bold tracking-wider text-amber-400 uppercase mb-3">
             Payment Confirmed
           </span>
 
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">
+          <h1 className="text-[26px] leading-tight sm:text-3xl font-extrabold tracking-tight text-white">
             Thank you for your order!
           </h1>
 
@@ -313,14 +314,14 @@ export default function CheckoutPage() {
             <span className="font-medium text-white">{form.email || "your email"}</span>.
           </p>
 
-          <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-left text-xs text-zinc-300 space-y-2">
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Delivery to:</span>
-              <span className="font-medium text-white">{form.name || "Customer"}</span>
+          <div className="mt-5 sm:mt-6 rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-left text-[13px] sm:text-xs text-zinc-300 space-y-2.5 sm:space-y-2">
+            <div className="flex justify-between gap-3">
+              <span className="text-zinc-500 shrink-0">Delivery to:</span>
+              <span className="font-medium text-white text-right truncate">{form.name || "Customer"}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Destination:</span>
-              <span className="font-medium text-white">
+            <div className="flex justify-between gap-3">
+              <span className="text-zinc-500 shrink-0">Destination:</span>
+              <span className="font-medium text-white text-right truncate">
                 {form.city ? `${form.city}, ${form.state || ""}` : "Express Shipping"}
               </span>
             </div>
@@ -330,16 +331,16 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <div className="mt-8 flex flex-col sm:flex-row gap-3">
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3">
             <Link
               href="/shop"
-              className="flex-1 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-black transition-all hover:bg-zinc-200 active:scale-95 shadow-md"
+              className="flex-1 flex items-center justify-center min-h-12 sm:block sm:min-h-0 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-black transition-all hover:bg-zinc-200 active:scale-95 shadow-md"
             >
               Continue Shopping
             </Link>
             <Link
               href="/"
-              className="flex-1 rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-white/10"
+              className="flex-1 flex items-center justify-center min-h-12 sm:block sm:min-h-0 rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-white/10"
             >
               Return Home
             </Link>
@@ -347,7 +348,7 @@ export default function CheckoutPage() {
         </motion.div>
 
         {/* Floating corner makhana */}
-        <div className="pointer-events-none fixed bottom-0 right-0 z-0 max-w-[220px] sm:max-w-[280px] opacity-80 select-none">
+        <div className="pointer-events-none fixed bottom-0 right-0 z-0 hidden sm:block max-w-[220px] sm:max-w-[280px] opacity-80 select-none">
           <Image
             src="/img/login-corner-makhana.png"
             alt="Makhana"
@@ -395,18 +396,19 @@ export default function CheckoutPage() {
 
   // Premium input class
   const inputClass =
-    "w-full rounded-xl border border-white/10 bg-[#16161a] px-4 py-3.5 text-[14px] text-white placeholder:text-zinc-500 outline-none transition-all duration-200 focus:border-amber-400 focus:bg-[#1a1a1f] focus:ring-1 focus:ring-amber-400/20 hover:border-white/20";
+    "w-full min-h-12 rounded-xl border border-white/10 bg-[#16161a] px-4 py-3 sm:py-3.5 text-[16px] sm:text-[14px] text-white placeholder:text-zinc-500 outline-none transition-all duration-200 focus:border-amber-400 focus:bg-[#1a1a1f] focus:ring-1 focus:ring-amber-400/20 hover:border-white/20";
 
   return (
-    <section className="relative min-h-screen bg-[#0a0a0c] text-white pt-20 pb-20 sm:pt-28 sm:pb-28 overflow-x-hidden">
+    <section className="relative min-h-screen bg-[#0a0a0c] text-white pt-20 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pt-28 md:pb-28 overflow-x-hidden">
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Mobile Accordion Summary Bar (visible only on screens < lg) */}
-        <div className="lg:hidden mb-6">
+        <div id="checkout-mobile-summary" className="lg:hidden mb-4 sm:mb-6 scroll-mt-20">
           <button
             type="button"
             onClick={() => setShowMobileSummary(!showMobileSummary)}
-            className="w-full flex items-center justify-between p-4 rounded-2xl bg-[#141416] border border-white/10 text-left transition-all active:scale-[0.99]"
+            aria-expanded={showMobileSummary}
+            className="w-full min-h-12 flex items-center justify-between px-4 py-3 sm:p-4 rounded-2xl bg-[#141416] border border-white/10 text-left transition-all active:scale-[0.99]"
           >
             <div className="flex items-center gap-2.5 text-sm font-medium text-zinc-200">
               <ShoppingBag className="h-4 w-4 text-amber-400" />
@@ -467,11 +469,11 @@ export default function CheckoutPage() {
 
                         <div className="min-w-0 flex-1 flex flex-col justify-between">
                           <div className="flex items-start justify-between gap-1">
-                            <p className="text-xs font-bold text-white truncate">{product.name}</p>
+                            <p className="text-[13px] sm:text-xs font-bold text-white truncate">{product.name}</p>
                             <button
                               type="button"
                               onClick={() => remove(product.slug)}
-                              className="text-zinc-500 hover:text-red-400 p-1"
+                              className="-mr-2 -mt-2 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-zinc-500 hover:text-red-400 active:bg-red-500/10"
                               aria-label={"Remove " + product.name}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -483,22 +485,24 @@ export default function CheckoutPage() {
                               <button
                                 type="button"
                                 onClick={() => setQty(product.slug, qty - 1)}
-                                className="grid h-5 w-5 place-items-center rounded-full text-zinc-400 hover:text-amber-400"
+                                aria-label="Decrease quantity"
+                                className="relative grid h-9 w-9 place-items-center rounded-full text-zinc-400 hover:text-amber-400 active:bg-amber-400/20 after:absolute after:-inset-1 after:content-['']"
                               >
-                                <Minus className="h-2.5 w-2.5" />
+                                <Minus className="h-3.5 w-3.5" />
                               </button>
-                              <span className="w-4 text-center text-[11px] font-bold text-white">
+                              <span className="w-5 text-center text-[13px] font-bold tabular-nums text-white">
                                 {qty}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => setQty(product.slug, qty + 1)}
-                                className="grid h-5 w-5 place-items-center rounded-full text-zinc-400 hover:text-amber-400"
+                                aria-label="Increase quantity"
+                                className="relative grid h-9 w-9 place-items-center rounded-full text-zinc-400 hover:text-amber-400 active:bg-amber-400/20 after:absolute after:-inset-1 after:content-['']"
                               >
-                                <Plus className="h-2.5 w-2.5" />
+                                <Plus className="h-3.5 w-3.5" />
                               </button>
                             </div>
-                            <span className="text-xs font-bold text-white">
+                            <span className="text-[13px] sm:text-xs font-bold text-white tabular-nums">
                               {formatPrice(product.price * qty)}
                             </span>
                           </div>
@@ -507,7 +511,7 @@ export default function CheckoutPage() {
                     ))}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-white/10 flex flex-col gap-2 text-xs">
+                  <div className="mt-4 pt-3 border-t border-white/10 flex flex-col gap-2 text-[13px] sm:text-xs">
                     <div className="flex justify-between text-zinc-400">
                       <span>Subtotal</span>
                       <span className="text-white font-medium">{formatPrice(subtotal)}</span>
@@ -532,6 +536,64 @@ export default function CheckoutPage() {
                       <span>Total</span>
                       <span className="text-amber-400">{formatPrice(total)}</span>
                     </div>
+                  </div>
+
+                  {/* Compact discount code (mobile / tablet) */}
+                  <div className="mt-4 pt-3 border-t border-white/10">
+                    {appliedCoupon ? (
+                      <div className="flex min-h-11 items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/[0.08] pl-3.5 pr-1 text-[13px]">
+                        <div className="flex items-center gap-2">
+                          <Percent className="h-3.5 w-3.5 text-emerald-400" />
+                          <span className="font-mono font-bold text-emerald-400 uppercase">{appliedCoupon.code}</span>
+                          <span className="text-zinc-400">applied</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removeCoupon}
+                          className="min-h-11 px-3 text-[13px] font-semibold text-red-400"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Tag className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-400" />
+                            <input
+                              type="text"
+                              value={couponCode}
+                              onChange={(e) => {
+                                setCouponCode(e.target.value.toUpperCase());
+                                setCouponError("");
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleApplyCoupon();
+                                }
+                              }}
+                              placeholder="Discount code"
+                              aria-label="Discount code"
+                              autoComplete="off"
+                              autoCapitalize="characters"
+                              spellCheck={false}
+                              enterKeyHint="done"
+                              className="h-11 w-full rounded-xl border border-white/10 bg-[#161619] pl-10 pr-3 text-[16px] font-mono uppercase text-white placeholder:font-sans placeholder:normal-case placeholder:text-zinc-500 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/20"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyCoupon()}
+                            className="h-11 rounded-xl bg-white px-4 text-[13px] font-bold text-black active:scale-95 transition-transform"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                        {couponError && <p className="mt-1.5 text-xs text-red-400">{couponError}</p>}
+                        {couponSuccess && <p className="mt-1.5 text-xs text-emerald-400">{couponSuccess}</p>}
+                      </>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -697,7 +759,11 @@ export default function CheckoutPage() {
                           }
                         }}
                         placeholder="Enter coupon code (e.g. ROAST20)"
-                        className="flex-1 rounded-xl border border-white/10 bg-[#161619] px-3.5 py-2.5 text-[13px] font-mono uppercase text-white placeholder:text-zinc-500 placeholder:normal-case outline-none transition-all focus:border-amber-400 focus:ring-1 focus:ring-amber-400/20"
+                        autoComplete="off"
+                        autoCapitalize="characters"
+                        spellCheck={false}
+                        enterKeyHint="done"
+                        className="flex-1 rounded-xl border border-white/10 bg-[#161619] px-3.5 py-2.5 text-[16px] sm:text-[13px] font-mono uppercase text-white placeholder:text-zinc-500 placeholder:normal-case outline-none transition-all focus:border-amber-400 focus:ring-1 focus:ring-amber-400/20"
                       />
                       <button
                         type="button"
@@ -774,8 +840,65 @@ export default function CheckoutPage() {
           {/* ============================================================== */}
           <div className="w-full">
             
+            {/* MOBILE STEPPER — compact progress + thumb-sized back button */}
+            <div className="sm:hidden mb-5 flex items-center gap-3">
+              {currentStep === 1 ? (
+                <Link
+                  href="/cart"
+                  aria-label="Back to bag"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white active:scale-95 transition-transform"
+                >
+                  <ArrowLeft className="h-[18px] w-[18px]" />
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep((currentStep - 1) as Step)}
+                  aria-label={currentStep === 2 ? "Back to contact details" : "Back to shipping address"}
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white active:scale-95 transition-transform"
+                >
+                  <ArrowLeft className="h-[18px] w-[18px]" />
+                </button>
+              )}
+              <ol className="flex flex-1 items-center gap-1.5" aria-label="Checkout progress">
+                {(["Contact", "Shipping", "Payment"] as const).map((label, i) => {
+                  const step = (i + 1) as Step;
+                  const done = step < currentStep;
+                  const active = step === currentStep;
+                  return (
+                    <li key={label} className="flex-1">
+                      <button
+                        type="button"
+                        disabled={!done}
+                        onClick={() => setCurrentStep(step)}
+                        aria-current={active ? "step" : undefined}
+                        className="flex min-h-11 w-full flex-col justify-center gap-1.5 text-left disabled:cursor-default"
+                      >
+                        <span className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+                          <motion.span
+                            className="block h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-300"
+                            initial={false}
+                            animate={{ width: done || active ? "100%" : "0%" }}
+                            transition={{ duration: 0.4, ease: EASE }}
+                          />
+                        </span>
+                        <span
+                          className={`flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider ${
+                            active ? "text-amber-400" : done ? "text-white/80" : "text-zinc-500"
+                          }`}
+                        >
+                          {done && <Check className="h-3 w-3 stroke-[3] text-amber-400" />}
+                          {label}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+
             {/* STEPPER HEADER — Premium amber-accented progress UI */}
-            <div className="mb-8 lg:mb-10">
+            <div className="hidden sm:block mb-8 lg:mb-10">
               <div className="flex items-center justify-between w-full">
                 
                 {/* STEP 1: Contact Details */}
@@ -904,25 +1027,30 @@ export default function CheckoutPage() {
                     exit={{ opacity: 0, x: -24 }}
                     transition={{ duration: 0.32, ease: EASE }}
                   >
-                    <div className="mb-7">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-[11.5px] font-bold text-amber-400 mb-3">
+                    <div className="mb-5 sm:mb-7">
+                      <span className="hidden sm:inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-[11.5px] font-bold text-amber-400 mb-3">
                         <User className="h-3.5 w-3.5" /> Step 1 of 3
                       </span>
-                      <h1 className="text-[28px] sm:text-[32px] font-extrabold text-white tracking-tight">
+                      <h1 className="text-[24px] xs:text-[26px] sm:text-[32px] font-extrabold text-white tracking-tight">
                         Contact Details
                       </h1>
-                      <p className="mt-1.5 text-sm text-zinc-400">We'll use this to send your order confirmation.</p>
+                      <p className="mt-1 sm:mt-1.5 text-[13px] sm:text-sm text-zinc-400">We&apos;ll use this to send your order confirmation.</p>
                     </div>
 
-                    <form onSubmit={handleProceedToShipping} className="space-y-5">
+                    <form id="checkout-step-1" onSubmit={handleProceedToShipping} className="space-y-4 sm:space-y-5">
                       <div>
-                        <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                        <label htmlFor="co-name" className="block text-[12px] sm:text-[12.5px] font-semibold text-zinc-300 mb-1.5 sm:mb-2 uppercase tracking-wider">
                           Full Name
                         </label>
                         <div className="relative">
                           <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
                           <input
+                            id="co-name"
+                            name="name"
                             type="text"
+                            autoComplete="name"
+                            autoCapitalize="words"
+                            enterKeyHint="next"
                             required
                             value={form.name}
                             onChange={(e) => { setForm({ ...form, name: e.target.value }); if (errors.name) setErrors({ ...errors, name: "" }); }}
@@ -934,13 +1062,21 @@ export default function CheckoutPage() {
                       </div>
 
                       <div>
-                        <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                        <label htmlFor="co-email" className="block text-[12px] sm:text-[12.5px] font-semibold text-zinc-300 mb-1.5 sm:mb-2 uppercase tracking-wider">
                           Email Address
                         </label>
                         <div className="relative">
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
                           <input
+                            id="co-email"
+                            name="email"
                             type="email"
+                            inputMode="email"
+                            autoComplete="email"
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            enterKeyHint="next"
                             required
                             value={form.email}
                             onChange={(e) => { setForm({ ...form, email: e.target.value }); if (errors.email) setErrors({ ...errors, email: "" }); }}
@@ -952,13 +1088,18 @@ export default function CheckoutPage() {
                       </div>
 
                       <div>
-                        <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                        <label htmlFor="co-phone" className="block text-[12px] sm:text-[12.5px] font-semibold text-zinc-300 mb-1.5 sm:mb-2 uppercase tracking-wider">
                           Mobile Phone Number
                         </label>
                         <div className="relative">
                           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
                           <input
+                            id="co-phone"
+                            name="phone"
                             type="tel"
+                            inputMode="tel"
+                            autoComplete="tel"
+                            enterKeyHint="go"
                             required
                             value={form.phone}
                             onChange={(e) => { setForm({ ...form, phone: e.target.value }); if (errors.phone) setErrors({ ...errors, phone: "" }); }}
@@ -969,7 +1110,7 @@ export default function CheckoutPage() {
                         {errors.phone && <p className="mt-1.5 text-xs text-red-400">{errors.phone}</p>}
                       </div>
 
-                      <div className="pt-4">
+                      <div className="pt-4 hidden md:block">
                         <button
                           type="submit"
                           className="w-full flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 py-3.5 text-[14px] font-bold text-black shadow-lg shadow-amber-500/25 transition-all duration-300 hover:scale-[1.02] hover:shadow-amber-500/40 active:scale-[0.98]"
@@ -993,17 +1134,21 @@ export default function CheckoutPage() {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3, ease: EASE }}
                   >
-                    <h1 className="text-[26px] sm:text-[30px] font-bold text-white mb-6 tracking-tight">
+                    <h1 className="text-[24px] xs:text-[26px] sm:text-[30px] font-bold text-white mb-4 sm:mb-6 tracking-tight">
                       Shipping Address
                     </h1>
 
-                    <form onSubmit={handleProceedToPayment} className="space-y-4">
+                    <form id="checkout-step-2" onSubmit={handleProceedToPayment} className="space-y-4">
                       <div>
-                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                        <label htmlFor="co-address1" className="block text-[13px] font-medium text-white/80 mb-1.5 sm:mb-2">
                           Street Address
                         </label>
                         <input
+                          id="co-address1"
+                          name="address-line1"
                           type="text"
+                          autoComplete="shipping address-line1"
+                          enterKeyHint="next"
                           required
                           value={form.address1}
                           onChange={(e) => {
@@ -1019,11 +1164,15 @@ export default function CheckoutPage() {
                       </div>
 
                       <div>
-                        <label className="block text-[13px] font-medium text-white/80 mb-2">
+                        <label htmlFor="co-address2" className="block text-[13px] font-medium text-white/80 mb-1.5 sm:mb-2">
                           Apartment, suite, unit (optional)
                         </label>
                         <input
+                          id="co-address2"
+                          name="address-line2"
                           type="text"
+                          autoComplete="shipping address-line2"
+                          enterKeyHint="next"
                           value={form.address2}
                           onChange={(e) => setForm({ ...form, address2: e.target.value })}
                           placeholder="Apartment, suite, unit, building, floor, etc."
@@ -1031,13 +1180,17 @@ export default function CheckoutPage() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         <div>
-                          <label className="block text-[13px] font-medium text-white/80 mb-2">
+                          <label htmlFor="co-city" className="block text-[13px] font-medium text-white/80 mb-1.5 sm:mb-2">
                             City
                           </label>
                           <input
+                            id="co-city"
+                            name="city"
                             type="text"
+                            autoComplete="shipping address-level2"
+                            enterKeyHint="next"
                             required
                             value={form.city}
                             onChange={(e) => {
@@ -1053,11 +1206,16 @@ export default function CheckoutPage() {
                         </div>
 
                         <div>
-                          <label className="block text-[13px] font-medium text-white/80 mb-2">
-                            State / Province
+                          <label htmlFor="co-state" className="block text-[13px] font-medium text-white/80 mb-1.5 sm:mb-2">
+                            <span className="sm:hidden">State</span>
+                            <span className="hidden sm:inline">State / Province</span>
                           </label>
                           <input
+                            id="co-state"
+                            name="state"
                             type="text"
+                            autoComplete="shipping address-level1"
+                            enterKeyHint="next"
                             required
                             value={form.state}
                             onChange={(e) => {
@@ -1073,13 +1231,21 @@ export default function CheckoutPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         <div>
-                          <label className="block text-[13px] font-medium text-white/80 mb-2">
-                            Postal / PIN Code
+                          <label htmlFor="co-zip" className="block text-[13px] font-medium text-white/80 mb-1.5 sm:mb-2">
+                            <span className="sm:hidden">Postal / ZIP</span>
+                            <span className="hidden sm:inline">Postal / PIN Code</span>
                           </label>
                           <input
+                            id="co-zip"
+                            name="postal-code"
                             type="text"
+                            autoComplete="shipping postal-code"
+                            autoCapitalize="characters"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            enterKeyHint="next"
                             required
                             value={form.zip}
                             onChange={(e) => {
@@ -1095,11 +1261,15 @@ export default function CheckoutPage() {
                         </div>
 
                         <div>
-                          <label className="block text-[13px] font-medium text-white/80 mb-2">
+                          <label htmlFor="co-country" className="block text-[13px] font-medium text-white/80 mb-1.5 sm:mb-2">
                             Country
                           </label>
                           <input
+                            id="co-country"
+                            name="country"
                             type="text"
+                            autoComplete="shipping country-name"
+                            enterKeyHint="go"
                             required
                             value={form.country}
                             onChange={(e) => setForm({ ...form, country: e.target.value })}
@@ -1109,7 +1279,7 @@ export default function CheckoutPage() {
                         </div>
                       </div>
 
-                      <div className="pt-6 flex items-center gap-3">
+                      <div className="pt-6 hidden md:flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => setCurrentStep(1)}
@@ -1142,31 +1312,36 @@ export default function CheckoutPage() {
                     transition={{ duration: 0.32, ease: EASE }}
                   >
                     {/* Header */}
-                    <div className="mb-7">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-[11.5px] font-bold text-amber-400 mb-3">
+                    <div className="mb-4 sm:mb-7">
+                      <span className="hidden sm:inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-[11.5px] font-bold text-amber-400 mb-3">
                         <Lock className="h-3.5 w-3.5" /> Step 3 of 3 · Secure Checkout
                       </span>
-                      <h1 className="text-[28px] sm:text-[32px] font-extrabold text-white tracking-tight">
+                      <h1 className="text-[24px] xs:text-[26px] sm:text-[32px] font-extrabold text-white tracking-tight">
                         Payment Details
                       </h1>
-                      <p className="mt-1.5 text-sm text-zinc-400">Choose your preferred payment method.</p>
+                      <p className="mt-1 sm:mt-1.5 text-[13px] sm:text-sm text-zinc-400 flex items-center gap-1.5">
+                        <Lock className="h-3.5 w-3.5 text-emerald-400 sm:hidden" />
+                        Choose your preferred payment method.
+                      </p>
                     </div>
 
                     {/* Payment Method Tabs */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-6">
+                    <div role="radiogroup" aria-label="Payment method" className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 mb-5 sm:mb-6">
                       {(
                         [
-                          { id: "card", label: "Card", icon: "💳" },
-                          { id: "upi", label: "UPI", icon: "📱" },
-                          { id: "paypal", label: "PayPal", icon: "🅿️" },
-                          { id: "cod", label: "Cash on Delivery", icon: "🏠" },
+                          { id: "card", label: "Card", icon: CardIcon },
+                          { id: "upi", label: "UPI", icon: UpiIcon },
+                          { id: "paypal", label: "PayPal", icon: PayPalIcon },
+                          { id: "cod", label: "Cash on Delivery", icon: CodIcon },
                         ] as const
                       ).map((method) => (
                         <button
                           key={method.id}
                           type="button"
+                          role="radio"
+                          aria-checked={paymentMethod === method.id}
                           onClick={() => setPaymentMethod(method.id)}
-                          className={`relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border py-3.5 px-2 text-center transition-all duration-200 active:scale-[0.97] ${
+                          className={`relative flex flex-row sm:flex-col items-center justify-start sm:justify-center gap-2.5 sm:gap-1.5 min-h-13 sm:min-h-0 rounded-2xl border py-2.5 px-3.5 sm:py-3.5 sm:px-2 text-left sm:text-center transition-all duration-200 active:scale-[0.97] ${
                             paymentMethod === method.id
                               ? "border-amber-400 bg-amber-400/10 shadow-lg shadow-amber-500/10"
                               : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/5"
@@ -1179,9 +1354,13 @@ export default function CheckoutPage() {
                               transition={{ duration: 0.2 }}
                             />
                           )}
-                          <span className="text-xl leading-none">{method.icon}</span>
+                          <method.icon
+                            className={`relative h-6 w-6 shrink-0 transition-colors ${
+                              paymentMethod === method.id ? "text-amber-400" : "text-zinc-400"
+                            }`}
+                          />
                           <span
-                            className={`text-[11px] font-bold leading-tight ${
+                            className={`text-[13px] sm:text-[11px] font-bold leading-tight ${
                               paymentMethod === method.id ? "text-amber-400" : "text-zinc-400"
                             }`}
                           >
@@ -1191,7 +1370,7 @@ export default function CheckoutPage() {
                       ))}
                     </div>
 
-                    <form onSubmit={handleFinalSubmit} className="space-y-5">
+                    <form id="checkout-step-3" onSubmit={handleFinalSubmit} className="space-y-5">
                       {/* ── CREDIT / DEBIT CARD ── */}
                       <AnimatePresence mode="wait">
                         {paymentMethod === "card" && (
@@ -1204,7 +1383,7 @@ export default function CheckoutPage() {
                             className="space-y-4"
                           >
                             {/* Card Preview */}
-                            <div className="relative h-[140px] w-full max-w-sm rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-black border border-white/10 p-5 shadow-xl">
+                            <div className="relative h-[124px] sm:h-[140px] w-full max-w-sm rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-black border border-white/10 p-5 shadow-xl">
                               <div className="absolute top-0 right-0 w-40 h-40 bg-amber-400/5 rounded-full -translate-y-1/2 translate-x-1/2" />
                               <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/3 rounded-full translate-y-1/2 -translate-x-1/2" />
                               <div className="relative z-10 flex flex-col h-full justify-between">
@@ -1235,13 +1414,20 @@ export default function CheckoutPage() {
 
                             {/* Card Holder */}
                             <div>
-                              <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                              <label htmlFor="co-cc-name" className="block text-[12px] sm:text-[12.5px] font-semibold text-zinc-300 mb-1.5 sm:mb-2 uppercase tracking-wider">
                                 Card Holder Name
                               </label>
                               <div className="relative">
                                 <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
                                 <input
+                                  id="co-cc-name"
+                                  name="cc-name"
                                   type="text"
+                                  autoComplete="cc-name"
+                                  autoCapitalize="words"
+                                  autoCorrect="off"
+                                  spellCheck={false}
+                                  enterKeyHint="next"
                                   value={form.cardHolder}
                                   onChange={(e) => setForm({ ...form, cardHolder: e.target.value })}
                                   placeholder="Name as on card"
@@ -1252,14 +1438,18 @@ export default function CheckoutPage() {
 
                             {/* Card Number */}
                             <div>
-                              <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                              <label htmlFor="co-cc-number" className="block text-[12px] sm:text-[12.5px] font-semibold text-zinc-300 mb-1.5 sm:mb-2 uppercase tracking-wider">
                                 Card Number
                               </label>
                               <div className="relative">
                                 <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
                                 <input
+                                  id="co-cc-number"
+                                  name="cc-number"
                                   type="text"
                                   inputMode="numeric"
+                                  autoComplete="cc-number"
+                                  enterKeyHint="next"
                                   value={form.cardNumber}
                                   onChange={(e) => handleCardNumberChange(e.target.value)}
                                   placeholder="1234 5678 9012 3456"
@@ -1273,14 +1463,18 @@ export default function CheckoutPage() {
                             </div>
 
                             {/* Expiry + CVC */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
                               <div>
-                                <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                                <label htmlFor="co-cc-exp" className="block text-[12px] sm:text-[12.5px] font-semibold text-zinc-300 mb-1.5 sm:mb-2 uppercase tracking-wider">
                                   Expiry Date
                                 </label>
                                 <input
+                                  id="co-cc-exp"
+                                  name="cc-exp"
                                   type="text"
                                   inputMode="numeric"
+                                  autoComplete="cc-exp"
+                                  enterKeyHint="next"
                                   value={form.expiry}
                                   onChange={(e) => handleExpiryChange(e.target.value)}
                                   placeholder="MM/YY"
@@ -1291,13 +1485,17 @@ export default function CheckoutPage() {
                                 )}
                               </div>
                               <div>
-                                <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                                <label htmlFor="co-cc-csc" className="block text-[12px] sm:text-[12.5px] font-semibold text-zinc-300 mb-1.5 sm:mb-2 uppercase tracking-wider">
                                   CVC / CVV
                                 </label>
                                 <div className="relative">
                                   <input
+                                    id="co-cc-csc"
+                                    name="cc-csc"
                                     type="password"
                                     inputMode="numeric"
+                                    autoComplete="cc-csc"
+                                    enterKeyHint="go"
                                     maxLength={4}
                                     value={form.cvc}
                                     onChange={(e) => handleCvcChange(e.target.value)}
@@ -1335,13 +1533,21 @@ export default function CheckoutPage() {
                             </div>
 
                             <div>
-                              <label className="block text-[12.5px] font-semibold text-zinc-300 mb-2 uppercase tracking-wider">
+                              <label htmlFor="co-upi" className="block text-[12px] sm:text-[12.5px] font-semibold text-zinc-300 mb-1.5 sm:mb-2 uppercase tracking-wider">
                                 UPI ID
                               </label>
                               <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm pointer-events-none">📱</span>
+                                <UpiIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500 pointer-events-none" />
                                 <input
+                                  id="co-upi"
+                                  name="upi-id"
                                   type="text"
+                                  inputMode="email"
+                                  autoComplete="off"
+                                  autoCapitalize="none"
+                                  autoCorrect="off"
+                                  spellCheck={false}
+                                  enterKeyHint="go"
                                   value={upiId}
                                   onChange={(e) => { setUpiId(e.target.value); if (errors.cardNumber) setErrors({ ...errors, cardNumber: "" }); }}
                                   placeholder="yourname@upi"
@@ -1378,11 +1584,13 @@ export default function CheckoutPage() {
                             className="space-y-4"
                           >
                             <div className="rounded-2xl border border-[#003087]/40 bg-[#003087]/10 p-5 flex items-center gap-4">
-                              <div className="text-4xl">🅿️</div>
+                              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#003087]/25 text-[#5b8def]">
+                                <PayPalIcon className="h-7 w-7" />
+                              </span>
                               <div>
                                 <p className="text-sm font-bold text-white">PayPal</p>
                                 <p className="text-[12.5px] text-zinc-400 mt-0.5">
-                                  You'll be redirected to PayPal to complete your payment securely.
+                                  You&apos;ll be redirected to PayPal to complete your payment securely.
                                 </p>
                               </div>
                             </div>
@@ -1402,7 +1610,7 @@ export default function CheckoutPage() {
                             </div>
                             <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-[12px] text-amber-300 flex items-start gap-2">
                               <span className="text-base leading-none mt-0.5">ℹ️</span>
-                              <span>After clicking "Place Order Securely", you'll be redirected to PayPal to authorize the payment of <strong>${total.toFixed(2)}</strong>.</span>
+                              <span>After continuing, you&apos;ll be redirected to PayPal to authorize the payment of <strong>${total.toFixed(2)}</strong>.</span>
                             </div>
                           </motion.div>
                         )}
@@ -1418,7 +1626,9 @@ export default function CheckoutPage() {
                             className="space-y-4"
                           >
                             <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-5 flex items-center gap-4">
-                              <div className="text-4xl">🏠</div>
+                              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                                <CodIcon className="h-7 w-7" />
+                              </span>
                               <div>
                                 <p className="text-sm font-bold text-white">Cash on Delivery</p>
                                 <p className="text-[12.5px] text-zinc-400 mt-0.5">
@@ -1443,7 +1653,7 @@ export default function CheckoutPage() {
                       </AnimatePresence>
 
                       {/* CTA Buttons */}
-                      <div className="pt-6 flex items-center gap-3">
+                      <div className="pt-6 hidden md:flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => setCurrentStep(2)}
@@ -1487,8 +1697,60 @@ export default function CheckoutPage() {
         </div>
       </div>
 
+      {/* MOBILE STICKY ACTION BAR — thumb-reachable primary CTA (phones / small tablets) */}
+      <div className="md:hidden fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#0d0d0d]/85 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_30px_-12px_rgba(0,0,0,0.8)]">
+        <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => {
+              setShowMobileSummary(true);
+              document.getElementById("checkout-mobile-summary")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            aria-label="View order summary"
+            className="flex min-h-12 shrink-0 flex-col justify-center pr-1 text-left active:opacity-70"
+          >
+            <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+              Total · {totalItemsCount} {totalItemsCount === 1 ? "item" : "items"}
+              <ChevronUp className="h-3 w-3" />
+            </span>
+            <span className="text-[19px] font-extrabold leading-tight tabular-nums text-amber-400">
+              {formatPrice(total)}
+            </span>
+          </button>
+          <button
+            type="submit"
+            form={`checkout-step-${currentStep}`}
+            disabled={isSubmitting}
+            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 px-4 text-[15px] font-bold text-black shadow-lg shadow-amber-500/25 transition-transform active:scale-[0.98] disabled:opacity-60"
+          >
+            {isSubmitting ? (
+              <>
+                <span className="h-4 w-4 rounded-full border-2 border-black/60 border-t-black animate-spin" />
+                <span>Processing…</span>
+              </>
+            ) : currentStep === 3 ? (
+              <>
+                <Lock className="h-4 w-4" />
+                <span>
+                  {paymentMethod === "paypal"
+                    ? "Pay with PayPal"
+                    : paymentMethod === "cod"
+                    ? "Place Order"
+                    : "Pay Securely"}
+                </span>
+              </>
+            ) : (
+              <>
+                <span>{currentStep === 1 ? "Continue to Shipping" : "Continue to Payment"}</span>
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Floating Makhana Seeds in the Bottom-Right Corner (Matches reference image) */}
-      <div className="pointer-events-none fixed bottom-0 right-0 z-0 select-none max-w-[180px] sm:max-w-[240px] lg:max-w-[300px] opacity-75 sm:opacity-90">
+      <div className="pointer-events-none fixed bottom-0 right-0 z-0 hidden sm:block select-none max-w-[180px] sm:max-w-[240px] lg:max-w-[300px] opacity-75 sm:opacity-90">
         <Image
           src="/img/login-corner-makhana.png"
           alt="Roasted makhana seeds decor"

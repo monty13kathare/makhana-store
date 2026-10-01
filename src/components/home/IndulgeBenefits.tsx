@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import { motion } from "framer-motion";
 import { Reveal, EASE } from "../motion-primitives";
 
@@ -127,7 +128,7 @@ const ambientParticles = [
 
 export default function IndulgeBenefits() {
   return (
-    <section className="relative overflow-hidden bg-[#101010] py-16 sm:py-24 lg:py-32 text-white">
+    <section className="relative overflow-hidden bg-[#101010] py-12 sm:py-24 lg:py-32 text-white">
       {/* --------------------------------------------------------------------
           Subtle Ambient Background Lighting & Radial Gradients
           -------------------------------------------------------------------- */}
@@ -135,28 +136,21 @@ export default function IndulgeBenefits() {
       <div className="pointer-events-none absolute -bottom-24 right-1/4 h-96 w-96 rounded-full bg-amber-500/10 blur-[120px] -z-0" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(245,158,11,0.08),transparent)]" />
 
-      {/* Floating Ambient Shimmer Particles */}
+      {/* Floating Ambient Shimmer Particles (CSS keyframes — compositor only) */}
       {ambientParticles.map((p, idx) => (
-        <motion.span
+        <span
           key={idx}
-          className="pointer-events-none absolute rounded-full bg-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.7)]"
-          style={{
-            left: p.x,
-            top: p.y,
-            width: p.size,
-            height: p.size,
-          }}
-          animate={{
-            y: [-10, 10, -10],
-            opacity: [0.25, 0.85, 0.25],
-            scale: [0.8, 1.25, 0.8],
-          }}
-          transition={{
-            duration: p.duration,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: p.delay,
-          }}
+          className="pointer-events-none absolute rounded-full bg-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.7)] anim-twinkle"
+          style={
+            {
+              left: p.x,
+              top: p.y,
+              width: p.size,
+              height: p.size,
+              "--dur": `${p.duration}s`,
+              "--delay": `${p.delay}s`,
+            } as CSSProperties
+          }
         />
       ))}
 
@@ -165,18 +159,9 @@ export default function IndulgeBenefits() {
           -------------------------------------------------------------------- */}
 
       {/* Top-left: Blurred out-of-focus makhana seed with slow floating drift */}
-      <motion.div
-        animate={{
-          y: [0, -12, 0],
-          x: [0, 6, 0],
-          scale: [1, 1.06, 1],
-        }}
-        transition={{
-          duration: 8.5,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        className="pointer-events-none absolute -top-8 left-2 sm:left-10 h-32 w-32 sm:h-44 sm:w-44 opacity-50 sm:opacity-75 blur-[7px] -z-0"
+      <div
+        style={{ "--dur": "8.5s" } as CSSProperties}
+        className="pointer-events-none absolute -top-8 left-2 sm:left-10 h-32 w-32 sm:h-44 sm:w-44 opacity-50 sm:opacity-75 blur-[7px] -z-0 anim-float-a"
       >
         <Image
           src="/img/makhana-two-seeds.png"
@@ -184,20 +169,12 @@ export default function IndulgeBenefits() {
           fill
           className="object-contain"
         />
-      </motion.div>
+      </div>
 
       {/* Bottom-left: Crisp popped makhana cluster with organic floating levitation */}
-      <motion.div
-        animate={{
-          y: [0, -14, 2, 0],
-          rotate: [0, 2.5, -1.5, 0],
-        }}
-        transition={{
-          duration: 6.8,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        className="pointer-events-none absolute -bottom-6 -left-6 sm:-left-3 sm:-bottom-5 h-36 w-36 sm:h-60 sm:w-60 opacity-60 sm:opacity-100 z-10"
+      <div
+        style={{ "--dur": "6.8s" } as CSSProperties}
+        className="pointer-events-none absolute hidden sm:block -bottom-6 -left-6 sm:-left-3 sm:-bottom-5 h-36 w-36 sm:h-60 sm:w-60 opacity-60 sm:opacity-100 z-10 anim-float-b"
       >
         {/* Soft amber backlight bloom */}
         <div className="absolute inset-0 bg-amber-500/20 blur-2xl rounded-full scale-75 animate-pulse" />
@@ -207,21 +184,12 @@ export default function IndulgeBenefits() {
           fill
           className="object-contain drop-shadow-[0_22px_45px_rgba(0,0,0,0.95)]"
         />
-      </motion.div>
+      </div>
 
       {/* Bottom-right: Two golden roasted makhana seeds with asynchronous floating */}
-      <motion.div
-        animate={{
-          y: [0, 12, -6, 0],
-          rotate: [0, -2.8, 2, 0],
-        }}
-        transition={{
-          duration: 7.4,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 0.6,
-        }}
-        className="pointer-events-none absolute -bottom-4 -right-4 sm:right-10 sm:-bottom-4 h-32 w-32 sm:h-52 sm:w-52 opacity-60 sm:opacity-100 z-10"
+      <div
+        style={{ "--dur": "7.4s", "--delay": "0.6s" } as CSSProperties}
+        className="pointer-events-none absolute hidden sm:block -bottom-4 -right-4 sm:right-10 sm:-bottom-4 h-32 w-32 sm:h-52 sm:w-52 opacity-60 sm:opacity-100 z-10 anim-float-c"
       >
         {/* Soft golden backlight */}
         <div className="absolute inset-0 bg-amber-400/20 blur-2xl rounded-full scale-75 animate-pulse" />
@@ -231,21 +199,12 @@ export default function IndulgeBenefits() {
           fill
           className="object-contain drop-shadow-[0_22px_45px_rgba(0,0,0,0.95)]"
         />
-      </motion.div>
+      </div>
 
       {/* Far-right: Depth-of-field blurred seed floating in background */}
-      <motion.div
-        animate={{
-          y: [0, 15, 0],
-          rotate: [0, 6, 0],
-        }}
-        transition={{
-          duration: 9.5,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 1.2,
-        }}
-        className="pointer-events-none absolute top-1/2 -right-8 h-40 w-40 opacity-40 blur-[9px] -z-0"
+      <div
+        style={{ "--dur": "9.5s", "--delay": "1.2s" } as CSSProperties}
+        className="pointer-events-none absolute top-1/2 -right-8 h-40 w-40 opacity-40 blur-[9px] -z-0 anim-float-d"
       >
         <Image
           src="/img/makhana-two-seeds.png"
@@ -253,7 +212,7 @@ export default function IndulgeBenefits() {
           fill
           className="object-contain"
         />
-      </motion.div>
+      </div>
 
       {/* Main Content Container */}
       <div className="container-x relative z-10">
@@ -261,7 +220,7 @@ export default function IndulgeBenefits() {
 
 
           {/* Section Heading */}
-          <h2 className="mt-3.5 sm:mt-4 font-heading font-bold text-[30px] sm:text-[42px] lg:text-[50px] leading-[1.12] tracking-tight text-white">
+          <h2 className="mt-3.5 sm:mt-4 font-heading font-bold text-[26px] xs:text-[28px] sm:text-[42px] lg:text-[50px] leading-[1.12] tracking-tight text-white">
             A smarter way to{" "}
             <span className="bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 bg-clip-text text-transparent">
               indulge.
@@ -269,14 +228,14 @@ export default function IndulgeBenefits() {
           </h2>
 
           {/* Subtitle Description */}
-          <p className="mt-3 sm:mt-4 max-w-2xl text-[14.5px] sm:text-[16px] leading-[1.7] text-[#9a9a9a]">
+          <p className="mt-2 sm:mt-4 max-w-2xl text-[13.5px] sm:text-[16px] leading-[1.7] text-[#9a9a9a]">
             Present the product as a premium lifestyle snack — wholesome,
             beautiful, and crafted for a modern audience.
           </p>
         </Reveal>
 
         {/* 4 Luxury Cards Grid */}
-        <div className="mt-10 sm:mt-14 grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 sm:mt-14 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
           {benefits.map((b, i) => {
             const Icon = b.icon;
             return (
@@ -287,16 +246,16 @@ export default function IndulgeBenefits() {
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.6, ease: EASE, delay: i * 0.08 }}
                 whileHover={{ y: -7 }}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-[22px] sm:rounded-[24px] border border-white/[0.08] bg-gradient-to-b from-[#191919]/95 via-[#131313]/95 to-[#0e0e0e]/98 p-6 sm:p-7 backdrop-blur-md transition-all duration-300 hover:border-amber-400/40 shadow-[0_12px_30px_rgba(0,0,0,0.6)] hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.9),0_0_30px_rgba(245,158,11,0.12)]"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-[18px] sm:rounded-[24px] border border-white/[0.08] bg-gradient-to-b from-[#191919]/95 via-[#131313]/95 to-[#0e0e0e]/98 p-4 sm:p-7 backdrop-blur-md transition-all duration-300 hover:border-amber-400/40 shadow-[0_12px_30px_rgba(0,0,0,0.6)] hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.9),0_0_30px_rgba(245,158,11,0.12)]"
               >
                 {/* Radial golden glow sheen on hover */}
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(245,158,11,0.12),transparent_70%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
                 <div>
                   {/* Top Row: Glowing Icon Frame & Number Badge */}
-                  <div className="flex items-center justify-between mb-5 sm:mb-6">
-                    <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400/15 via-white/[0.04] to-transparent border border-amber-400/25 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.12)] transition-all duration-300 group-hover:scale-105 group-hover:border-amber-400/60 group-hover:shadow-[0_0_22px_rgba(245,158,11,0.28)]">
-                      <Icon className="h-6 w-6 text-amber-300 group-hover:text-amber-200 transition-colors" />
+                  <div className="flex items-center justify-between mb-3.5 sm:mb-6">
+                    <div className="relative flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-400/15 via-white/[0.04] to-transparent border border-amber-400/25 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.12)] transition-all duration-300 group-hover:scale-105 group-hover:border-amber-400/60 group-hover:shadow-[0_0_22px_rgba(245,158,11,0.28)]">
+                      <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-amber-300 group-hover:text-amber-200 transition-colors" />
                     </div>
 
                     <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-0.5 text-[11px] font-mono tracking-wider text-amber-300/80 transition-all duration-300 group-hover:border-amber-400/50 group-hover:bg-amber-400/20 group-hover:text-amber-200">
@@ -305,18 +264,18 @@ export default function IndulgeBenefits() {
                   </div>
 
                   {/* Card Title */}
-                  <h3 className="font-heading font-bold text-[17.5px] sm:text-[18.5px] text-white tracking-tight group-hover:text-amber-100 transition-colors duration-200">
+                  <h3 className="font-heading font-bold text-[15px] sm:text-[18.5px] leading-snug text-white tracking-tight group-hover:text-amber-100 transition-colors duration-200">
                     {b.title}
                   </h3>
 
                   {/* Card Description */}
-                  <p className="mt-2.5 text-[13.5px] leading-[1.65] text-[#8e8e8e] group-hover:text-[#a8a8a8] transition-colors duration-200">
+                  <p className="mt-1.5 sm:mt-2.5 text-[12px] sm:text-[13.5px] leading-[1.55] sm:leading-[1.65] text-[#8e8e8e] group-hover:text-[#a8a8a8] transition-colors duration-200">
                     {b.desc}
                   </p>
                 </div>
 
                 {/* Bottom Card Footer with Tag and Dynamic Progress Line */}
-                <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between">
+                <div className="mt-6 pt-4 border-t border-white/[0.06] hidden sm:flex items-center justify-between">
                   <span className="text-[11px] font-medium tracking-wider uppercase text-white/35 transition-colors duration-300 group-hover:text-amber-400/80">
                     {b.tag}
                   </span>

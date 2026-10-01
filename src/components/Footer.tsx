@@ -1,30 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Mail, Clock, Truck } from "lucide-react";
 import BrandLogo from "./BrandLogo";
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/login") || pathname.startsWith("/checkout")) return null;
+
   return (
     <footer className="relative border-t border-white/10 bg-[#0a0a0a] text-white">
-      <div className="container-x py-16 lg:py-20">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+      <div className="container-x pt-10 pb-6 sm:py-16 lg:py-20">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {/* Column 1: Brand */}
-          <div className="flex flex-col">
+          <div className="col-span-2 flex flex-col md:col-span-1">
             <BrandLogo size={42} />
 
-            <p className="mt-5 max-w-xs text-[13.5px] leading-relaxed text-white/60">
+            <p className="mt-4 sm:mt-5 max-w-xs text-[13.5px] leading-relaxed text-white/60">
               Premium makhana, beautifully positioned for global e-commerce,
               luxury gifting, and direct online purchase.
             </p>
 
             {/* Social Icons */}
-            <div className="mt-7 flex items-center gap-3">
+            <div className="mt-5 sm:mt-7 flex items-center gap-3">
               {/* Facebook */}
               <a
                 href="#"
                 aria-label="Facebook"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-transparent text-white/80 transition-all hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
+                className="flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center rounded-full border border-white/20 bg-transparent text-white/80 transition-all hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
               >
                 <svg
                   className="h-4 w-4"
@@ -39,7 +44,7 @@ export default function Footer() {
               <a
                 href="#"
                 aria-label="Instagram"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-transparent text-white/80 transition-all hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
+                className="flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center rounded-full border border-white/20 bg-transparent text-white/80 transition-all hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
               >
                 <svg
                   className="h-4 w-4"
@@ -60,7 +65,7 @@ export default function Footer() {
               <a
                 href="#"
                 aria-label="Pinterest"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-transparent text-white/80 transition-all hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
+                className="flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center rounded-full border border-white/20 bg-transparent text-white/80 transition-all hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
               >
                 <svg
                   className="h-4 w-4"
@@ -75,7 +80,7 @@ export default function Footer() {
               <a
                 href="#"
                 aria-label="Twitter / X"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-transparent text-white/80 transition-all hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
+                className="flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center rounded-full border border-white/20 bg-transparent text-white/80 transition-all hover:border-amber-400/50 hover:text-amber-400 active:text-amber-300 hover:bg-amber-400/10"
               >
                 <svg
                   className="h-3.5 w-3.5"
@@ -91,11 +96,11 @@ export default function Footer() {
           {/* Column 2: Shop */}
           <div className="flex flex-col lg:pl-6">
             <h4 className="text-[16px] font-bold text-white">Shop</h4>
-            <ul className="mt-5 flex flex-col gap-3 text-[14px] text-white/60">
+            <ul className="mt-2 sm:mt-5 flex flex-col sm:gap-3 text-[14px] text-white/60">
               <li>
                 <Link
                   href="/shop"
-                  className="transition-colors hover:text-amber-400 active:text-amber-300"
+                  className="block py-2.5 sm:py-0 transition-colors hover:text-amber-400 active:text-amber-300"
                 >
                   Classic Himalayan Salt
                 </Link>
@@ -103,7 +108,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/shop"
-                  className="transition-colors hover:text-amber-400 active:text-amber-300"
+                  className="block py-2.5 sm:py-0 transition-colors hover:text-amber-400 active:text-amber-300"
                 >
                   Peri Peri Roast
                 </Link>
@@ -111,7 +116,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/shop"
-                  className="transition-colors hover:text-amber-400 active:text-amber-300"
+                  className="block py-2.5 sm:py-0 transition-colors hover:text-amber-400 active:text-amber-300"
                 >
                   Truffle Black Pepper
                 </Link>
@@ -119,7 +124,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/gifting"
-                  className="transition-colors hover:text-amber-400 active:text-amber-300"
+                  className="block py-2.5 sm:py-0 transition-colors hover:text-amber-400 active:text-amber-300"
                 >
                   Premium Tasting Box
                 </Link>
@@ -130,11 +135,11 @@ export default function Footer() {
           {/* Column 3: Support */}
           <div className="flex flex-col lg:border-l lg:border-white/10 lg:pl-8">
             <h4 className="text-[16px] font-bold text-white">Support</h4>
-            <ul className="mt-5 flex flex-col gap-3 text-[14px] text-white/60">
+            <ul className="mt-2 sm:mt-5 flex flex-col sm:gap-3 text-[14px] text-white/60">
               <li>
                 <Link
                   href="/shipping"
-                  className="transition-colors hover:text-amber-400 active:text-amber-300"
+                  className="block py-2.5 sm:py-0 transition-colors hover:text-amber-400 active:text-amber-300"
                 >
                   Shipping Policy
                 </Link>
@@ -142,7 +147,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/shipping"
-                  className="transition-colors hover:text-amber-400 active:text-amber-300"
+                  className="block py-2.5 sm:py-0 transition-colors hover:text-amber-400 active:text-amber-300"
                 >
                   Refund Policy
                 </Link>
@@ -150,7 +155,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/faq"
-                  className="transition-colors hover:text-amber-400 active:text-amber-300"
+                  className="block py-2.5 sm:py-0 transition-colors hover:text-amber-400 active:text-amber-300"
                 >
                   Terms &amp; Conditions
                 </Link>
@@ -158,7 +163,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/faq"
-                  className="transition-colors hover:text-amber-400 active:text-amber-300"
+                  className="block py-2.5 sm:py-0 transition-colors hover:text-amber-400 active:text-amber-300"
                 >
                   Privacy Policy
                 </Link>
@@ -167,23 +172,23 @@ export default function Footer() {
           </div>
 
           {/* Column 4: Contact */}
-          <div className="flex flex-col lg:border-l lg:border-white/10 lg:pl-8">
+          <div className="col-span-2 flex flex-col md:col-span-1 lg:border-l lg:border-white/10 lg:pl-8">
             <h4 className="text-[16px] font-bold text-white">Contact</h4>
-            <ul className="mt-5 flex flex-col gap-3.5 text-[14px] text-white/70">
-              <li className="flex items-center gap-3">
+            <ul className="mt-2 sm:mt-5 flex flex-col gap-1 sm:gap-3.5 text-[14px] text-white/70">
+              <li className="flex min-h-10 items-center gap-3 sm:min-h-0">
                 <Mail className="h-4 w-4 shrink-0 text-white/50" />
                 <a
                   href="mailto:hello@yourbrand.com"
-                  className="transition-colors hover:text-amber-400 active:text-amber-300"
+                  className="block py-2.5 sm:py-0 transition-colors hover:text-amber-400 active:text-amber-300"
                 >
                   hello@yourbrand.com
                 </a>
               </li>
-              <li className="flex items-center gap-3">
+              <li className="flex min-h-10 items-center gap-3 sm:min-h-0">
                 <Clock className="h-4 w-4 shrink-0 text-white/50" />
                 <span className="text-white/60">Mon - Sat / 10 AM - 7 PM</span>
               </li>
-              <li className="flex items-center gap-3">
+              <li className="flex min-h-10 items-center gap-3 sm:min-h-0">
                 <Truck className="h-4 w-4 shrink-0 text-white/50" />
                 <span className="text-white/60">
                   Worldwide shipment support

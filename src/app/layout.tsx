@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Montserrat, Josefin_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
@@ -6,6 +6,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
+import MobileDock from "@/components/MobileDock";
+import MotionProvider from "@/components/MotionProvider";
 import AddedToCartModal from "@/components/AddedToCartModal";
 import AuthModal from "@/components/AuthModal";
 import { WishlistProvider } from "@/context/WishlistContext";
@@ -53,6 +55,20 @@ export const metadata: Metadata = {
       "Signature collection of premium roasted makhana. Clean label, gluten free, high protein.",
     type: "website",
   },
+  applicationName: "Makhana",
+  appleWebApp: {
+    capable: true,
+    title: "Makhana",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0d0d0d",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -64,18 +80,21 @@ export default function RootLayout({
       className={`${montserrat.variable} ${josefin.variable} ${playfair.variable}`}
     >
       <body className="antialiased overflow-x-hidden min-h-screen w-full">
+        <MotionProvider>
         <AuthProvider>
           <WishlistProvider>
             <CartProvider>
               <Navbar />
               <main className="min-h-screen w-full max-w-full overflow-x-clip">{children}</main>
               <Footer />
+              <MobileDock />
               <CartDrawer />
               <AddedToCartModal />
               <AuthModal />
             </CartProvider>
           </WishlistProvider>
         </AuthProvider>
+        </MotionProvider>
       </body>
     </html>
   );

@@ -42,6 +42,26 @@ export default function AuthModal() {
 
   const otpInputs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Phones get a bottom sheet (slides up); sm+ keeps the centred card.
+  const [isSheet, setIsSheet] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setIsSheet(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  // Lock background scroll while the dialog is open.
+  useEffect(() => {
+    if (!isAuthModalOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isAuthModalOpen]);
+
   // Reset state whenever modal is opened
   useEffect(() => {
     if (isAuthModalOpen) {
@@ -162,7 +182,11 @@ export default function AuthModal() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-0 z-[120] flex items-end justify-center p-0 sm:items-center sm:p-6 overflow-y-auto"
+      >
         {/* Backdrop with luxury dark blur */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -174,12 +198,14 @@ export default function AuthModal() {
 
         {/* Modal Card */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.93, y: 24 }}
+          initial={isSheet ? { opacity: 1, y: "100%" } : { opacity: 0, scale: 0.93, y: 24 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.93, y: 24 }}
-          transition={{ duration: 0.45, ease: EASE }}
-          className="relative w-full max-w-[460px] overflow-hidden rounded-[32px] border border-white/15 bg-gradient-to-b from-[#181818] via-[#121212] to-[#0e0e0e] p-6 sm:p-8 text-white shadow-[0_25px_80px_rgba(0,0,0,0.9)] z-10 my-auto"
+          exit={isSheet ? { opacity: 1, y: "100%" } : { opacity: 0, scale: 0.93, y: 24 }}
+          transition={{ duration: isSheet ? 0.38 : 0.45, ease: EASE }}
+          className="relative z-10 max-h-[92dvh] w-full overflow-y-auto overflow-x-hidden overscroll-contain rounded-t-[28px] border border-b-0 border-white/15 bg-gradient-to-b from-[#181818] via-[#121212] to-[#0e0e0e] px-5 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))] text-white shadow-[0_-12px_60px_rgba(0,0,0,0.8)] sm:my-auto sm:max-h-none sm:max-w-[460px] sm:overflow-hidden sm:rounded-[32px] sm:border-b sm:p-8 sm:shadow-[0_25px_80px_rgba(0,0,0,0.9)]"
         >
+          {/* Sheet grab handle (phones) */}
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden" aria-hidden />
           {/* Ambient Lighting Orbs */}
           <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-gradient-to-br from-amber-500/25 via-amber-400/10 to-transparent blur-3xl" />
           <div className="pointer-events-none absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-gradient-to-tr from-amber-400/15 via-yellow-500/5 to-transparent blur-2xl" />
@@ -197,7 +223,7 @@ export default function AuthModal() {
             <button
               onClick={handleClose}
               aria-label="Close dialog"
-              className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/5 text-white/70 transition-all hover:border-amber-400/50 hover:bg-amber-400/10 hover:text-amber-400 active:scale-90"
+              className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 text-white/70 sm:h-9 sm:w-9 transition-all hover:border-amber-400/50 hover:bg-amber-400/10 hover:text-amber-400 active:scale-90"
             >
               <X className="h-4 w-4" />
             </button>
@@ -208,7 +234,7 @@ export default function AuthModal() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="relative z-10 mt-5 flex items-center gap-3.5 rounded-2xl border border-amber-400/20 bg-gradient-to-r from-amber-400/[0.08] to-transparent p-3"
+              className="relative z-10 mt-3 flex items-center gap-3.5 rounded-2xl sm:mt-5 border border-amber-400/20 bg-gradient-to-r from-amber-400/[0.08] to-transparent p-3"
             >
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-neutral-900 shadow-md">
                 <Image
@@ -240,8 +266,8 @@ export default function AuthModal() {
           )}
 
           {/* Heading Content */}
-          <div className="relative z-10 mt-5">
-            <h2 className="text-[23px] font-extrabold tracking-tight text-white sm:text-[25px]">
+          <div className="relative z-10 mt-3 sm:mt-5">
+            <h2 className="text-[22px] font-extrabold tracking-tight text-white sm:text-[25px]">
               {step === "input"
                 ? modalOptions.title || "Sign in to Continue"
                 : "Verify Your Identity"}
@@ -256,21 +282,24 @@ export default function AuthModal() {
 
           {/* STEP 1: Phone Input Form */}
           {step === "input" && (
-            <form onSubmit={handleSendOtp} className="relative z-10 mt-6">
+            <form onSubmit={handleSendOtp} className="relative z-10 mt-5 sm:mt-6">
               <div>
-                <label className="block mb-2 text-[12px] font-medium text-white/70">
+                <label htmlFor="auth-modal-phone" className="block mb-2 text-[12px] font-medium text-white/70">
                   Mobile Number
                 </label>
-                <div className="flex items-center gap-2.5 rounded-2xl border border-white/15 bg-white/[0.03] px-4 py-3.5 transition-all focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/25">
-                  <span className="flex items-center gap-1.5 text-[13.5px] font-black text-amber-400">
+                <div className="flex min-h-[52px] items-center gap-2.5 rounded-2xl border border-white/15 bg-white/[0.03] px-4 py-3 sm:min-h-0 sm:py-3.5 transition-all focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/25">
+                  <span className="flex items-center gap-1.5 text-[15px] font-black text-amber-400 sm:text-[13.5px]">
                     <Phone className="h-3.5 w-3.5" />
                     <span>+1</span>
                   </span>
                   <span className="h-5 w-px bg-white/15" />
                   <input
+                    id="auth-modal-phone"
+                    name="tel"
                     type="tel"
-                    inputMode="numeric"
-                    autoComplete="tel"
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    enterKeyHint="go"
                     autoFocus
                     value={identifier}
                     onChange={(e) => {
@@ -278,7 +307,7 @@ export default function AuthModal() {
                       setError("");
                     }}
                     placeholder="(555) 389-2041"
-                    className="w-full bg-transparent text-[14.5px] font-medium text-white tracking-wide outline-none placeholder:text-white/30"
+                    className="w-full bg-transparent text-[16px] font-medium sm:text-[14.5px] text-white tracking-wide outline-none placeholder:text-white/30"
                   />
                 </div>
               </div>
@@ -298,14 +327,14 @@ export default function AuthModal() {
                 type="submit"
                 disabled={isSubmitting}
                 whileTap={{ scale: 0.98 }}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-xl shadow-white/5 disabled:opacity-50"
+                className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[15px] sm:mt-5 sm:min-h-0 sm:text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-xl shadow-white/5 disabled:opacity-50"
               >
                 <span>Continue with OTP</span>
                 <ArrowRight className="h-4 w-4" />
               </motion.button>
 
               {/* Perks Grid */}
-              <div className="mt-6 grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
+              <div className="mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center sm:mt-6">
                 <div className="flex flex-col items-center gap-1 rounded-xl bg-white/[0.02] p-2">
                   <Truck className="h-4 w-4 text-amber-400" />
                   <span className="text-[10.5px] font-medium text-white/70">
@@ -327,18 +356,18 @@ export default function AuthModal() {
               </div>
 
               {/* Secondary Options */}
-              <div className="mt-4 flex items-center justify-between text-[12.5px] text-white/50 pt-2">
+              <div className="mt-2 flex items-center justify-between text-[13px] text-white/50 sm:mt-4 sm:pt-2 sm:text-[12.5px]">
                 <button
                   type="button"
                   onClick={handleFullLoginPage}
-                  className="hover:text-amber-400 transition-colors"
+                  className="min-h-[44px] pr-3 hover:text-amber-400 active:text-amber-400 transition-colors sm:min-h-0 sm:pr-0"
                 >
                   Full sign-in page &rarr;
                 </button>
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="hover:text-white transition-colors"
+                  className="min-h-[44px] pl-3 hover:text-white active:text-white transition-colors sm:min-h-0 sm:pl-0"
                 >
                   Continue browsing
                 </button>
@@ -348,7 +377,7 @@ export default function AuthModal() {
 
           {/* STEP 2: 6-Digit OTP Verification Form */}
           {step === "verify" && (
-            <form onSubmit={handleVerifyOtp} className="relative z-10 mt-6">
+            <form onSubmit={handleVerifyOtp} className="relative z-10 mt-5 sm:mt-6">
               {/* SMS Simulator Preview Banner */}
               {activeOtpNotice && (
                 <motion.div
@@ -365,7 +394,7 @@ export default function AuthModal() {
                   <button
                     type="button"
                     onClick={() => handleAutofillCode(activeOtpNotice.code)}
-                    className="rounded-lg bg-amber-400/20 px-2.5 py-1 text-[11.5px] font-bold text-amber-300 hover:bg-amber-400 hover:text-black transition-colors"
+                    className="min-h-[44px] shrink-0 rounded-lg bg-amber-400/20 px-3.5 py-2 text-[12.5px] font-bold sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[11.5px] text-amber-300 hover:bg-amber-400 hover:text-black transition-colors"
                   >
                     Auto-fill
                   </button>
@@ -377,7 +406,7 @@ export default function AuthModal() {
                 <label className="block mb-2 text-[12px] font-bold uppercase tracking-wider text-white/60">
                   Enter 6-Digit Code
                 </label>
-                <div className="grid grid-cols-6 gap-2" onPaste={handlePasteOtp}>
+                <div className="grid grid-cols-6 gap-1.5 xs:gap-2" onPaste={handlePasteOtp}>
                   {otpDigits.map((digit, idx) => (
                     <input
                       key={idx}
@@ -386,7 +415,9 @@ export default function AuthModal() {
                       }}
                       type="text"
                       inputMode="numeric"
+                      pattern="[0-9]*"
                       autoComplete="one-time-code"
+                      enterKeyHint={idx === 5 ? "done" : "next"}
                       maxLength={1}
                       value={digit}
                       aria-label={`Digit ${idx + 1}`}
@@ -406,15 +437,20 @@ export default function AuthModal() {
 
               {/* Full Name for New Members */}
               <div className="mt-4">
-                <label className="block mb-1.5 text-[12px] font-medium text-white/70">
+                <label htmlFor="auth-modal-name" className="block mb-1.5 text-[12px] font-medium text-white/70">
                   Full Name (Optional for new members)
                 </label>
                 <input
+                  id="auth-modal-name"
+                  name="name"
                   type="text"
+                  autoComplete="name"
+                  autoCapitalize="words"
+                  enterKeyHint="go"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="e.g. John Doe"
-                  className="w-full rounded-2xl border border-white/15 bg-white/[0.03] px-4 py-3 text-[13.5px] text-white outline-none transition-colors focus:border-amber-400"
+                  className="w-full rounded-2xl border border-white/15 bg-white/[0.03] px-4 py-3 text-[16px] sm:text-[13.5px] text-white outline-none transition-colors focus:border-amber-400"
                 />
               </div>
 
@@ -432,18 +468,18 @@ export default function AuthModal() {
               <motion.button
                 type="submit"
                 whileTap={{ scale: 0.98 }}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-xl shadow-white/5"
+                className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[15px] sm:mt-5 sm:min-h-0 sm:text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-xl shadow-white/5"
               >
                 <Check className="h-4 w-4 stroke-[3]" />
                 <span>{modalOptions.actionText || "Verify & Continue"}</span>
               </motion.button>
 
               {/* Resend and Back */}
-              <div className="mt-4 flex items-center justify-between text-[12.5px]">
+              <div className="mt-2 flex items-center justify-between text-[13px] sm:mt-4 sm:text-[12.5px]">
                 <button
                   type="button"
                   onClick={() => setStep("input")}
-                  className="text-white/60 hover:text-amber-400 transition-colors"
+                  className="min-h-[44px] pr-3 text-white/60 hover:text-amber-400 active:text-amber-400 transition-colors sm:min-h-0 sm:pr-0"
                 >
                   &larr; Change mobile/email
                 </button>
@@ -461,7 +497,7 @@ export default function AuthModal() {
                       setOtpDigits(Array(6).fill(""));
                       setError("");
                     }}
-                    className="font-bold text-amber-400 hover:text-amber-300 underline underline-offset-4"
+                    className="min-h-[44px] pl-3 font-bold text-amber-400 hover:text-amber-300 underline underline-offset-4 sm:min-h-0 sm:pl-0"
                   >
                     Resend code
                   </button>
@@ -471,7 +507,7 @@ export default function AuthModal() {
           )}
 
           {/* Footer Security Assurance */}
-          <div className="relative z-10 mt-5 flex items-center justify-center gap-2 text-[11.5px] text-white/40 border-t border-white/10 pt-4">
+          <div className="relative z-10 mt-3 flex items-center justify-center gap-2 text-[11.5px] text-white/40 border-t border-white/10 pt-3.5 sm:mt-5 sm:pt-4">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
             <span>256-bit SSL encrypted · Authentic Makhana Direct Store</span>
           </div>

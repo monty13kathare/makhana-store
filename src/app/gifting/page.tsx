@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { AnimatePresence, motion, useInView } from "framer-motion";
 import {
   Check,
   Gift,
@@ -191,6 +191,14 @@ export default function GiftingPage() {
   const [giftNote, setGiftNote] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
+  // Phone-only sticky "add to bag" bar: shown while the box picker is on
+  // screen but the inline CTA isn't, so it never overlaps the footer.
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLButtonElement>(null);
+  const pickerInView = useInView(pickerRef, { margin: "-80px 0px -140px 0px" });
+  const ctaInView = useInView(ctaRef);
+  const showStickyBar = pickerInView && !ctaInView;
+
   const selectedBox = boxes.find((b) => b.id === picked) || boxes[1];
   const discountSavings = selectedBox.standardPrice - selectedBox.discountedPrice;
   const totalMrpSavings = selectedBox.mrp - selectedBox.discountedPrice;
@@ -208,33 +216,33 @@ export default function GiftingPage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="pt-[116px] pb-16 lg:pt-[140px] lg:pb-20">
+      <section className="pt-[84px] pb-10 sm:pt-[116px] sm:pb-16 lg:pt-[140px] lg:pb-20">
         <div className="container-x">
-          <div className="relative grid overflow-hidden rounded-[28px] border border-white/10 bg-[#121212] lg:grid-cols-[1.1fr_1fr] shadow-2xl">
+          <div className="relative grid overflow-hidden rounded-[22px] sm:rounded-[28px] border border-white/10 bg-[#121212] lg:grid-cols-[1.1fr_1fr] shadow-2xl">
             <div className="glow-warm pointer-events-none absolute -right-24 top-0 h-[560px] w-[560px] opacity-70" />
 
-            <Reveal className="relative z-10 px-7 py-12 sm:px-12 lg:py-16">
+            <Reveal className="relative z-10 px-5 pt-7 pb-6 sm:px-12 sm:py-12 lg:py-16">
               <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-amber-300">
                 <Sparkles className="h-3 w-3" />
                 Artisanal Gifting
               </span>
-              <h1 className="max-w-[16ch] text-[34px] font-extrabold leading-[1.08] tracking-[-0.025em] sm:text-[48px] text-white">
+              <h1 className="max-w-[16ch] text-[28px] xs:text-[30px] font-extrabold leading-[1.08] tracking-[-0.025em] sm:text-[48px] text-white">
                 A gift that gets{" "}
                 <span className="font-display italic text-amber-400">finished</span>
               </h1>
-              <p className="mt-5 max-w-[46ch] text-[15px] leading-relaxed text-[#9a9a9a]">
+              <p className="mt-3 sm:mt-5 max-w-[46ch] text-[14px] sm:text-[15px] leading-relaxed text-[#9a9a9a]">
                 Not another tin of almonds that sits in a cupboard until March.
                 Pick a handcrafted box, add a note, and we will send it out in
                 satin ribbon and protective thermal wrap.
               </p>
 
-              <div className="mt-8 flex flex-wrap items-center gap-6 text-[12.5px] text-[#8e8e8e]">
+              <div className="mt-5 flex flex-col items-start gap-2.5 text-[12.5px] text-[#8e8e8e] sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
                 <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-emerald-400" />
+                  <Truck className="h-4 w-4 shrink-0 text-emerald-400" />
                   <span>Free Express Delivery on Festival & Corporate Boxes</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <HeartHandshake className="h-4 w-4 text-amber-400" />
+                  <HeartHandshake className="h-4 w-4 shrink-0 text-amber-400" />
                   <span>Complimentary Hand-written Letterpress Card</span>
                 </div>
               </div>
@@ -244,7 +252,7 @@ export default function GiftingPage() {
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, ease: EASE }}
-              className="relative min-h-[300px] lg:min-h-full"
+              className="relative min-h-[210px] sm:min-h-[300px] lg:min-h-full"
             >
               <Image
                 src="/img/gift-box.jpg"
@@ -261,18 +269,21 @@ export default function GiftingPage() {
       </section>
 
       {/* 3 Ways to Give - Interactive Cards Grid */}
-      <section className="pb-16 lg:pb-20">
+      <section className="pb-12 sm:pb-16 lg:pb-20">
         <div className="container-x">
-          <Reveal className="mb-9">
-            <h2 className="text-[28px] font-extrabold tracking-[-0.02em] sm:text-[36px] text-white">
+          <Reveal className="mb-4 sm:mb-9">
+            <h2 className="text-[24px] font-extrabold tracking-[-0.02em] sm:text-[36px] text-white">
               Three ways to give
             </h2>
-            <p className="mt-2 text-[14px] text-[#909090]">
+            <p className="mt-1.5 sm:mt-2 text-[13.5px] sm:text-[14px] text-[#909090]">
               Select a box to preview its contents and apply the card-specific discount.
             </p>
           </Reveal>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div
+            ref={pickerRef}
+            className="swipe-row gap-3 pt-3.5 pb-1 sm:mx-0 sm:grid sm:gap-6 sm:overflow-visible sm:px-0 sm:pt-0 sm:pb-0 lg:grid-cols-3"
+          >
             {boxes.map((b, i) => {
               const selected = picked === b.id;
               return (
@@ -281,10 +292,11 @@ export default function GiftingPage() {
                   onClick={() => setPicked(b.id)}
                   initial={{ opacity: 0, y: 28 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.2 }}
+                  viewport={{ once: true, amount: "some" }}
                   transition={{ duration: 0.6, ease: EASE, delay: i * 0.1 }}
                   whileHover={{ y: -6 }}
-                  className={`group relative flex flex-col rounded-[24px] border p-7 text-left transition-all duration-300 ${
+                  aria-pressed={selected}
+                  className={`group relative flex w-[84%] max-w-[340px] shrink-0 snap-start flex-col rounded-[22px] border p-5 text-left transition-all duration-300 sm:w-auto sm:max-w-none sm:rounded-[24px] sm:p-7 ${
                     selected
                       ? "border-amber-400 bg-[#181818] shadow-2xl shadow-amber-400/10 ring-1 ring-amber-400/30"
                       : "border-white/10 bg-[#141414] hover:border-white/25 hover:bg-[#161616]"
@@ -293,7 +305,7 @@ export default function GiftingPage() {
                   {/* Badge */}
                   {b.badge && (
                     <span
-                      className={`absolute -top-3 left-7 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide shadow-md ${
+                      className={`absolute -top-3 left-5 sm:left-7 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide shadow-md ${
                         b.featured
                           ? "bg-amber-400 text-black"
                           : "border border-amber-400/40 bg-[#161616] text-amber-300"
@@ -304,7 +316,7 @@ export default function GiftingPage() {
                   )}
 
                   {/* Top Row: Radio Check & Items pill */}
-                  <div className="mb-5 flex items-center justify-between">
+                  <div className="mb-3.5 sm:mb-5 flex items-center justify-between">
                     <span
                       className={`grid h-7 w-7 place-items-center rounded-full border transition-all ${
                         selected
@@ -320,15 +332,15 @@ export default function GiftingPage() {
                     </span>
                   </div>
 
-                  <h3 className="text-[22px] font-extrabold text-white group-hover:text-amber-300 transition-colors">
+                  <h3 className="text-[20px] sm:text-[22px] font-extrabold text-white group-hover:text-amber-300 transition-colors">
                     {b.name}
                   </h3>
-                  <p className="mt-2 text-[13.5px] leading-relaxed text-[#909090]">
+                  <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-[#909090] sm:mt-2 sm:line-clamp-none sm:text-[13.5px]">
                     {b.blurb}
                   </p>
 
                   {/* Included Items Chips */}
-                  <div className="mt-4 flex flex-wrap gap-1.5 border-t border-white/10 pt-4">
+                  <div className="mt-3 flex flex-wrap gap-1.5 border-t border-white/10 pt-3 sm:mt-4 sm:pt-4">
                     {b.items.map((it) => (
                       <span
                         key={it.slug}
@@ -340,7 +352,7 @@ export default function GiftingPage() {
                   </div>
 
                   {/* Special Discount Notice Pill */}
-                  <div className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/[0.06] p-2.5 text-[12px] flex items-center gap-2">
+                  <div className="mt-3.5 sm:mt-5 rounded-xl border border-amber-400/30 bg-amber-400/[0.06] p-2.5 text-[12px] flex items-center gap-2">
                     <Percent className="h-4 w-4 text-amber-400 shrink-0" />
                     <div>
                       <span className="font-bold text-amber-300">
@@ -351,8 +363,8 @@ export default function GiftingPage() {
                   </div>
 
                   {/* Pricing Breakdown */}
-                  <div className="mt-6 flex items-baseline gap-2.5">
-                    <span className="text-[28px] font-extrabold text-amber-400">
+                  <div className="mt-4 flex items-baseline gap-2.5 sm:mt-6">
+                    <span className="text-[26px] sm:text-[28px] font-extrabold text-amber-400">
                       {formatUSD(b.discountedPrice)}
                     </span>
                     <span className="text-[14px] text-white/50 line-through">
@@ -370,20 +382,20 @@ export default function GiftingPage() {
           {/* =========================================================================
               Interactive "What's Inside & Gift Personalization" Drawer Card
              ========================================================================= */}
-          <Reveal delay={0.15} className="mt-10">
-            <div className="rounded-[28px] border border-white/12 bg-[#161616] p-6 sm:p-9 shadow-2xl backdrop-blur-xl">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-6">
+          <Reveal delay={0.15} className="mt-6 sm:mt-10">
+            <div className="rounded-[22px] sm:rounded-[28px] border border-white/12 bg-[#161616] p-4 sm:p-9 shadow-2xl backdrop-blur-xl">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4 sm:gap-4 sm:pb-6">
                 <div>
                   <span className="inline-flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-wider text-amber-400">
                     <Package className="h-3.5 w-3.5" />
                     Box Contents & Special Discount
                   </span>
-                  <h3 className="mt-1 text-[22px] font-extrabold text-white">
+                  <h3 className="mt-1 text-[19px] sm:text-[22px] font-extrabold text-white">
                     What&apos;s inside: {selectedBox.name}
                   </h3>
                 </div>
 
-                <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-[13px]">
+                <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[12.5px] sm:px-4 sm:py-2 sm:text-[13px]">
                   <Percent className="h-4 w-4 text-emerald-400" />
                   <span className="font-bold text-emerald-300">
                     {selectedBox.discountPercent}% Off Applied ({selectedBox.discountCode})
@@ -392,13 +404,13 @@ export default function GiftingPage() {
               </div>
 
               {/* Items Grid */}
-              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <div className="mt-4 grid gap-2.5 sm:mt-6 sm:gap-4 sm:grid-cols-3">
                 {selectedBox.items.map((item) => (
                   <div
                     key={item.slug}
-                    className="flex items-center gap-3.5 rounded-2xl border border-white/10 bg-[#121212] p-3.5 transition-colors hover:border-white/20"
+                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#121212] p-2.5 sm:gap-3.5 sm:p-3.5 transition-colors hover:border-white/20"
                   >
-                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-neutral-900">
+                    <div className="relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-neutral-900">
                       <Image
                         src={item.image}
                         alt={item.name}
@@ -427,27 +439,32 @@ export default function GiftingPage() {
               </div>
 
               {/* Gift Note Input Box */}
-              <div className="mt-6 rounded-2xl border border-white/10 bg-[#121212] p-4 sm:p-5">
-                <label className="flex items-center gap-2 text-[13px] font-bold text-white">
-                  <Mail className="h-4 w-4 text-amber-400" />
+              <div className="mt-4 rounded-2xl border border-white/10 bg-[#121212] p-3.5 sm:mt-6 sm:p-5">
+                <label htmlFor="gift-note" className="flex items-center gap-2 text-[13px] font-bold text-white">
+                  <Mail className="h-4 w-4 shrink-0 text-amber-400" />
                   <span>Complimentary Hand-Written Letterpress Card Note (Optional)</span>
                 </label>
                 <textarea
+                  id="gift-note"
+                  name="gift-note"
+                  autoComplete="off"
+                  autoCapitalize="sentences"
+                  enterKeyHint="done"
                   value={giftNote}
                   onChange={(e) => setGiftNote(e.target.value)}
                   maxLength={250}
                   placeholder="e.g. Wishing you vibrant health and gourmet crunches this festive season! — With love, Sarah"
-                  rows={2}
-                  className="mt-2.5 w-full rounded-xl border border-white/15 bg-black/40 p-3 text-[13px] text-white placeholder:text-white/30 focus:border-amber-400 focus:outline-none transition-colors resize-none"
+                  rows={3}
+                  className="mt-2.5 w-full rounded-xl border border-white/15 bg-black/40 p-3 text-[16px] sm:text-[13px] text-white placeholder:text-white/30 focus:border-amber-400 focus:outline-none transition-colors resize-none"
                 />
-                <div className="mt-1 flex justify-between text-[11.5px] text-[#777777]">
+                <div className="mt-1 flex justify-between gap-3 text-[11.5px] text-[#777777]">
                   <span>We transcribe this note with ink on handmade cotton paper.</span>
-                  <span>{giftNote.length} / 250</span>
+                  <span className="shrink-0 tabular-nums">{giftNote.length} / 250</span>
                 </div>
               </div>
 
               {/* Bottom Action Bar */}
-              <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6 border-t border-white/10 pt-6">
+              <div className="mt-5 flex flex-col items-stretch justify-between gap-4 border-t border-white/10 pt-4 sm:mt-8 sm:flex-row sm:items-center sm:gap-6 sm:pt-6">
                 <div>
                   <div className="flex items-baseline gap-2.5">
                     <span className="text-[28px] font-extrabold text-amber-400">
@@ -473,10 +490,11 @@ export default function GiftingPage() {
                 </div>
 
                 <button
+                  ref={ctaRef}
                   type="button"
                   onClick={handleAddGiftBox}
                   disabled={isAdding}
-                  className="flex items-center justify-center gap-3 rounded-full bg-white px-9 py-4 text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-[0.98] shadow-xl shadow-white/5"
+                  className="flex min-h-[52px] items-center justify-center gap-3 rounded-full bg-white px-6 py-4 sm:px-9 text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-[0.98] shadow-xl shadow-white/5"
                 >
                   <ShoppingBag className="h-4 w-4" />
                   <span>
@@ -491,28 +509,68 @@ export default function GiftingPage() {
       </section>
 
       {/* How it works */}
-      <section className="pb-20 lg:pb-28">
+      <section className="pb-12 sm:pb-20 lg:pb-28">
         <div className="container-x">
           <StaggerGroup className="grid overflow-hidden rounded-[24px] border border-white/10 bg-[#141414] sm:grid-cols-3">
             {steps.map((s, i) => (
               <StaggerItem
                 key={s.title}
-                className={`px-7 py-9 ${
+                className={`flex items-start gap-4 px-5 py-5 sm:block sm:px-7 sm:py-9 ${
                   i > 0
                     ? "border-t border-white/10 sm:border-l sm:border-t-0"
                     : ""
                 }`}
               >
-                <s.icon className="mb-4 h-5 w-5 text-amber-400" />
-                <h3 className="mb-2 text-[16px] font-bold text-white">{s.title}</h3>
-                <p className="text-[13.5px] leading-relaxed text-[#909090]">
-                  {s.body}
-                </p>
+                <s.icon className="mt-0.5 h-5 w-5 shrink-0 text-amber-400 sm:mt-0 sm:mb-4" />
+                <div>
+                  <h3 className="mb-1 text-[15px] font-bold text-white sm:mb-2 sm:text-[16px]">{s.title}</h3>
+                  <p className="text-[13px] leading-relaxed text-[#909090] sm:text-[13.5px]">
+                    {s.body}
+                  </p>
+                </div>
               </StaggerItem>
             ))}
           </StaggerGroup>
         </div>
       </section>
+
+      {/* Phone sticky add-to-bag bar (sits above the bottom app dock) */}
+      <AnimatePresence>
+        {showStickyBar && (
+          <motion.div
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 24, opacity: 0 }}
+            transition={{ duration: 0.25, ease: EASE }}
+            className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 px-3 pb-2 md:hidden"
+          >
+            <div className="flex items-center gap-3 rounded-2xl border border-white/12 bg-[#161616]/95 p-2 pl-4 shadow-[0_12px_32px_rgba(0,0,0,0.7)] backdrop-blur-xl">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12px] font-semibold text-white/70">
+                  {selectedBox.name} &middot; {selectedBox.count}
+                </p>
+                <p className="flex items-baseline gap-1.5">
+                  <span className="text-[17px] font-extrabold text-amber-400">
+                    {formatUSD(selectedBox.discountedPrice)}
+                  </span>
+                  <span className="text-[12px] text-white/45 line-through">
+                    {formatUSD(selectedBox.standardPrice)}
+                  </span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddGiftBox}
+                disabled={isAdding}
+                className="flex h-12 shrink-0 items-center gap-2 rounded-xl bg-white px-5 text-[14px] font-bold text-black transition-all active:scale-[0.97] active:bg-amber-300"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                Add to bag
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

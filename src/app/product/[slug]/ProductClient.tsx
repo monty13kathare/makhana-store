@@ -3,10 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
+  ChevronLeft,
   ChevronRight,
   Heart,
   Leaf,
@@ -16,13 +18,13 @@ import {
   RotateCcw,
   Share2,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
   Star,
   Truck,
 } from "lucide-react";
 import { formatUSD, type Product } from "@/lib/products";
 import { useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
 import { useWishlist } from "@/context/WishlistContext";
 import ProductCard from "@/components/ProductCard";
 import { EASE, Reveal } from "@/components/motion-primitives";
@@ -47,6 +49,16 @@ const assurances = [
   { icon: Leaf, text: "Recyclable packaging" },
 ];
 
+const noopSubscribe = () => () => {};
+/** True only on the client after hydration, so we can portal into <body>. */
+function useIsClient() {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false
+  );
+}
+
 export default function ProductClient({
   product,
   related,
@@ -68,6 +80,17 @@ export default function ProductClient({
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [zipCode, setZipCode] = useState("");
   const [zipChecked, setZipChecked] = useState(false);
+  const isClient = useIsClient();
+  const swipeRef = useRef<HTMLDivElement>(null);
+
+  // Phone gallery: derive the visible slide from the snap row's scroll offset.
+  const handleSwipeScroll = () => {
+    const el = swipeRef.current;
+    const first = el?.firstElementChild as HTMLElement | null;
+    if (!el || !first) return;
+    const idx = Math.round(el.scrollLeft / (first.offsetWidth + 12));
+    if (idx !== active) setActive(idx);
+  };
 
   const cartItem = lines?.find((l) => l.slug === product.slug);
   const inCart = Boolean(cartItem && cartItem.qty > 0);
@@ -129,10 +152,21 @@ export default function ProductClient({
 
   return (
     <>
-      <section className="pt-[116px] pb-16 lg:pt-[140px] lg:pb-24">
+      <section className="pt-[76px] pb-8 sm:pt-[116px] sm:pb-16 lg:pt-[140px] lg:pb-24">
         <div className="container-x">
+          {/* Phone: compact back affordance (the bottom dock is hidden here) */}
+          <div className="mb-1 flex items-center justify-between md:hidden">
+            <Link
+              href="/shop"
+              className="-ml-2 inline-flex h-11 items-center gap-1 rounded-full pl-1 pr-3 text-[13.5px] font-semibold text-white/80 transition-colors active:bg-white/5 active:text-amber-300"
+            >
+              <ChevronLeft className="h-5 w-5" />
+              Shop
+            </Link>
+          </div>
+
           {/* Breadcrumb */}
-          <nav className="mb-7 flex items-center gap-1.5 text-[12.5px] text-dim">
+          <nav className="mb-7 hidden items-center gap-1.5 text-[12.5px] text-dim md:flex">
             <Link
               href="/"
               className="transition-colors hover:text-amber-400 active:text-amber-300"
@@ -150,10 +184,57 @@ export default function ProductClient({
             <span className="text-white">{product.name}</span>
           </nav>
 
-          <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
+          <div className="grid gap-5 sm:gap-10 lg:grid-cols-2 lg:gap-14">
             {/* Gallery Column */}
             <div>
-              <div className="relative aspect-square overflow-hidden rounded-[24px] border border-white/10 bg-ink-soft">
+              {/* Phone: swipeable snap gallery with dots */}
+              <div className="relative md:hidden">
+                <div
+                  ref={swipeRef}
+                  onScroll={handleSwipeScroll}
+                  className="swipe-row gap-3"
+                  aria-label="Product images"
+                >
+                  {gallery.map((g, i) => (
+                    <div
+                      key={g + i}
+                      className="relative aspect-square w-full shrink-0 snap-start overflow-hidden rounded-[20px] border border-white/10 bg-ink-soft"
+                    >
+                      <div className="glow-warm pointer-events-none absolute inset-0 z-10" />
+                      <Image
+                        src={g}
+                        alt={i === 0 ? product.name : ""}
+                        fill
+                        priority={i === 0}
+                        sizes="100vw"
+                        className="object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {product.badge && (
+                  <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-full border border-amber-400/40 bg-black/75 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-300 backdrop-blur-md shadow-md">
+                    {product.badge}
+                  </span>
+                )}
+                <span className="pointer-events-none absolute right-3 top-3 z-20 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-white/85 backdrop-blur-md">
+                  {active + 1}/{gallery.length}
+                </span>
+
+                <div className="mt-3 flex justify-center gap-1.5" aria-hidden>
+                  {gallery.map((g, i) => (
+                    <span
+                      key={g + i}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        active === i ? "w-5 bg-amber-400" : "w-1.5 bg-white/25"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative hidden aspect-square overflow-hidden rounded-[24px] border border-white/10 bg-ink-soft md:block">
                 <div className="glow-warm pointer-events-none absolute inset-0 z-10" />
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -183,7 +264,7 @@ export default function ProductClient({
               </div>
 
               {/* Thumbnails */}
-              <div className="mt-3 flex gap-3">
+              <div className="mt-3 hidden gap-3 md:flex">
                 {gallery.map((g, i) => (
                   <button
                     key={g + i}
@@ -210,7 +291,7 @@ export default function ProductClient({
             {/* Product Detail Column */}
             <Reveal>
               {/* Rating + Like & Share Actions Bar */}
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-2 flex items-center justify-between sm:mb-3">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-0.5">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -234,7 +315,7 @@ export default function ProductClient({
                     onClick={handleShare}
                     title="Share product"
                     aria-label="Share product"
-                    className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition-all hover:border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-400 active:scale-95"
+                    className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 sm:h-10 sm:w-10 text-white/70 transition-all hover:border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-400 active:scale-95"
                   >
                     <Share2 className="h-4 w-4" />
                   </button>
@@ -244,7 +325,7 @@ export default function ProductClient({
                     onClick={handleLikeToggle}
                     title={liked ? "Remove from wishlist" : "Add to wishlist"}
                     aria-label={liked ? "Remove from wishlist" : "Add to wishlist"}
-                    className={`group relative grid h-10 w-10 place-items-center rounded-xl border transition-all ${
+                    className={`group relative grid h-11 w-11 place-items-center rounded-xl border transition-all sm:h-10 sm:w-10 ${
                       liked
                         ? "border-rose-500/50 bg-rose-500/15 text-rose-500 shadow-md shadow-rose-500/20"
                         : "border-white/15 bg-white/5 text-white/70 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-400 active:scale-95"
@@ -267,19 +348,19 @@ export default function ProductClient({
               </div>
 
               {/* Title & Tagline */}
-              <h1 className="text-[32px] font-extrabold leading-[1.1] tracking-[-0.025em] sm:text-[42px] text-white">
+              <h1 className="text-[27px] font-extrabold leading-[1.1] tracking-[-0.025em] xs:text-[30px] sm:text-[42px] text-white">
                 {product.name}
               </h1>
-              <p className="mt-2 text-[14.5px] font-medium text-amber-400">
+              <p className="mt-1.5 text-[14px] font-medium text-amber-400 sm:mt-2 sm:text-[14.5px]">
                 {product.tagline}
               </p>
 
-              <p className="mt-4 max-w-[52ch] text-[14.5px] leading-relaxed text-[#9a9a9a]">
+              <p className="mt-3 max-w-[52ch] text-[14px] leading-relaxed text-[#9a9a9a] sm:mt-4 sm:text-[14.5px]">
                 {product.description}
               </p>
 
               {/* Tags / Pills (Luxury Edition, Refined Taste, etc.) */}
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-2 sm:mt-5">
                 {product.tags.map((t) => (
                   <span
                     key={t}
@@ -291,11 +372,11 @@ export default function ProductClient({
               </div>
 
               {/* Subtle Divider (as shown in reference design) */}
-              <div className="my-6 h-px w-full bg-white/10" />
+              <div className="my-5 h-px w-full bg-white/10 sm:my-6" />
 
               {/* Price Row (Dynamic based on selected weight) */}
-              <div className="flex items-baseline gap-3">
-                <span className="text-[36px] font-extrabold tracking-tight text-white">
+              <div className="flex items-baseline gap-2.5 sm:gap-3">
+                <span className="text-[32px] font-extrabold tracking-tight text-white sm:text-[36px]">
                   {formatUSD(effectivePrice)}
                   <span className="text-[20px] font-normal text-white/50">/-</span>
                 </span>
@@ -316,7 +397,7 @@ export default function ProductClient({
               </div>
 
               {/* Weight Selector Feature (50g, 100g, 150g, 200g) */}
-              <div className="mt-5">
+              <div className="mt-4 sm:mt-5">
                 <div className="mb-2.5 flex items-center justify-between text-[12.5px]">
                   <span className="font-semibold text-white/90">
                     Select Weight:
@@ -333,7 +414,7 @@ export default function ProductClient({
                         key={w}
                         type="button"
                         onClick={() => setSelectedWeight(w)}
-                        className={`relative flex items-center justify-center rounded-xl py-3 text-[14px] font-bold transition-all ${
+                        className={`relative flex min-h-11 items-center justify-center rounded-xl py-3 text-[14px] font-bold transition-all ${
                           isActive
                             ? "bg-white text-black shadow-lg shadow-white/15 ring-2 ring-white/30"
                             : "border border-white/15 bg-white/[0.04] text-white/70 hover:border-white/30 hover:bg-white/[0.08] hover:text-white active:scale-95"
@@ -346,8 +427,35 @@ export default function ProductClient({
                 </div>
               </div>
 
+              {/* Phone: quantity row (CTAs live in the sticky bottom bar) */}
+              <div className="mt-4 flex items-center justify-between md:hidden">
+                <span className="text-[12.5px] font-semibold text-white/90">
+                  Quantity:
+                </span>
+                <div className="flex items-center rounded-full border border-white/15 bg-white/[0.03]">
+                  <button
+                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    aria-label="Decrease quantity"
+                    disabled={qty <= 1}
+                    className="grid h-11 w-11 place-items-center rounded-full text-white transition-colors active:bg-amber-400/15 active:text-amber-300 disabled:text-white/30"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="w-8 text-center text-[15px] font-bold tabular-nums text-white">
+                    {qty}
+                  </span>
+                  <button
+                    onClick={() => setQty((q) => Math.min(99, q + 1))}
+                    aria-label="Increase quantity"
+                    className="grid h-11 w-11 place-items-center rounded-full text-white transition-colors active:bg-amber-400/15 active:text-amber-300"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
               {/* Quantity + Add to Bag + Buy Now */}
-              <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div className="mt-6 hidden flex-wrap items-center gap-3 md:flex">
                 {/* Quantity Pill */}
                 <div className="flex items-center gap-1 rounded-full border border-white/15 p-1.5">
                   <button
@@ -421,15 +529,18 @@ export default function ProductClient({
               </div>
 
               {/* Delivery Estimator Pin Widget */}
-              <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:mt-6 sm:p-3.5">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-[12.5px] text-white/80">
+                  <div className="flex shrink-0 items-center gap-2 text-[12.5px] text-white/80">
                     <MapPin className="h-4 w-4 text-amber-400 shrink-0" />
                     <span>Deliver to:</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex min-w-0 items-center gap-1.5">
                     <input
                       type="text"
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                      aria-label="Zip code"
                       maxLength={6}
                       value={zipCode}
                       onChange={(e) => {
@@ -437,12 +548,12 @@ export default function ProductClient({
                         setZipChecked(false);
                       }}
                       placeholder="Enter Zip Code"
-                      className="w-28 rounded-lg border border-white/15 bg-black/40 px-2.5 py-1 text-[12px] text-white outline-none focus:border-amber-400 placeholder:text-white/30"
+                      className="h-11 w-full min-w-0 max-w-[150px] rounded-lg border border-white/15 bg-black/40 px-3 py-1 text-[16px] text-white outline-none focus:border-amber-400 placeholder:text-white/30 sm:h-auto sm:w-28 sm:px-2.5 sm:text-[12px]"
                     />
                     <button
                       type="button"
                       onClick={() => setZipChecked(true)}
-                      className="rounded-lg bg-white/10 px-3 py-1 text-[11.5px] font-bold text-white hover:bg-amber-400 hover:text-black transition-colors"
+                      className="h-11 shrink-0 rounded-lg bg-white/10 px-4 py-1 text-[13px] font-bold sm:h-auto sm:px-3 sm:text-[11.5px] text-white hover:bg-amber-400 hover:text-black transition-colors"
                     >
                       Check
                     </button>
@@ -460,26 +571,26 @@ export default function ProductClient({
               </div>
 
               {/* Assurances */}
-              <ul className="mt-7 grid grid-cols-2 gap-4 border-t border-white/10 pt-6">
+              <ul className="mt-5 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-white/10 pt-4 sm:mt-7 sm:gap-4 sm:pt-6">
                 {assurances.map((a) => (
                   <li
                     key={a.text}
-                    className="flex items-center gap-2.5 text-[13px] text-muted"
+                    className="flex items-center gap-2 text-[12px] leading-tight text-muted sm:gap-2.5 sm:text-[13px] sm:leading-[inherit]"
                   >
-                    <a.icon className="h-4 w-4 shrink-0 text-amber-400" />
+                    <a.icon className="h-3.5 w-3.5 shrink-0 text-amber-400 sm:h-4 sm:w-4" />
                     {a.text}
                   </li>
                 ))}
               </ul>
 
               {/* Tabs: Nutrition / Ingredients */}
-              <div className="mt-8 overflow-hidden rounded-[18px] border border-white/10 bg-surface">
+              <div className="mt-6 overflow-hidden rounded-[18px] border border-white/10 bg-surface sm:mt-8">
                 <div className="flex border-b border-white/10">
                   {(["nutrition", "ingredients"] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => setTab(t)}
-                      className={`relative flex-1 px-5 py-3.5 text-[13px] font-semibold capitalize transition-colors ${
+                      className={`relative min-h-12 flex-1 px-5 py-3.5 text-[13px] font-semibold capitalize transition-colors ${
                         tab === t
                           ? "text-amber-400"
                           : "text-dim hover:text-amber-400 active:text-amber-300"
@@ -504,7 +615,7 @@ export default function ProductClient({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.28, ease: EASE }}
-                    className="p-5"
+                    className="p-4 sm:p-5"
                   >
                     {tab === "nutrition" ? (
                       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -533,22 +644,88 @@ export default function ProductClient({
       </section>
 
       {/* Goes Well With (Related Products) */}
-      <section className="pb-20 lg:pb-28">
+      <section className="pb-12 sm:pb-20 lg:pb-28">
         <div className="container-x">
-          <Reveal className="mb-8">
-            <h2 className="text-[24px] font-extrabold tracking-[-0.02em] sm:text-[30px] text-white">
+          <Reveal className="mb-4 sm:mb-8">
+            <h2 className="text-[21px] font-extrabold tracking-[-0.02em] sm:text-[30px] text-white">
               Goes well with
             </h2>
           </Reveal>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
+          {/* Phone: horizontal swipe row; sm+: original grid */}
+          <div className="swipe-row gap-3 pb-1 sm:mx-0 sm:grid sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
             {related.map((p, i) => (
-              <div key={p.slug} className="h-full flex flex-col">
+              <div
+                key={p.slug}
+                className="flex h-full w-[78%] shrink-0 snap-start flex-col sm:w-auto"
+              >
                 <ProductCard product={p} index={i} />
               </div>
             ))}
           </div>
         </div>
       </section>
+
+      {/* Phone: sticky purchase bar. Portaled to <body> so its spacer lands
+          after the footer and nothing ends up hidden underneath it. */}
+      {isClient &&
+        createPortal(
+          <>
+            <div
+              aria-hidden
+              className="md:hidden"
+              style={{ height: "calc(80px + env(safe-area-inset-bottom))" }}
+            />
+            <div
+              className="fixed inset-x-0 bottom-0 z-30 md:hidden"
+              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+            >
+              <div className="absolute inset-0 border-t border-white/10 bg-ink/90 backdrop-blur-xl" />
+              <div className="relative mx-auto flex h-[72px] max-w-md items-center gap-2.5 px-4">
+                <div className="min-w-0 shrink-0 pr-1">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[19px] font-extrabold leading-none tracking-tight text-white tabular-nums">
+                      {formatUSD(effectivePrice * qty)}
+                    </span>
+                    {off > 0 && (
+                      <span className="text-[11px] font-bold text-amber-400">
+                        {off}% off
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-[11px] leading-none text-white/55">
+                    {selectedWeight} · Qty {qty}
+                  </div>
+                </div>
+
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={handleAddToCart}
+                  className={`flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-[14px] font-bold transition-colors ${
+                    isAdded
+                      ? "border border-amber-400/50 bg-amber-400/10 text-amber-300"
+                      : "border border-white/20 bg-white/[0.06] text-white active:bg-white/15"
+                  }`}
+                >
+                  {isAdded ? (
+                    <Check className="h-4 w-4 shrink-0 stroke-[3]" />
+                  ) : (
+                    <ShoppingBag className="h-4 w-4 shrink-0" />
+                  )}
+                  <span className="truncate">{isAdded ? "Added" : "Add to Bag"}</span>
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={handleBuyNow}
+                  className="flex h-12 min-w-0 flex-1 items-center justify-center rounded-full bg-amber-400 px-3 text-[14px] font-bold text-black shadow-[0_8px_22px_-8px_rgba(229,169,60,0.8)] active:bg-amber-300"
+                >
+                  <span className="truncate">Buy Now</span>
+                </motion.button>
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
 
       {/* Floating Interactive Toast */}
       <AnimatePresence>
@@ -557,7 +734,8 @@ export default function ProductClient({
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-[100] flex items-center gap-2.5 rounded-2xl border border-amber-400/40 bg-[#161616]/95 px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-xl"
+            style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+            className="fixed inset-x-4 bottom-[88px] z-[100] flex items-center gap-2.5 md:inset-x-auto md:bottom-6 md:right-6 md:!mb-0 rounded-2xl border border-amber-400/40 bg-[#161616]/95 px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-xl"
           >
             <Sparkles className="h-4 w-4 text-amber-400 shrink-0" />
             <span className="text-[13px] font-semibold text-white">
