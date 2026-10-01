@@ -394,3 +394,22 @@
   animation: breathe var(--dur, 6.5s) ease-in-out var(--delay, 0s) infinite;
   will-change: transform, opacity;
 }
+
+/* Phones: backdrop blur inside the scrolling page re-renders on every scroll
+   frame, and those surfaces already sit on near-opaque fills — drop it there.
+   (Unlayered + !important so it also beats inline backdropFilter styles.)
+   The fixed navbar/dock keep a lighter blur, set in their own classes. */
+@media (max-width: 767px) {
+  main [class*="backdrop-blur"],
+  main [style*="backdrop-filter"] {
+    /* Standard property only: the minifier collapses an explicit -webkit- copy
+       into the prefixed form alone, which Chromium ignores. */
+    backdrop-filter: none !important;
+  }
+}
+
+/* Paused while the section is off screen (see PauseOffscreen.tsx). */
+[data-offscreen],
+[data-offscreen] * {
+  animation-play-state: paused !important;
+}

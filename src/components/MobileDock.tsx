@@ -56,7 +56,7 @@ export default function MobileDock() {
         className="fixed inset-x-0 bottom-0 z-40 md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="absolute inset-0 border-t border-white/10 bg-[#0d0d0d]/90 backdrop-blur-xl" />
+        <div className="absolute inset-0 border-t border-white/10 bg-[#0d0d0d]/92 backdrop-blur-md" />
 
         <ul className="relative mx-auto grid h-[64px] max-w-md grid-cols-5 px-2">
           {tabs.map((tab) => {

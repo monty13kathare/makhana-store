@@ -8,6 +8,7 @@ import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
 import MobileDock from "@/components/MobileDock";
 import MotionProvider from "@/components/MotionProvider";
+import PauseOffscreen from "@/components/PauseOffscreen";
 import AddedToCartModal from "@/components/AddedToCartModal";
 import AuthModal from "@/components/AuthModal";
 import { WishlistProvider } from "@/context/WishlistContext";
@@ -88,6 +89,7 @@ export default function RootLayout({
               <main className="min-h-screen w-full max-w-full overflow-x-clip">{children}</main>
               <Footer />
               <MobileDock />
+              <PauseOffscreen />
               <CartDrawer />
               <AddedToCartModal />
               <AuthModal />
