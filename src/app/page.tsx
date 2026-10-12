@@ -5,21 +5,49 @@ import IndulgeBenefits from "@/components/home/IndulgeBenefits";
 import FlavourCombos from "@/components/home/FlavourCombos";
 import Gifting from "@/components/home/Gifting";
 import GlobalDelivery from "@/components/home/GlobalDelivery";
-import Testimonials from "@/components/home/Testimonials";
+import Testimonials, { type FlavourOption } from "@/components/home/Testimonials";
 import Faq from "@/components/home/Faq";
+import {
+  getBundles,
+  getFaq,
+  getProducts,
+  getReviews,
+  getReviewSummary,
+  getShippingZones,
+} from "@/lib/api/server";
+import { REVIEW_CATEGORIES } from "@/lib/api/types";
 
-export default function Home() {
+// ISR: the home page is regenerated in the background at most every minute.
+export const revalidate = 60;
+
+export default async function Home() {
+  const [products, combos, giftBoxes, zones, faq, summary, ...reviewLists] = await Promise.all([
+    getProducts(),
+    getBundles("combo"),
+    getBundles("gift_box"),
+    getShippingZones(),
+    getFaq(),
+    getReviewSummary(),
+    ...REVIEW_CATEGORIES.map((c) => getReviews(c, 3)),
+  ]);
+
+  const slides = REVIEW_CATEGORIES.map((category, i) => ({ category, reviews: reviewLists[i] ?? null }));
+  const flavourOptions: FlavourOption[] = [
+    ...(products ?? []).map((p) => ({ label: p.name, productSlug: p.slug })),
+    ...(giftBoxes ?? []).map((b) => ({ label: b.name, bundleSlug: b.slug })),
+  ];
+
   return (
     <>
       <Hero />
-      <Flavours />
-      <FlavourCombos />
+      <Flavours products={products} />
+      <FlavourCombos combos={combos} />
       <BrandPillars />
       <IndulgeBenefits />
       <Gifting />
-      <GlobalDelivery />
-      <Testimonials />
-      <Faq />
+      <GlobalDelivery zones={zones} />
+      <Testimonials slides={slides} summary={summary} flavourOptions={flavourOptions} />
+      <Faq items={faq} />
     </>
   );
 }

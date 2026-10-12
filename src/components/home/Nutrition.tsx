@@ -28,10 +28,7 @@ function Counter({
 
   useEffect(() => {
     if (!inView) return;
-    if (to === 0) {
-      setN(0);
-      return;
-    }
+    if (to === 0) return; // n starts at 0
     let raf = 0;
     const start = performance.now();
     const dur = 1400;

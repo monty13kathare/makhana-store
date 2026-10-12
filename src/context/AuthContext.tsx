@@ -2,37 +2,22 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { auth, me } from "@/lib/api/store";
+import { ApiError, isApiError } from "@/lib/api/errors";
+import { clearSession, onSessionExpired, refreshSession, setSession } from "@/lib/api/session";
+import type { Member, MemberPatch, OtpChallenge } from "@/lib/api/types";
 
-export type UserAddress = {
-  id: string;
-  tag: string;
-  recipient: string;
-  line1: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-  phone: string;
-  isDefault?: boolean;
-};
-
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  avatar?: string;
-  memberTier: string;
-  joinedDate: string;
-  addresses?: UserAddress[];
-};
+export type User = Member;
+export type UserAddress = Member["addresses"][number];
 
 export type AuthModalOptions = {
   title?: string;
@@ -51,288 +36,271 @@ export type AuthModalOptions = {
   actionText?: string;
 };
 
+/** Development-only code echo (`devCode`). Never present in production. */
 export type OtpNotice = {
   code: string;
   identifier: string;
   createdAt: number;
 };
 
+export type AuthStatus = "loading" | "authenticated" | "guest";
+
+/** Lets other providers react to sign-in/out (cart merge, wishlist sync). */
+export type AuthEvent = { type: "restored" | "signedIn" | "signedOut"; seq: number };
+
+export type StartLoginResult =
+  | { ok: true; challenge: OtpChallenge }
+  | { ok: false; code: string; message: string };
+
+export type VerifyResult =
+  | { ok: true; isNewCustomer: boolean; member: Member }
+  | { ok: false; code: string; message: string };
+
 type AuthValue = {
   user: User | null;
-  /** Phone or email captured on login, carried to OTP screen */
+  status: AuthStatus;
+  authEvent: AuthEvent | null;
+  /** Phone or email captured on login, carried to the OTP screen */
   pendingPhone: string | null;
   pendingIdentifier: string | null;
-  /** Active OTP simulation banner for realistic SMS/Email delivery */
+  otpChallenge: OtpChallenge | null;
+  /** Simulated SMS banner; driven only by the API's `devCode`. */
   activeOtpNotice: OtpNotice | null;
   isAuthModalOpen: boolean;
   modalOptions: AuthModalOptions;
   openAuthModal: (options?: AuthModalOptions) => void;
   closeAuthModal: () => void;
   requireAuth: (callback: () => void, options?: AuthModalOptions) => boolean;
-  startLogin: (identifier: string) => string;
-  verify: (code: string, newUserName?: string) => boolean;
-  updateUser: (data: Partial<User>) => void;
-  logout: () => void;
+  startLogin: (identifier: string) => Promise<StartLoginResult>;
+  verify: (code: string, newUserName?: string) => Promise<VerifyResult>;
+  /** PATCH /store/me. Throws ApiError (e.g. 409 `email_taken`, 422 validation). */
+  updateUser: (data: MemberPatch) => Promise<Member>;
+  /** Replace the cached member after another endpoint returned it. */
+  setUser: (member: Member) => void;
+  refreshUser: () => Promise<void>;
+  logout: () => Promise<void>;
   clearOtpNotice: () => void;
-};
-
-const SESSION_KEY = "makhana_auth_session";
-const REGISTERED_USERS_KEY = "makhana_auth_directory";
-
-/** Pre-seeded accounts in registry for realistic return-user recognition */
-const INITIAL_USERS: Record<string, User> = {
-  "+15553892041": {
-    id: "usr_elena_8921",
-    name: "Elena Rostova",
-    email: "elena.rostova@luxury.co",
-    phone: "+1 (555) 389-2041",
-    avatar: "/img/avatar-1.jpg",
-    memberTier: "Gold Connoisseur",
-    joinedDate: "Member since May 2025",
-    addresses: [
-      {
-        id: "addr-1",
-        tag: "Home (Default)",
-        recipient: "Elena Rostova",
-        line1: "742 Evergreen Terrace, Apt 4B",
-        city: "Brooklyn",
-        state: "NY",
-        zip: "11201",
-        country: "United States",
-        phone: "+1 (555) 389-2041",
-        isDefault: true,
-      },
-      {
-        id: "addr-2",
-        tag: "Studio / Office",
-        recipient: "Elena Rostova",
-        line1: "185 Broadway, Floor 8",
-        city: "New York",
-        state: "NY",
-        zip: "10007",
-        country: "United States",
-        phone: "+1 (555) 389-2041",
-        isDefault: false,
-      },
-    ],
-  },
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
 
+function failure(e: unknown): { ok: false; code: string; message: string } {
+  if (isApiError(e)) return { ok: false, code: e.code, message: e.message };
+  return { ok: false, code: "unknown", message: "Something went wrong. Please try again." };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  // Guests start as null (authentic production e-commerce model)
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
+  const [status, setStatus] = useState<AuthStatus>("loading");
+  const [authEvent, setAuthEvent] = useState<AuthEvent | null>(null);
   const [pendingIdentifier, setPendingIdentifier] = useState<string | null>(null);
+  const [otpChallenge, setOtpChallenge] = useState<OtpChallenge | null>(null);
   const [activeOtpNotice, setActiveOtpNotice] = useState<OtpNotice | null>(null);
-  const [hydrated, setHydrated] = useState(false);
 
-  // Modal State & pending action queue
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [modalOptions, setModalOptions] = useState<AuthModalOptions>({});
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
-  // 1. Hydrate active session & user registry from localStorage
-  useEffect(() => {
-    try {
-      // Ensure user directory exists
-      const existingDir = localStorage.getItem(REGISTERED_USERS_KEY);
-      if (!existingDir) {
-        localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(INITIAL_USERS));
-      }
+  const userRef = useRef<User | null>(null);
+  const pendingAction = useRef<(() => void) | null>(null);
+  const modalOptionsRef = useRef<AuthModalOptions>({});
+  const challengeRef = useRef<OtpChallenge | null>(null);
+  const restoreRef = useRef<Promise<void> | null>(null);
+  const seq = useRef(0);
 
-      // Check current session
-      const savedSession = localStorage.getItem(SESSION_KEY);
-      if (savedSession) {
-        setUser(JSON.parse(savedSession));
-      }
-    } catch {
-      // Storage unavailable or disabled in browser
-    }
-    setHydrated(true);
+  const emit = useCallback((type: AuthEvent["type"]) => {
+    seq.current += 1;
+    setAuthEvent({ type, seq: seq.current });
   }, []);
 
-  // 2. Persist active session
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      if (user) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      } else {
-        localStorage.removeItem(SESSION_KEY);
-      }
-    } catch {
-      // Ignore quota / disabled storage
-    }
-  }, [user, hydrated]);
+  const applyUser = useCallback((m: User | null) => {
+    userRef.current = m;
+    setUserState(m);
+    setStatus(m ? "authenticated" : "guest");
+  }, []);
 
-  const openAuthModal = (options?: AuthModalOptions) => {
+  // Restore the session on load: refresh cookie -> access token -> profile.
+  useEffect(() => {
+    let cancelled = false;
+    const restore = (async () => {
+      try {
+        const token = await refreshSession();
+        if (cancelled) return;
+        if (!token) {
+          applyUser(null);
+          return;
+        }
+        const member = await me.get();
+        if (cancelled) return;
+        applyUser(member);
+        emit("restored");
+      } catch (e) {
+        if (cancelled) return;
+        console.warn("[auth] session restore failed", e);
+        clearSession();
+        applyUser(null);
+      }
+    })();
+    restoreRef.current = restore;
+    return () => {
+      cancelled = true;
+    };
+  }, [applyUser, emit]);
+
+  // A refresh failed mid-session (revoked, expired, signed out elsewhere).
+  useEffect(
+    () =>
+      onSessionExpired(() => {
+        if (!userRef.current) return;
+        applyUser(null);
+        emit("signedOut");
+      }),
+    [applyUser, emit],
+  );
+
+  const openAuthModal = useCallback((options?: AuthModalOptions) => {
+    modalOptionsRef.current = options || {};
     setModalOptions(options || {});
     setIsAuthModalOpen(true);
-  };
+  }, []);
 
-  const closeAuthModal = () => {
+  const closeAuthModal = useCallback(() => {
     setIsAuthModalOpen(false);
-    setPendingAction(null);
-  };
+    pendingAction.current = null;
+  }, []);
 
-  const requireAuth = (callback: () => void, options?: AuthModalOptions): boolean => {
-    if (user) {
-      callback();
-      return true;
-    }
-    setPendingAction(() => callback);
-    openAuthModal(options);
-    return false;
-  };
-
-  /**
-   * Generates a secure 6-digit OTP, simualtes instant SMS/Email dispatch,
-   * and displays a realistic verification notice.
-   */
-  const startLogin = (identifier: string): string => {
-    const cleanId = identifier.trim();
-    setPendingIdentifier(cleanId);
-
-    // Generate production-style 6-digit random code
-    const generated = Math.floor(100000 + Math.random() * 900000).toString();
-    const notice: OtpNotice = {
-      code: generated,
-      identifier: cleanId,
-      createdAt: Date.now(),
-    };
-    setActiveOtpNotice(notice);
-
-    return generated;
-  };
-
-  /**
-   * Verifies the entered OTP and logs in / creates the user profile.
-   */
-  const verify = (inputCode: string, newUserName?: string): boolean => {
-    const trimmed = inputCode.trim();
-    const expected = activeOtpNotice?.code;
-
-    // Production check: matches active dispatched OTP, or common dev fallback 123456 / 1234
-    const isValid =
-      (expected && trimmed === expected) ||
-      trimmed === "123456" ||
-      trimmed === "1234";
-
-    if (!isValid) {
-      return false;
-    }
-
-    const id = pendingIdentifier || "user";
-    const normalizedKey = id.replace(/\D/g, "") || id.toLowerCase();
-
-    // Look up in directory or create a new user profile
-    let directory: Record<string, User> = {};
-    try {
-      const raw = localStorage.getItem(REGISTERED_USERS_KEY);
-      if (raw) directory = JSON.parse(raw);
-    } catch {
-      // Ignore
-    }
-
-    let authenticatedUser: User;
-
-    if (directory[normalizedKey]) {
-      authenticatedUser = directory[normalizedKey];
-    } else {
-      // Create new member account
-      const isEmail = id.includes("@");
-      const defaultName = newUserName?.trim()
-        ? newUserName.trim()
-        : isEmail
-        ? id.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-        : `Member ${id.slice(-4)}`;
-
-      authenticatedUser = {
-        id: "usr_" + Math.random().toString(36).substring(2, 9),
-        name: defaultName,
-        email: isEmail ? id : `${normalizedKey}@makhana.vip`,
-        phone: isEmail ? "+1 (555) 019-2834" : id,
-        avatar: "/img/avatar-1.jpg",
-        memberTier: "Gold Connoisseur",
-        joinedDate: `Member since ${new Date().toLocaleDateString("en-US", {
-          month: "short",
-          year: "numeric",
-        })}`,
-        addresses: [],
-      };
-
-    }
-
-    // Apply prefill data if available (e.g. from checkout)
-    if (modalOptions.prefill) {
-      if (modalOptions.prefill.name) authenticatedUser.name = modalOptions.prefill.name;
-      if (modalOptions.prefill.email) authenticatedUser.email = modalOptions.prefill.email;
-      if (modalOptions.prefill.phone) authenticatedUser.phone = modalOptions.prefill.phone;
-    }
-
-    // Save to directory to ensure any new prefill data persists
-    directory[normalizedKey] = authenticatedUser;
-    try {
-      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(directory));
-    } catch {
-      // Ignore
-    }
-
-    setUser(authenticatedUser);
-    setPendingIdentifier(null);
-    setActiveOtpNotice(null);
-    setIsAuthModalOpen(false);
-
-    // Execute pending callback (e.g. cart add / buy now)
-    if (pendingAction) {
-      pendingAction();
-      setPendingAction(null);
-    }
-
-    return true;
-  };
-
-  const updateUser = (data: Partial<User>) => {
-    setUser((prev) => {
-      if (!prev) return null;
-      const updated = { ...prev, ...data };
-
-      // Update in directory as well
-      try {
-        const raw = localStorage.getItem(REGISTERED_USERS_KEY);
-        if (raw) {
-          const directory: Record<string, User> = JSON.parse(raw);
-          const key = prev.phone.replace(/\D/g, "") || prev.email;
-          directory[key] = updated;
-          localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(directory));
-        }
-      } catch {
-        // Ignore
+  const requireAuth = useCallback(
+    (callback: () => void, options?: AuthModalOptions): boolean => {
+      if (userRef.current) {
+        callback();
+        return true;
       }
+      const ask = () => {
+        if (userRef.current) {
+          callback();
+          return;
+        }
+        pendingAction.current = callback;
+        openAuthModal(options);
+      };
+      if (status === "loading" && restoreRef.current) void restoreRef.current.then(ask);
+      else ask();
+      return false;
+    },
+    [openAuthModal, status],
+  );
 
-      return updated;
-    });
-  };
-
-  const logout = () => {
-    setUser(null);
-    setPendingIdentifier(null);
+  const startLogin = useCallback(async (identifier: string): Promise<StartLoginResult> => {
+    const clean = identifier.trim();
+    setPendingIdentifier(clean);
     setActiveOtpNotice(null);
     try {
-      localStorage.removeItem(SESSION_KEY);
-    } catch {
-      // Ignore
+      const challenge = await auth.requestOtp(clean);
+      challengeRef.current = challenge;
+      setOtpChallenge(challenge);
+      if (challenge.devCode) {
+        setActiveOtpNotice({ code: challenge.devCode, identifier: clean, createdAt: Date.now() });
+      }
+      return { ok: true, challenge };
+    } catch (e) {
+      return failure(e);
     }
+  }, []);
+
+  const verify = useCallback(
+    async (inputCode: string, newUserName?: string): Promise<VerifyResult> => {
+      const challenge = challengeRef.current;
+      if (!challenge) {
+        return { ok: false, code: "no_challenge", message: "Please request a new code first." };
+      }
+      const prefill = modalOptionsRef.current.prefill;
+      const name = newUserName?.trim() || prefill?.name?.trim() || undefined;
+      try {
+        const res = await auth.verifyOtp({
+          challengeId: challenge.challengeId,
+          code: inputCode.trim(),
+          ...(name && name.length >= 2 ? { name } : {}),
+        });
+        setSession(res);
+        let member: Member = res.customer;
+
+        // Carry the checkout email onto a phone-only account.
+        if (prefill?.email && !member.email) {
+          try {
+            member = await me.update({ email: prefill.email.trim() });
+          } catch (e) {
+            // email_taken / invalid: keep the account as is; checkout still sends the email.
+            console.warn("[auth] could not attach checkout email", e);
+          }
+        }
+
+        applyUser(member);
+        challengeRef.current = null;
+        setOtpChallenge(null);
+        setPendingIdentifier(null);
+        setActiveOtpNotice(null);
+        setIsAuthModalOpen(false);
+        emit("signedIn");
+
+        const action = pendingAction.current;
+        pendingAction.current = null;
+        if (action) action();
+
+        return { ok: true, isNewCustomer: res.isNewCustomer, member };
+      } catch (e) {
+        return failure(e);
+      }
+    },
+    [applyUser, emit],
+  );
+
+  const updateUser = useCallback(
+    async (data: MemberPatch) => {
+      const member = await me.update(data);
+      applyUser(member);
+      return member;
+    },
+    [applyUser],
+  );
+
+  const setUser = useCallback((member: Member) => applyUser(member), [applyUser]);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      applyUser(await me.get());
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        applyUser(null);
+        emit("signedOut");
+      } else throw e;
+    }
+  }, [applyUser, emit]);
+
+  const logout = useCallback(async () => {
+    try {
+      await auth.logout();
+    } catch (e) {
+      // The local session is dropped regardless; the cookie expires on its own.
+      console.warn("[auth] logout request failed", e);
+    }
+    clearSession();
+    applyUser(null);
+    setPendingIdentifier(null);
+    setActiveOtpNotice(null);
+    emit("signedOut");
     router.push("/");
-  };
+  }, [applyUser, emit, router]);
+
+  const clearOtpNotice = useCallback(() => setActiveOtpNotice(null), []);
 
   const value = useMemo<AuthValue>(
     () => ({
       user,
+      status,
+      authEvent,
       pendingPhone: pendingIdentifier,
       pendingIdentifier,
+      otpChallenge,
       activeOtpNotice,
       isAuthModalOpen,
       modalOptions,
@@ -342,10 +310,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       startLogin,
       verify,
       updateUser,
+      setUser,
+      refreshUser,
       logout,
-      clearOtpNotice: () => setActiveOtpNotice(null),
+      clearOtpNotice,
     }),
-    [user, pendingIdentifier, activeOtpNotice, isAuthModalOpen, modalOptions, pendingAction],
+    [
+      user,
+      status,
+      authEvent,
+      pendingIdentifier,
+      otpChallenge,
+      activeOtpNotice,
+      isAuthModalOpen,
+      modalOptions,
+      openAuthModal,
+      closeAuthModal,
+      requireAuth,
+      startLogin,
+      verify,
+      updateUser,
+      setUser,
+      refreshUser,
+      logout,
+      clearOtpNotice,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

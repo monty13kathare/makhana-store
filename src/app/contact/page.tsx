@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Clock, Mail, MapPin, Phone } from "lucide-react";
+import { Check, Clock, Loader2, Mail, MapPin, Phone } from "lucide-react";
 import { EASE, Reveal } from "@/components/motion-primitives";
 import CustomDropdown from "@/components/ui/CustomDropdown";
+import { contact } from "@/lib/api/store";
+import { errorMessage } from "@/lib/api/errors";
 
 const details: {
   icon: typeof Mail;
@@ -26,7 +28,9 @@ const details: {
 ];
 
 export default function ContactPage() {
+  const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -34,12 +38,41 @@ export default function ContactPage() {
     message: "",
   });
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // No backend wired up — this demonstrates the success state only.
-    setSent(true);
-    setForm({ name: "", email: "", subject: "General", message: "" });
-    setTimeout(() => setSent(false), 4000);
+    if (submitting) return;
+    setError(null);
+
+    const trimmedName = form.name.trim();
+    const trimmedEmail = form.email.trim();
+    const trimmedSubject = form.subject.trim() || "General";
+    const trimmedMessage = form.message.trim();
+
+    if (trimmedName.length < 2) {
+      setError("Please enter your name (at least 2 characters).");
+      return;
+    }
+    if (trimmedMessage.length < 5) {
+      setError("Please write a little more in your message (at least 5 characters).");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await contact.send({
+        name: trimmedName,
+        email: trimmedEmail,
+        subject: trimmedSubject,
+        message: trimmedMessage,
+      });
+      setSent(true);
+      setForm({ name: "", email: "", subject: "General", message: "" });
+      setTimeout(() => setSent(false), 6000);
+    } catch (err) {
+      setError(errorMessage(err, "Failed to send message. Please try again."));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const field =
@@ -187,10 +220,16 @@ export default function ContactPage() {
 
               <motion.button
                 type="submit"
+                disabled={submitting || sent}
                 whileTap={{ scale: 0.98 }}
-                className="mt-5 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[15px] sm:mt-6 sm:min-h-0 sm:text-[14.5px] font-semibold text-ink transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-md"
+                className="mt-5 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[15px] sm:mt-6 sm:min-h-0 sm:text-[14.5px] font-semibold text-ink transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-md disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {sent ? (
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending message...
+                  </>
+                ) : sent ? (
                   <>
                     <Check className="h-4 w-4" /> Message sent
                   </>
@@ -198,6 +237,16 @@ export default function ContactPage() {
                   "Send message"
                 )}
               </motion.button>
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-center text-[13px] text-red-400"
+                >
+                  {error}
+                </motion.div>
+              )}
 
               {sent && (
                 <motion.p

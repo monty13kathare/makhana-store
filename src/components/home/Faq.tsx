@@ -7,42 +7,7 @@ import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from
 import { ChevronDown, HelpCircle, ArrowRight } from "lucide-react";
 import { Reveal, EASE } from "../motion-primitives";
 import { useMediaQuery } from "@/lib/useMediaQuery";
-
-/* --------------------------------------------------------------------------
-   FAQ Questions Data
-   -------------------------------------------------------------------------- */
-const faqs = [
-  {
-    id: "01",
-    q: "What makes this Makhana premium?",
-    a: "We exclusively grade for 6+ Suta (19mm+ jumbo diameter) seeds. Each kernel is hand-inspected, slow dry-roasted to peak crunch without palm oil, and sealed immediately to preserve airy crispness and delicate natural nutrients.",
-    category: "Quality",
-  },
-  {
-    id: "02",
-    q: "How do you ensure crispness and long freshness?",
-    a: "Our roasts are nitrogen-flushed and packaged in multi-barrier pouches that lock out oxygen and ambient humidity. Every batch remains ultra-crisp for up to 9 months unopened.",
-    category: "Freshness",
-  },
-  {
-    id: "03",
-    q: "Do you ship internationally?",
-    a: "Yes! We partner with global express couriers to ship directly to over 20+ countries worldwide with real-time end-to-end tracking.",
-    category: "Shipping",
-  },
-  {
-    id: "04",
-    q: "Are your ingredients 100% natural and vegan?",
-    a: "All our roasted varieties are completely plant-based (or made with authentic A2 ghee where specified), non-GMO, gluten-free, and crafted with pure gourmet seasonings without artificial preservatives or artificial flavors.",
-    category: "Ingredients",
-  },
-  {
-    id: "05",
-    q: "Can I customize a gift box for corporate or weddings?",
-    a: "Absolutely. We offer custom foiled sleeves, branded ribbons, and personalized cards for corporate gifting and wedding celebrations with minimum orders of 25 boxes.",
-    category: "Gifting",
-  },
-];
+import type { FaqItem } from "@/lib/api/types";
 
 /* --------------------------------------------------------------------------
    Realistic Cascading Seasoning Dust Particle Array
@@ -77,7 +42,9 @@ const seasoningParticles = [
   { id: 20, left: "52%", top: "70%", endY: 65, driftX: -3, size: 2.5, delay: 2.15, duration: 1.5, color: "#f59e0b" },
 ];
 
-export default function Faq() {
+/** FAQ from the `faq` content block (GET /store/content/faq); null when unavailable. */
+export default function Faq({ items }: { items: FaqItem[] | null }) {
+  const faqs = items ?? [];
   const [open, setOpen] = useState<number | null>(0); // First item open by default
   // The decorative visual is desktop-only; don't mount (and animate) it on phones.
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -138,6 +105,16 @@ export default function Faq() {
           
           {/* Left Column: 5 Accordion Items + Help CTA */}
           <div className="flex flex-col gap-3.5 order-2 lg:order-1">
+            {items === null && (
+              <p role="alert" className="rounded-[18px] border border-white/10 bg-[#161616] p-5 text-[13.5px] text-white/60">
+                Our FAQ is unavailable right now. Please refresh in a moment, or contact us with your question.
+              </p>
+            )}
+            {items?.length === 0 && (
+              <p className="rounded-[18px] border border-white/10 bg-[#161616] p-5 text-[13.5px] text-white/60">
+                No questions yet. Contact us and we&apos;ll be glad to help.
+              </p>
+            )}
             {faqs.map((f, i) => {
               const isOpen = open === i;
               return (

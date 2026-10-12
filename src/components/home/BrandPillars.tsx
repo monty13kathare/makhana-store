@@ -97,7 +97,7 @@ export default function BrandPillars() {
                   6 Suta Size Guide
                 </p>
                 <p className="text-[11px] text-white/60">
-                  Standard 0.75" physical scale
+                  Standard 0.75&quot; physical scale
                 </p>
               </div>
             </div>

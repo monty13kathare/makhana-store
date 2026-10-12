@@ -3,33 +3,37 @@
 import { motion } from "framer-motion";
 import { Globe, Package, Plane, ShieldCheck, Truck } from "lucide-react";
 import { EASE, Reveal, StaggerGroup, StaggerItem } from "@/components/motion-primitives";
+import { ErrorState } from "@/components/ui/DataState";
+import type { ShippingZone } from "@/lib/api/types";
+import { formatMoney } from "@/lib/format";
 
-const zones = [
-  {
-    region: "India",
-    time: "2–4 working days",
-    cost: "Free over ₹499",
-    note: "Delivered to every serviceable PIN code.",
-  },
-  {
-    region: "Middle East",
-    time: "5–8 working days",
-    cost: "From ₹1,290",
-    note: "UAE, Saudi Arabia, Qatar, Oman, Bahrain, Kuwait.",
-  },
-  {
-    region: "United Kingdom & EU",
-    time: "7–12 working days",
-    cost: "From ₹1,890",
-    note: "Duties calculated and shown at checkout.",
-  },
-  {
-    region: "USA, Canada & Australia",
-    time: "8–14 working days",
-    cost: "From ₹2,150",
-    note: "Tracked courier with full customs paperwork.",
-  },
-];
+function titleCase(s: string) {
+  return s.length <= 3 ? s.toUpperCase() : s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Rows for the zones table, from GET /store/shipping/zones. */
+function toRows(zones: ShippingZone[]) {
+  return zones.map((z) => {
+    const time =
+      z.etaMinDays === z.etaMaxDays
+        ? `${z.etaMinDays} working days`
+        : `${z.etaMinDays}–${z.etaMaxDays} working days`;
+    const fee = z.fee === 0 ? "Free" : formatMoney(z.fee);
+    const cost = z.freeOver != null && z.fee > 0 ? `${fee} · free over ${formatMoney(z.freeOver)}` : fee;
+    // Long names only (skip ISO codes) for the countries hint.
+    const names = z.countries.filter((c) => c.length > 3).slice(0, 6).map(titleCase);
+    const where = z.isDefault && names.length === 0 ? "Every other destination we ship to." : names.join(", ");
+    const cod = z.codAvailable
+      ? `Cash on delivery available${z.codFee > 0 ? ` (+${formatMoney(z.codFee)})` : ""}.`
+      : "";
+    return {
+      region: z.name,
+      time,
+      cost,
+      note: [z.note, where && !z.note ? `${where}${where.endsWith(".") ? "" : "."}` : "", cod].filter(Boolean).join(" "),
+    };
+  });
+}
 
 const promises = [
   { icon: Package, title: "Nitrogen-sealed", body: "Packs are flushed before they fly, so the snap survives the trip." },
@@ -38,7 +42,8 @@ const promises = [
   { icon: Truck, title: "Tracked end to end", body: "One tracking link from our unit to your doorstep." },
 ];
 
-export default function ShippingPage() {
+export default function ShippingClient({ zones }: { zones: ShippingZone[] | null }) {
+  const rows = zones ? toRows(zones) : [];
   return (
     <>
       <section className="pt-[92px] pb-7 sm:pt-[116px] sm:pb-14 lg:pt-[140px] lg:pb-16">
@@ -63,6 +68,13 @@ export default function ShippingPage() {
       {/* Zones */}
       <section className="pb-8 sm:pb-16 lg:pb-20">
         <div className="container-x">
+          {zones === null && (
+            <ErrorState
+              className="mb-4"
+              title="Shipping rates are unavailable right now"
+              message="Your exact shipping cost and delivery window are always shown at checkout."
+            />
+          )}
           <div className="overflow-hidden rounded-[20px] border border-white/10 bg-surface sm:rounded-[24px]">
             <div className="hidden grid-cols-[1.2fr_1fr_1fr_1.6fr] gap-6 border-b border-white/10 px-7 py-4 text-[11.5px] font-bold uppercase tracking-wider text-dim lg:grid">
               <span>Region</span>
@@ -71,7 +83,7 @@ export default function ShippingPage() {
               <span>Notes</span>
             </div>
 
-            {zones.map((z, i) => (
+            {rows.map((z, i) => (
               <motion.div
                 key={z.region}
                 initial={{ opacity: 0, y: 18 }}

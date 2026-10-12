@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Minus, Plus } from "lucide-react";
-import { formatUSD, type Product } from "@/lib/products";
-import { useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
+import type { Product } from "@/lib/api/types";
+import { formatMoney } from "@/lib/format";
+import { baseVariantLabel } from "@/lib/product";
+import { lineKey, useCart } from "@/context/CartContext";
 import { EASE } from "./motion-primitives";
 
 export default function ProductCard({
@@ -18,7 +19,10 @@ export default function ProductCard({
   product: Product;
   index?: number;
 }) {
-  const { add, setQty, lines, openAddedModal } = useCart();
+  const { addProduct, setQty, qtyOf, openAddedModal } = useCart();
+  const variant = baseVariantLabel(product);
+  const line = { slug: product.slug, variant };
+  const soldOut = !product.inStock;
 
   const [justAdded, setJustAdded] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
@@ -36,20 +40,22 @@ export default function ProductCard({
   const router = useRouter();
 
   // If this product is currently in the cart or was just added:
-  const cartItem = lines?.find((l) => l.slug === product.slug);
-  const inCart = Boolean(cartItem && cartItem.qty > 0);
+  const qty = qtyOf(line);
+  const inCart = qty > 0;
   const isAdded = inCart || justAdded;
 
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    add(product.slug, 1, false);
+    if (soldOut) return;
+    if (!inCart) addProduct(product, { variant });
     router.push("/checkout");
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (soldOut) return;
 
     // 1. Generate celebratory confetti blast radiating from button
     const colors = ["#f59e0b", "#fbbf24", "#10b981", "#ffffff", "#f97316", "#eab308"];
@@ -74,7 +80,7 @@ export default function ProductCard({
 
     // 2. Add to cart & launch celebration modal so user clearly sees the item was added
     setTimeout(() => {
-      add(product.slug, 1, false);
+      addProduct(product, { variant });
       openAddedModal(product);
       // From here on the real cart line drives the "added" state
       setJustAdded(false);
@@ -86,7 +92,6 @@ export default function ProductCard({
     }, 1200);
   };
 
-  const qty = cartItem?.qty ?? 0;
   const hasDiscount = product.mrp > product.price;
   // Phones: swap the Add button for a stepper once the celebration has played
   const showStepper = inCart && !celebrating;
@@ -94,8 +99,8 @@ export default function ProductCard({
   const stepQty = (e: React.MouseEvent, delta: number) => {
     e.preventDefault();
     e.stopPropagation();
-    if (delta > 0) add(product.slug, 1, false);
-    else setQty(product.slug, qty - 1);
+    if (delta > 0) addProduct(product, { variant });
+    else setQty(lineKey(line), qty - 1);
   };
 
   // Confetti burst — rendered inside whichever add button is visible
@@ -166,6 +171,15 @@ export default function ProductCard({
             {product.badge}
           </span>
         )}
+        {(soldOut || product.lowStock) && (
+          <span
+            className={`absolute top-2 right-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-md sm:top-2.5 sm:right-2.5 sm:px-2.5 ${
+              soldOut ? "border border-white/20 bg-black/80 text-white/80" : "border border-rose-400/40 bg-black/75 text-rose-300"
+            }`}
+          >
+            {soldOut ? "Sold out" : "Low stock"}
+          </span>
+        )}
       </Link>
 
       {/* 2a. Compact phone content (Blinkit-style): name, price, one add action */}
@@ -181,11 +195,11 @@ export default function ProductCard({
           </h3>
           <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
             <span className="text-[15px] font-extrabold text-white">
-              {formatUSD(product.price)}
+              {formatMoney(product.price)}
             </span>
             {hasDiscount && (
               <span className="text-[11.5px] font-medium text-white/40 line-through">
-                {formatUSD(product.mrp)}
+                {formatMoney(product.mrp)}
               </span>
             )}
             <span className="text-[11px] font-medium text-white/40">
@@ -233,6 +247,8 @@ export default function ProductCard({
                 key="add"
                 type="button"
                 onClick={handleAddToCart}
+                disabled={soldOut}
+                aria-disabled={soldOut}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={
                   celebrating
@@ -242,7 +258,7 @@ export default function ProductCard({
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 whileTap={{ scale: 0.94 }}
-                className={`relative flex h-10 w-full items-center justify-center gap-1.5 overflow-visible rounded-full text-[13.5px] font-bold transition-colors ${
+                className={`relative flex h-10 w-full items-center justify-center gap-1.5 overflow-visible rounded-full disabled:opacity-50 text-[13.5px] font-bold transition-colors ${
                   isAdded
                     ? "bg-amber-400 text-black"
                     : "border border-amber-400/60 bg-amber-400/10 text-amber-300 active:bg-amber-400/20"
@@ -254,7 +270,7 @@ export default function ProductCard({
                 ) : (
                   <Plus className="h-4 w-4 stroke-[2.75]" />
                 )}
-                {isAdded ? "Added" : "Add"}
+                {soldOut ? "Sold out" : isAdded ? "Added" : "Add"}
               </motion.button>
             )}
           </AnimatePresence>
@@ -270,7 +286,7 @@ export default function ProductCard({
               <Link href={`/product/${product.slug}`}>{product.name}</Link>
             </h3>
             <span className="shrink-0 rounded-lg bg-white/10 px-2 py-0.5 text-[13px] font-extrabold text-white">
-              {formatUSD(product.price)}
+              {formatMoney(product.price)}
             </span>
           </div>
 
@@ -296,10 +312,11 @@ export default function ProductCard({
         <div className="mt-5 grid grid-cols-2 gap-2 pt-1">
           <motion.button
             onClick={handleAddToCart}
+            disabled={soldOut}
             animate={celebrating ? { scale: [1, 0.9, 1.14, 0.97, 1] } : undefined}
             transition={{ duration: 0.45, ease: "easeOut" }}
             whileTap={{ scale: 0.94 }}
-            className={`relative flex items-center justify-center rounded-full py-2.5 text-center text-[13px] font-semibold transition-all shadow-sm overflow-visible ${
+            className={`relative flex items-center justify-center rounded-full disabled:opacity-50 disabled:pointer-events-none py-2.5 text-center text-[13px] font-semibold transition-all shadow-sm overflow-visible ${
               isAdded
                 ? "bg-amber-400 text-black font-bold ring-2 ring-amber-400/40 shadow-[0_0_20px_rgba(245,158,11,0.35)]"
                 : "border border-white/15 bg-[#161616] text-white hover:bg-white/10"
@@ -329,7 +346,7 @@ export default function ProductCard({
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
                 >
-                  Add to cart
+                  {soldOut ? "Sold out" : "Add to cart"}
                 </motion.span>
               )}
             </AnimatePresence>
@@ -337,7 +354,8 @@ export default function ProductCard({
 
           <button
             onClick={handleBuyNow}
-            className="rounded-full bg-white py-2.5 text-center text-[13px] font-bold text-black transition-all hover:bg-amber-400 active:bg-amber-300 active:scale-95"
+            disabled={soldOut}
+            className="rounded-full bg-white disabled:opacity-40 disabled:pointer-events-none py-2.5 text-center text-[13px] font-bold text-black transition-all hover:bg-amber-400 active:bg-amber-300 active:scale-95"
           >
             Buy Now
           </button>

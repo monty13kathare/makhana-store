@@ -2,18 +2,11 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
-import {
-  Globe,
-  Truck,
-  ShieldCheck,
-  Sparkles,
-  Plane,
-  Clock,
-  CheckCircle2,
-  Navigation,
-} from "lucide-react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { Globe, Truck, ShieldCheck, Sparkles } from "lucide-react";
 import { Reveal, EASE } from "../motion-primitives";
+import type { ShippingZone } from "@/lib/api/types";
+import { formatMoney } from "@/lib/format";
 
 /* --------------------------------------------------------------------------
    Worldwide Shipping Hubs Data
@@ -28,7 +21,6 @@ type ShippingHub = {
   svgY: number;
   curveCtrlX: number;
   curveCtrlY: number;
-  days: string;
   courier: string;
   status: string;
 };
@@ -53,7 +45,6 @@ const shippingHubs: ShippingHub[] = [
     svgY: 168,
     curveCtrlX: 585,
     curveCtrlY: 170,
-    days: "3-4 Days",
     courier: "DHL Express",
     status: "Daily Flights",
   },
@@ -67,7 +58,6 @@ const shippingHubs: ShippingHub[] = [
     svgY: 198,
     curveCtrlX: 460,
     curveCtrlY: 140,
-    days: "3-5 Days",
     courier: "FedEx International",
     status: "Priority Route",
   },
@@ -81,7 +71,6 @@ const shippingHubs: ShippingHub[] = [
     svgY: 252,
     curveCtrlX: 650,
     curveCtrlY: 240,
-    days: "2-3 Days",
     courier: "Emirates Post & DHL",
     status: "Express Lane",
   },
@@ -95,7 +84,6 @@ const shippingHubs: ShippingHub[] = [
     svgY: 336,
     curveCtrlX: 730,
     curveCtrlY: 310,
-    days: "3 Days",
     courier: "SingPost & DHL",
     status: "Active Route",
   },
@@ -109,13 +97,25 @@ const shippingHubs: ShippingHub[] = [
     svgY: 444,
     curveCtrlX: 800,
     curveCtrlY: 370,
-    days: "4-5 Days",
     courier: "Australia Post",
     status: "Direct Courier",
   },
 ];
 
-const deliveryFeatures = [
+/** Zone for a hub's country (zones list lowercase country names), else the default zone. */
+function zoneFor(country: string, zones: ShippingZone[]): ShippingZone | undefined {
+  const c = country.toLowerCase();
+  return zones.find((z) => z.countries.includes(c)) ?? zones.find((z) => z.isDefault);
+}
+
+function etaLabel(zone: ShippingZone | undefined): string {
+  if (!zone) return "Tracked";
+  return zone.etaMinDays === zone.etaMaxDays
+    ? `${zone.etaMinDays} Days`
+    : `${zone.etaMinDays}-${zone.etaMaxDays} Days`;
+}
+
+const baseFeatures = [
   {
     icon: Globe,
     title: "Worldwide shipment support",
@@ -126,7 +126,7 @@ const deliveryFeatures = [
     icon: Truck,
     title: "Free delivery messaging",
     desc: "Available for qualifying domestic and regional order sizes, applied at checkout.",
-    badge: "Free over $49",
+    badge: "Free shipping",
   },
   {
     icon: ShieldCheck,
@@ -142,7 +142,16 @@ const deliveryFeatures = [
   },
 ];
 
-export default function GlobalDelivery() {
+/** ETAs and the free-shipping threshold come from GET /store/shipping/zones (null when unavailable). */
+export default function GlobalDelivery({ zones }: { zones: ShippingZone[] | null }) {
+  const defaultZone = zones?.find((z) => z.isDefault) ?? zones?.[0];
+  const deliveryFeatures = baseFeatures.map((f) =>
+    f.title === "Free delivery messaging" && defaultZone?.freeOver != null
+      ? { ...f, badge: `Free over ${formatMoney(defaultZone.freeOver)}` }
+      : f,
+  );
+  const daysFor = (hub: ShippingHub) => (zones ? etaLabel(zoneFor(hub.country, zones)) : "Tracked");
+
   const [activeHub, setActiveHub] = useState<ShippingHub>(shippingHubs[1]); // Default New York
 
   // 3D Parallax Tilt for the Map container
@@ -303,7 +312,7 @@ export default function GlobalDelivery() {
                           : "bg-black/85 text-white/90 border border-white/15 opacity-0 group-hover/pin:opacity-100 -translate-y-1 group-hover/pin:translate-y-0"
                       }`}
                     >
-                      {hub.city} &bull; {hub.days}
+                      {hub.city} &bull; {daysFor(hub)}
                     </div>
                   </div>
                 );

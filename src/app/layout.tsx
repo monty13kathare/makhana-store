@@ -12,6 +12,8 @@ import PauseOffscreen from "@/components/PauseOffscreen";
 import AddedToCartModal from "@/components/AddedToCartModal";
 import AuthModal from "@/components/AuthModal";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { StoreConfigProvider } from "@/context/StoreConfigContext";
+import { getStoreConfig } from "@/lib/api/server";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -72,9 +74,12 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Cached (ISR). Null when the API is unreachable; the browser then fetches it.
+  const storeConfig = await getStoreConfig();
+
   return (
     <html
       lang="en"
@@ -82,6 +87,7 @@ export default function RootLayout({
     >
       <body className="antialiased overflow-x-hidden min-h-screen w-full">
         <MotionProvider>
+        <StoreConfigProvider initial={storeConfig}>
         <AuthProvider>
           <WishlistProvider>
             <CartProvider>
@@ -96,6 +102,7 @@ export default function RootLayout({
             </CartProvider>
           </WishlistProvider>
         </AuthProvider>
+        </StoreConfigProvider>
         </MotionProvider>
       </body>
     </html>

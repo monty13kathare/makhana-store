@@ -10,27 +10,42 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
-import { products } from "@/lib/products";
+import type { Heat, Product, ProductSort } from "@/lib/api/types";
+import { catalog } from "@/lib/api/store";
+import { errorMessage, isAbortError } from "@/lib/api/errors";
 import ProductCard from "@/components/ProductCard";
 import { EASE, Reveal } from "@/components/motion-primitives";
+import { ErrorState } from "@/components/ui/DataState";
 
-const heatFilters = [
+const heatFilters: readonly { key: Heat | "All"; label: string; short: string }[] = [
   { key: "All", label: "All Products", short: "All" },
   { key: "None", label: "None (Salt & Raw)", short: "Salt & Raw" },
   { key: "Mild", label: "Mild (Pepper)", short: "Mild" },
   { key: "Medium", label: "Medium (Pudina & Paprika)", short: "Medium" },
   { key: "Hot", label: "Hot (Peri Peri)", short: "Hot" },
-] as const;
+];
 
-const sorts = [
+const sorts: readonly { key: ProductSort; label: string; short: string }[] = [
   { key: "popular", label: "Most loved", short: "Popular" },
   { key: "low", label: "Price: low to high", short: "Price ↑" },
   { key: "high", label: "Price: high to low", short: "Price ↓" },
-] as const;
+];
 
-export default function ShopClient() {
-  const [heat, setHeat] = useState<string>("All");
-  const [sort, setSort] = useState<(typeof sorts)[number]["key"]>("popular");
+type Listing = { key: string; products: Product[] };
+
+/**
+ * `initialProducts` is the server-rendered "all, most loved" listing (null if the
+ * API was unreachable). Other filters/sorts are fetched from the API.
+ */
+export default function ShopClient({ initialProducts }: { initialProducts: Product[] | null }) {
+  const [heat, setHeat] = useState<Heat | "All">("All");
+  const [sort, setSort] = useState<ProductSort>("popular");
+  const [listing, setListing] = useState<Listing | null>(
+    initialProducts ? { key: "All|popular", products: initialProducts } : null,
+  );
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const totalCount = initialProducts?.length ?? listing?.products.length ?? 0;
   const [isSortOpen, setIsSortOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -48,16 +63,29 @@ export default function ShopClient() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  const visible = useMemo(() => {
-    const list = products.filter((p) => heat === "All" || p.heat === heat);
+  // Filtering and ordering come from the API (GET /store/products?heat=&sort=).
+  const wantedKey = `${heat}|${sort}`;
+  useEffect(() => {
+    if (listing?.key === wantedKey && reloadNonce === 0) return;
+    const controller = new AbortController();
+    catalog
+      .products({ heat, sort }, { signal: controller.signal })
+      .then((products) => {
+        setListing({ key: wantedKey, products });
+        setLoadError(null);
+      })
+      .catch((e: unknown) => {
+        if (isAbortError(e)) return;
+        console.error("[shop] products failed", e);
+        setLoadError(errorMessage(e, "We couldn't load the collection."));
+      });
+    return () => controller.abort();
+    // listing is read only to skip refetching what we already have
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantedKey, reloadNonce]);
 
-    // Sort a copy — never mutate the imported catalogue
-    return [...list].sort((a, b) => {
-      if (sort === "low") return a.price - b.price;
-      if (sort === "high") return b.price - a.price;
-      return b.reviews - a.reviews;
-    });
-  }, [heat, sort]);
+  const isLoading = listing?.key !== wantedKey && !loadError;
+  const visible = useMemo(() => listing?.products ?? [], [listing]);
 
   const selectedSortObj = sorts.find((s) => s.key === sort) || sorts[0];
 
@@ -268,8 +296,14 @@ export default function ShopClient() {
         {/* Counter & Active Filter Badge */}
         <div className="mb-3 flex min-h-10 flex-wrap items-center justify-between gap-3 text-[12px] text-[#8e8e8e] sm:mb-6 sm:min-h-0 sm:text-[12.5px]">
           <p>
-            Showing <strong className="text-white">{visible.length}</strong> of{" "}
-            {products.length} artisanal creations
+            {isLoading ? (
+              <span role="status">Updating the collection…</span>
+            ) : (
+              <>
+                Showing <strong className="text-white">{visible.length}</strong> of{" "}
+                {totalCount} artisanal creations
+              </>
+            )}
           </p>
           {heat !== "All" && (
             <button
@@ -282,9 +316,22 @@ export default function ShopClient() {
           )}
         </div>
 
+        {loadError && (
+          <ErrorState
+            className="mb-6"
+            title="The collection didn't load"
+            message={loadError}
+            onRetry={() => {
+              setLoadError(null);
+              setReloadNonce((n) => n + 1);
+            }}
+          />
+        )}
+
         {/* Products Grid */}
         <motion.div
           layout
+          aria-busy={isLoading}
           className="grid grid-cols-2 gap-2.5 xs:gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 items-stretch"
         >
           <AnimatePresence mode="popLayout">
@@ -303,23 +350,24 @@ export default function ShopClient() {
         </motion.div>
 
         {/* Empty state if heat filter yielded zero */}
-        {visible.length === 0 && (
+        {visible.length === 0 && !isLoading && !loadError && (
           <div className="mx-auto max-w-md rounded-3xl border border-white/10 bg-[#141414] p-8 text-center my-12 shadow-xl">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-400/10 text-amber-400">
               <Flame className="h-7 w-7" />
             </div>
             <h3 className="mt-4 text-[18px] font-bold text-white">
-              No Roasts with {heat} Heat
+              {heat === "All" ? "No roasts available right now" : `No Roasts with ${heat} Heat`}
             </h3>
             <p className="mt-2 text-[13.5px] text-[#909090] leading-relaxed">
-              We currently roast in None (Pink Salt), Mild (Truffle Black
-              Pepper), and Hot (Peri Peri Roast).
+              {heat === "All"
+                ? "Fresh batches are on their way. Please check back soon."
+                : "Try another heat level, or browse the whole collection."}
             </p>
             <button
               onClick={() => setHeat("All")}
               className="mt-6 rounded-full bg-white px-6 py-2.5 text-[13px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-md"
             >
-              View All 3 Flavours
+              View All Flavours
             </button>
           </div>
         )}

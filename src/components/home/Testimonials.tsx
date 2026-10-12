@@ -15,166 +15,27 @@ import {
   Check,
 } from "lucide-react";
 import { Reveal, EASE } from "../motion-primitives";
+import { reviews as reviewsApi } from "@/lib/api/store";
+import { isApiError } from "@/lib/api/errors";
+import { REVIEW_CATEGORIES, type Review, type ReviewCategory, type ReviewSummary } from "@/lib/api/types";
 
 /* --------------------------------------------------------------------------
-   Review Types & Initial Curated Data (Matching Luxury Theme)
+   Data comes from the API: one slide per review category, plus the summary.
    -------------------------------------------------------------------------- */
-type Review = {
-  id: string;
-  quote: string;
-  name: string;
-  role: string;
-  location: string;
-  avatar: string;
-  rating: number;
-  flavor: string;
-  date: string;
-  helpful: number;
+export type ReviewSlide = {
+  category: ReviewCategory;
+  /** null when this category couldn't be loaded */
+  reviews: Review[] | null;
 };
 
-type Slide = {
-  id: number;
-  category: string;
-  reviews: Review[];
+/** Something a review can be about: a product or a gift box. */
+export type FlavourOption = {
+  label: string;
+  productSlug?: string;
+  bundleSlug?: string;
 };
 
-const initialSlides: Slide[] = [
-  {
-    id: 1,
-    category: "Gourmet Flavours",
-    reviews: [
-      {
-        id: "r1",
-        quote:
-          "The flavor profile is delicate and genuinely gourmet. It feels like enjoying a luxury snack brand rather than a regular bagged lotus seed.",
-        name: "Elena M.",
-        role: "Verified Buyer",
-        location: "New York, USA",
-        avatar: "/img/avatar-1.jpg",
-        rating: 5,
-        flavor: "Truffle & Sea Salt",
-        date: "2 days ago",
-        helpful: 24,
-      },
-      {
-        id: "r2",
-        quote:
-          "The best packaging I have seen for makhana. Incredibly crisp, zero greasy feel, and the perfect healthy evening snacking indulgence.",
-        name: "Ryan H.",
-        role: "Verified Buyer",
-        location: "London, UK",
-        avatar: "/img/avatar-2.jpg",
-        rating: 5,
-        flavor: "Himalayan Pink Salt",
-        date: "5 days ago",
-        helpful: 19,
-      },
-      {
-        id: "r3",
-        quote:
-          "A smooth online purchase experience and the presentation box exceeded expectations from the moment it arrived. Truly five-star quality.",
-        name: "Sophia K.",
-        role: "Verified Buyer",
-        location: "Dubai, UAE",
-        avatar: "/img/avatar-3.jpg",
-        rating: 5,
-        flavor: "The Gifting Box",
-        date: "1 week ago",
-        helpful: 31,
-      },
-    ],
-  },
-  {
-    id: 2,
-    category: "Packaging & Delivery",
-    reviews: [
-      {
-        id: "r4",
-        quote:
-          "Peri Peri has the absolute perfect crunch and spicy kick. Replaced all my junk potato chips with these healthy roasted fox nuts!",
-        name: "Marcus V.",
-        role: "Verified Buyer",
-        location: "Berlin, DE",
-        avatar: "/img/avatar-2.jpg",
-        rating: 5,
-        flavor: "Peri Peri Roast",
-        date: "2 weeks ago",
-        helpful: 15,
-      },
-      {
-        id: "r5",
-        quote:
-          "Ordered the luxury sampler for festive gifting. The tin canister looks so regal on the dining table. Guests couldn't stop asking where I got it.",
-        name: "Ananya S.",
-        role: "Verified Buyer",
-        location: "Toronto, CA",
-        avatar: "/img/avatar-1.jpg",
-        rating: 5,
-        flavor: "Luxury Sampler Pack",
-        date: "3 weeks ago",
-        helpful: 28,
-      },
-      {
-        id: "r6",
-        quote:
-          "Tracked international shipment took just 4 business days to Singapore. The multi-barrier nitrogen seal kept every single kernel ultra-crunchy.",
-        name: "David L.",
-        role: "Verified Buyer",
-        location: "Singapore",
-        avatar: "/img/avatar-3.jpg",
-        rating: 5,
-        flavor: "Worldwide Express",
-        date: "1 month ago",
-        helpful: 22,
-      },
-    ],
-  },
-  {
-    id: 3,
-    category: "Ingredients & Craft",
-    reviews: [
-      {
-        id: "r7",
-        quote:
-          "Zero palm oil, roasted in authentic A2 cow ghee. As a fitness enthusiast, this is the cleanest macro-friendly superfood snack on the market.",
-        name: "Priya R.",
-        role: "Verified Buyer",
-        location: "Sydney, AU",
-        avatar: "/img/avatar-1.jpg",
-        rating: 5,
-        flavor: "A2 Ghee Roasted",
-        date: "1 month ago",
-        helpful: 37,
-      },
-      {
-        id: "r8",
-        quote:
-          "The Smoked Paprika & Cheddar is on par with Michelin-star appetizers. Unbelievable rich umami aroma with zero trans fat or artificial nasties.",
-        name: "Oliver B.",
-        role: "Verified Buyer",
-        location: "San Francisco, USA",
-        avatar: "/img/avatar-2.jpg",
-        rating: 5,
-        flavor: "Smoked Paprika & Cheddar",
-        date: "2 months ago",
-        helpful: 18,
-      },
-      {
-        id: "r9",
-        quote:
-          "Customer support was incredibly attentive when I needed a custom greeting note. World-class brand experience from checkout to unboxing.",
-        name: "Chloe T.",
-        role: "Verified Buyer",
-        location: "Paris, FR",
-        avatar: "/img/avatar-3.jpg",
-        rating: 5,
-        flavor: "Custom Gift Order",
-        date: "2 months ago",
-        helpful: 26,
-      },
-    ],
-  },
-];
+const MIN_COMMENT = 10;
 
 /** True below the sm breakpoint (640px); false during SSR. */
 const PHONE_QUERY = "(max-width: 639px)";
@@ -190,18 +51,29 @@ function useIsPhone() {
   );
 }
 
-export default function Testimonials() {
-  const [slides, setSlides] = useState<Slide[]>(initialSlides);
+export default function Testimonials({
+  slides,
+  summary,
+  flavourOptions,
+}: {
+  slides: ReviewSlide[];
+  summary: ReviewSummary | null;
+  flavourOptions: FlavourOption[];
+}) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [helpfulVotes, setHelpfulVotes] = useState<Record<string, number>>({});
   const [userVoted, setUserVoted] = useState<Record<string, boolean>>({});
+  const [voteError, setVoteError] = useState<string | null>(null);
 
   // Write Review Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reviewName, setReviewName] = useState("");
   const [reviewLocation, setReviewLocation] = useState("");
-  const [reviewFlavor, setReviewFlavor] = useState("Truffle Black Pepper");
+  const [reviewFlavor, setReviewFlavor] = useState(0);
+  const [reviewCategory, setReviewCategory] = useState<ReviewCategory>(REVIEW_CATEGORIES[0]);
+  const [reviewErrors, setReviewErrors] = useState<Record<string, string>>({});
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewHoverRating, setReviewHoverRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
@@ -238,57 +110,77 @@ export default function Testimonials() {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
-  // Toggle helpful like count
+  // Mark a review helpful (optimistic; the API counts one vote per visitor).
   const handleVoteHelpful = (reviewId: string, initialCount: number) => {
     if (userVoted[reviewId]) return;
     setUserVoted((prev) => ({ ...prev, [reviewId]: true }));
-    setHelpfulVotes((prev) => ({
-      ...prev,
-      [reviewId]: (prev[reviewId] ?? initialCount) + 1,
-    }));
+    setHelpfulVotes((prev) => ({ ...prev, [reviewId]: (prev[reviewId] ?? initialCount) + 1 }));
+    setVoteError(null);
+    reviewsApi
+      .helpful(reviewId)
+      .then((r) => setHelpfulVotes((prev) => ({ ...prev, [reviewId]: r.helpful })))
+      .catch((e: unknown) => {
+        console.error("[reviews] helpful failed", e);
+        setUserVoted((prev) => ({ ...prev, [reviewId]: false }));
+        setHelpfulVotes((prev) => ({ ...prev, [reviewId]: initialCount }));
+        setVoteError(isApiError(e) ? e.message : "We couldn't record your vote.");
+      });
   };
 
-  // Submit new review
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const openReviewModal = () => {
+    setReviewCategory(slides[currentSlide]?.category ?? REVIEW_CATEGORIES[0]);
+    setReviewErrors({});
+    setIsModalOpen(true);
+  };
+
+  // Submit a review. Reviews are moderated, so nothing is shown until approved.
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reviewName.trim() || !reviewComment.trim()) return;
+    const errors: Record<string, string> = {};
+    if (reviewName.trim().length < 2) errors.name = "Please enter your name.";
+    if (reviewComment.trim().length < MIN_COMMENT) {
+      errors.comment = `Please write at least ${MIN_COMMENT} characters.`;
+    }
+    const flavour = flavourOptions[reviewFlavor];
+    if (!flavour) errors.flavor = "Please choose what you are reviewing.";
+    setReviewErrors(errors);
+    if (Object.keys(errors).length || !flavour) return;
 
-    const newReview: Review = {
-      id: `user-${Date.now()}`,
-      name: reviewName.trim(),
-      role: "Verified Buyer",
-      location: reviewLocation.trim() || "Global Customer",
-      avatar: "/img/avatar-1.jpg",
-      rating: reviewRating,
-      flavor: reviewFlavor,
-      quote: reviewComment.trim(),
-      date: "Just now",
-      helpful: 1,
-    };
-
-    // Prepend new review to the first slide
-    setSlides((prev) => {
-      const updated = [...prev];
-      updated[0] = {
-        ...updated[0],
-        reviews: [newReview, ...updated[0].reviews.slice(0, 2)],
-      };
-      return updated;
-    });
-
-    setCurrentSlide(0);
-    setSubmittedToast(true);
-    setTimeout(() => {
-      setSubmittedToast(false);
-      setIsModalOpen(false);
-      setReviewName("");
-      setReviewLocation("");
-      setReviewComment("");
-      setReviewRating(5);
-    }, 1800);
+    setReviewSubmitting(true);
+    try {
+      await reviewsApi.submit({
+        name: reviewName.trim(),
+        ...(reviewLocation.trim() ? { location: reviewLocation.trim() } : {}),
+        flavor: flavour.label,
+        ...(flavour.productSlug ? { productSlug: flavour.productSlug } : {}),
+        ...(flavour.bundleSlug ? { bundleSlug: flavour.bundleSlug } : {}),
+        category: reviewCategory,
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+      setSubmittedToast(true);
+      setTimeout(() => {
+        setSubmittedToast(false);
+        setIsModalOpen(false);
+        setReviewName("");
+        setReviewLocation("");
+        setReviewComment("");
+        setReviewRating(5);
+      }, 2400);
+    } catch (err) {
+      if (isApiError(err) && Object.keys(err.fields).length) {
+        setReviewErrors(err.fields);
+      } else {
+        setReviewErrors({ form: isApiError(err) ? err.message : "We couldn't send your review. Please try again." });
+      }
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
-  const activeReviews = slides[currentSlide]?.reviews || slides[0].reviews;
+  const activeSlide = slides[currentSlide] ?? slides[0];
+  const activeReviews = activeSlide?.reviews ?? [];
+  const ratingsLabel = summary ? summary.ratings.toLocaleString("en-US") : null;
 
   return (
     <section
@@ -317,14 +209,16 @@ export default function Testimonials() {
 
               {/* Description */}
               <p className="mt-2.5 sm:mt-4 max-w-md text-[13.5px] sm:text-[15.5px] leading-relaxed text-[#8e8e8e]">
-                Read genuine reviews from over 2,800+ customers worldwide who have upgraded their daily snacking to artisanal lotus seeds.
+                {ratingsLabel
+                  ? `Read genuine reviews from ${ratingsLabel}+ ratings worldwide by customers who have upgraded their daily snacking to artisanal lotus seeds.`
+                  : "Read genuine reviews from customers worldwide who have upgraded their daily snacking to artisanal lotus seeds."}
               </p>
 
               {/* Overall Score Rating Card (Theme Aligned) */}
               <div className="mt-6 flex items-center gap-4 rounded-[20px] border border-white/10 bg-[#161616] p-4.5 max-w-md shadow-lg">
                 <div className="flex flex-col items-center justify-center rounded-xl bg-amber-400/10 border border-amber-400/20 px-3.5 py-2 text-center">
                   <span className="font-heading font-bold text-[28px] leading-none text-amber-400">
-                    4.9
+                    {summary ? summary.average.toFixed(1) : "—"}
                   </span>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300/80 mt-0.5">
                     Score
@@ -336,12 +230,21 @@ export default function Testimonials() {
                       <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <p className="mt-1 text-[12.5px] font-medium text-white/90">
-                    Based on 2,840+ verified global ratings
-                  </p>
-                  <p className="text-[11px] text-[#717171]">
-                    98.4% recommendation rate across 20+ countries
-                  </p>
+                  {summary ? (
+                    <>
+                      <p className="mt-1 text-[12.5px] font-medium text-white/90">
+                        Based on {ratingsLabel} verified global ratings
+                      </p>
+                      <p className="text-[11px] text-[#717171]">
+                        {Math.round(summary.recommendPercent * 10) / 10}% recommendation rate across{" "}
+                        {summary.countries} {summary.countries === 1 ? "country" : "countries"}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-1 text-[12.5px] font-medium text-white/60">
+                      Rating summary unavailable right now
+                    </p>
+                  )}
                 </div>
               </div>
             </Reveal>
@@ -355,7 +258,7 @@ export default function Testimonials() {
                   const isActive = currentSlide === i;
                   return (
                     <button
-                      key={slide.id}
+                      key={slide.category}
                       onClick={() => setCurrentSlide(i)}
                       aria-label={`Go to slide ${i + 1}: ${slide.category}`}
                       aria-selected={isActive}
@@ -391,7 +294,7 @@ export default function Testimonials() {
                 </button>
 
                 <button
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={openReviewModal}
                   className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 h-11 px-4 sm:h-auto sm:px-3.5 py-1.5 text-[12.5px] font-semibold text-amber-300 transition-all hover:bg-amber-400 hover:text-black active:scale-95 cursor-pointer shadow-sm"
                 >
                   <MessageSquarePlus className="h-3.5 w-3.5" />
@@ -417,6 +320,16 @@ export default function Testimonials() {
                 transition={{ duration: 0.45, ease: EASE }}
                 className="swipe-row gap-3 pb-1 sm:mx-0 sm:flex sm:flex-col sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0"
               >
+                {activeSlide?.reviews === null && (
+                  <p role="alert" className="w-full rounded-[22px] border border-white/10 bg-[#161616] p-6 text-[13.5px] text-white/60">
+                    Reviews are unavailable right now. Please check back shortly.
+                  </p>
+                )}
+                {activeSlide?.reviews?.length === 0 && (
+                  <p className="w-full rounded-[22px] border border-white/10 bg-[#161616] p-6 text-[13.5px] text-white/60">
+                    No reviews in {activeSlide.category} yet. Be the first to share yours.
+                  </p>
+                )}
                 {activeReviews.map((t) => {
                   const voteCount = helpfulVotes[t.id] ?? t.helpful;
                   const hasVoted = Boolean(userVoted[t.id]);
@@ -497,6 +410,11 @@ export default function Testimonials() {
                 })}
               </motion.div>
             </AnimatePresence>
+            {voteError && (
+              <p role="alert" className="mt-3 text-[12px] text-red-400">
+                {voteError}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -547,7 +465,7 @@ export default function Testimonials() {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleReviewSubmit} className="space-y-4">
+              <form onSubmit={handleReviewSubmit} className="space-y-4" noValidate>
                 {/* Star Picker */}
                 <div>
                   <label className="block text-[12px] font-semibold uppercase tracking-wider text-white/70 mb-1.5">
@@ -589,9 +507,11 @@ export default function Testimonials() {
                       required
                       placeholder="e.g. Elena M."
                       value={reviewName}
+                      aria-invalid={!!reviewErrors.name}
                       onChange={(e) => setReviewName(e.target.value)}
                       className="w-full rounded-xl border border-white/15 bg-white/5 px-3.5 py-2.5 text-[13.5px] text-white placeholder-white/30 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition-colors"
                     />
+                    {reviewErrors.name && <p className="mt-1 text-[11.5px] text-red-400">{reviewErrors.name}</p>}
                   </div>
                   <div>
                     <label className="block text-[12px] font-medium text-white/70 mb-1">
@@ -614,15 +534,39 @@ export default function Testimonials() {
                   </label>
                   <select
                     value={reviewFlavor}
-                    onChange={(e) => setReviewFlavor(e.target.value)}
+                    onChange={(e) => setReviewFlavor(Number(e.target.value))}
+                    disabled={flavourOptions.length === 0}
                     className="w-full rounded-xl border border-white/15 bg-[#1c1c1c] px-3.5 py-2.5 text-[13.5px] text-white focus:border-amber-400 focus:outline-none transition-colors"
                   >
-                    <option value="Classic Himalayan Salt">Classic Himalayan Salt</option>
-                    <option value="Peri Peri Roast">Peri Peri Roast</option>
-                    <option value="Truffle Black Pepper">Truffle Black Pepper</option>
-                    <option value="Smoked Paprika & Cheddar">Smoked Paprika & Cheddar</option>
-                    <option value="The Gifting Box">The Premium Gifting Box</option>
-                    <option value="Variety Sampler">4-Flavour Variety Combo</option>
+                    {flavourOptions.length === 0 && <option value={0}>Products unavailable</option>}
+                    {flavourOptions.map((f, i) => (
+                      <option key={`${f.productSlug ?? f.bundleSlug}-${i}`} value={i}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                  {reviewErrors.flavor && <p className="mt-1 text-[11.5px] text-red-400">{reviewErrors.flavor}</p>}
+                </div>
+
+                {/* Topic = the testimonials slide it belongs to */}
+                <div>
+                  <label className="block text-[12px] font-medium text-white/70 mb-1">
+                    Review Topic
+                  </label>
+                  <select
+                    value={reviewCategory}
+                    onChange={(e) =>
+                      setReviewCategory(
+                        REVIEW_CATEGORIES.find((c) => c === e.target.value) ?? REVIEW_CATEGORIES[0],
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/15 bg-[#1c1c1c] px-3.5 py-2.5 text-[13.5px] text-white focus:border-amber-400 focus:outline-none transition-colors"
+                  >
+                    {REVIEW_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -636,27 +580,44 @@ export default function Testimonials() {
                     rows={3}
                     placeholder="Tell us what you liked about the crunch, freshness, seasoning, or packaging..."
                     value={reviewComment}
+                    minLength={MIN_COMMENT}
+                    aria-invalid={!!reviewErrors.comment}
                     onChange={(e) => setReviewComment(e.target.value)}
                     className="w-full rounded-xl border border-white/15 bg-white/5 p-3.5 text-[13.5px] text-white placeholder-white/30 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition-colors resize-none"
                   />
+                  {reviewErrors.comment && <p className="mt-1 text-[11.5px] text-red-400">{reviewErrors.comment}</p>}
+                  {reviewErrors.rating && <p className="mt-1 text-[11.5px] text-red-400">{reviewErrors.rating}</p>}
                 </div>
+
+                {reviewErrors.form && (
+                  <p role="alert" className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-[12.5px] text-red-300">
+                    {reviewErrors.form}
+                  </p>
+                )}
 
                 {/* Submit button */}
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={submittedToast}
+                    disabled={submittedToast || reviewSubmitting}
                     className="w-full rounded-full bg-amber-400 py-3 text-[14px] font-bold text-black transition-all hover:bg-amber-300 hover:shadow-[0_8px_24px_rgba(245,158,11,0.35)] active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {submittedToast ? (
                       <>
                         <Check className="h-4 w-4 stroke-[3]" />
-                        <span>Review Published!</span>
+                        <span>Thanks! Submitted for review</span>
                       </>
+                    ) : reviewSubmitting ? (
+                      <span>Sending…</span>
                     ) : (
                       <span>Submit Verified Review</span>
                     )}
                   </button>
+                  {submittedToast && (
+                    <p role="status" className="mt-2 text-center text-[12px] text-emerald-400">
+                      Your review was submitted for review. It appears once our team approves it.
+                    </p>
+                  )}
                 </div>
               </form>
             </motion.div>

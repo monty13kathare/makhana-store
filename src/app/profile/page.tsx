@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail,
@@ -16,8 +16,13 @@ import {
   Pencil,
   Trash2,
   ChevronRight,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
-import { useAuth, type UserAddress } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
+import { me as meApi } from "@/lib/api/store";
+import { errorMessage } from "@/lib/api/errors";
+import type { SavedAddress, AddressInput } from "@/lib/api/types";
 import { EASE } from "@/components/motion-primitives";
 
 type Tab = "addresses" | "settings";
@@ -27,8 +32,8 @@ const INPUT_CLS =
 const LABEL_CLS =
   "block text-[11px] font-bold uppercase tracking-wider text-[#606060] mb-2";
 
-const EMPTY_ADDRESS: Omit<UserAddress, "id"> = {
-  tag: "",
+const EMPTY_ADDRESS: Omit<AddressInput, "label"> & { label: string } = {
+  label: "",
   recipient: "",
   line1: "",
   city: "",
@@ -78,14 +83,16 @@ function AddressForm({
   onSave,
   onCancel,
   title,
+  saving,
 }: {
-  initial: Omit<UserAddress, "id">;
-  onSave: (a: Omit<UserAddress, "id">) => void;
+  initial: AddressInput;
+  onSave: (a: AddressInput) => void;
   onCancel: () => void;
   title: string;
+  saving?: boolean;
 }) {
   const [draft, setDraft] = useState(initial);
-  const set = (k: keyof Omit<UserAddress, "id" | "isDefault">) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (k: keyof Omit<AddressInput, "isDefault">) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setDraft((d) => ({ ...d, [k]: e.target.value }));
 
   return (
@@ -99,7 +106,7 @@ function AddressForm({
       <p className="font-semibold text-[15px] text-white">{title}</p>
       <div>
         <label className={LABEL_CLS}>Label</label>
-        <input className={INPUT_CLS} value={draft.tag} onChange={set("tag")} placeholder="Home, Office…" required enterKeyHint="next" />
+        <input className={INPUT_CLS} value={draft.label} onChange={set("label")} placeholder="Home, Office..." required enterKeyHint="next" />
       </div>
       <div>
         <label className={LABEL_CLS}>Recipient</label>
@@ -135,14 +142,17 @@ function AddressForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 min-h-[44px] rounded-xl border border-white/15 text-[14px] sm:text-[13px] font-semibold text-white hover:bg-white/8 transition-colors"
+          disabled={saving}
+          className="flex-1 min-h-[44px] rounded-xl border border-white/15 text-[14px] sm:text-[13px] font-semibold text-white hover:bg-white/8 transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="flex-1 min-h-[44px] rounded-xl bg-amber-400 text-[14px] sm:text-[13px] font-bold text-black hover:bg-amber-300 active:scale-[0.98] transition-all"
+          disabled={saving}
+          className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 text-[14px] sm:text-[13px] font-bold text-black hover:bg-amber-300 active:scale-[0.98] transition-all disabled:opacity-70"
         >
+          {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Save Address
         </button>
       </div>
@@ -154,16 +164,15 @@ export default function ProfilePage() {
   const { user, logout, updateUser } = useAuth();
 
   const currentUser = {
-    name: user?.name || "Arvind Kathare",
-    email: user?.email || "arvind@makhana.vip",
-    phone: user?.phone || "+19399975648",
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
     avatar: user?.avatar || "/img/avatar-1.jpg",
   };
 
   const [activeTab, setActiveTab] = useState<Tab>("settings");
 
-  // Form drafts: `null` = untouched, so the field mirrors the (possibly
-  // late-hydrating) signed-in user. Once the user types, their edit wins.
+  // Profile form drafts
   const [draftName, setDraftName] = useState<string | null>(null);
   const [draftEmail, setDraftEmail] = useState<string | null>(null);
   const [draftPhone, setDraftPhone] = useState<string | null>(null);
@@ -175,58 +184,116 @@ export default function ProfilePage() {
     formEmail !== currentUser.email ||
     formPhone !== currentUser.phone;
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveBusy, setSaveBusy] = useState(false);
 
   // Notification toggles
-  const [smsAlerts, setSmsAlerts] = useState(true);
-  const [exclusiveDrops, setExclusiveDrops] = useState(true);
+  const [smsAlerts, setSmsAlerts] = useState(user?.preferences?.smsAlerts ?? true);
+  const [exclusiveDrops, setExclusiveDrops] = useState(user?.preferences?.exclusiveDrops ?? true);
 
-  // Addresses: mirror the user's saved addresses until edited locally.
-  const fallbackAddresses: UserAddress[] = [
-    {
-      id: "addr-1",
-      tag: "Home",
-      recipient: currentUser.name,
-      line1: "70 Pleasant Valley Street",
-      city: "Methuen",
-      state: "MA",
-      zip: "01844",
-      country: "United States",
-      phone: currentUser.phone,
-      isDefault: true,
-    },
-    {
-      id: "addr-2",
-      tag: "Office",
-      recipient: currentUser.name,
-      line1: "185 Broadway, Floor 8",
-      city: "New York",
-      state: "NY",
-      zip: "10007",
-      country: "United States",
-      phone: currentUser.phone,
-      isDefault: false,
-    },
-  ];
-  const [addressOverride, setAddressOverride] = useState<UserAddress[] | null>(null);
-  const addresses: UserAddress[] =
-    addressOverride ?? (user?.addresses?.length ? user.addresses : fallbackAddresses);
+  useEffect(() => {
+    if (user?.preferences) {
+      setSmsAlerts(user.preferences.smsAlerts);
+      setExclusiveDrops(user.preferences.exclusiveDrops);
+    }
+  }, [user]);
+
+  // Addresses — fetched from the API
+  const [addresses, setAddresses] = useState<SavedAddress[]>(user?.addresses ?? []);
+  const [addrLoading, setAddrLoading] = useState(false);
+  const [addrError, setAddrError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null); // address id or "new"
+  const [addrSaving, setAddrSaving] = useState(false);
 
-  const commitAddresses = (next: UserAddress[]) => {
-    setAddressOverride(next);
-    if (user) updateUser({ addresses: next });
+  // Fetch addresses when the user changes or when switching to the addresses tab
+  const fetchAddresses = useCallback(async () => {
+    if (!user) return;
+    setAddrLoading(true);
+    setAddrError(null);
+    try {
+      const list = await meApi.addresses();
+      setAddresses(list);
+    } catch (e) {
+      setAddrError(errorMessage(e, "Could not load your addresses."));
+    } finally {
+      setAddrLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (activeTab === "addresses" && user) void fetchAddresses();
+  }, [activeTab, user, fetchAddresses]);
+
+  // Seed from embedded member addresses on first render
+  useEffect(() => {
+    if (user?.addresses?.length) setAddresses(user.addresses);
+  }, [user]);
+
+  const handleSaveProfile = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setSaveBusy(true);
+    setSaveError(null);
+    try {
+      await updateUser({ name: formName, email: formEmail, phone: formPhone });
+      await meApi.setPreferences({ smsAlerts, exclusiveDrops });
+      setDraftName(null);
+      setDraftEmail(null);
+      setDraftPhone(null);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (e) {
+      setSaveError(errorMessage(e, "Could not save your profile. Please try again."));
+    } finally {
+      setSaveBusy(false);
+    }
   };
 
-  const handleSaveProfile = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (updateUser) {
-      updateUser({ name: formName, email: formEmail, phone: formPhone });
+  const handleAddAddress = async (input: AddressInput) => {
+    setAddrSaving(true);
+    setAddrError(null);
+    try {
+      const saved = await meApi.addAddress(input);
+      setAddresses((prev) => [...prev, saved]);
+      setEditingId(null);
+    } catch (e) {
+      setAddrError(errorMessage(e, "Could not add address."));
+    } finally {
+      setAddrSaving(false);
     }
-    setDraftName(null);
-    setDraftEmail(null);
-    setDraftPhone(null);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  const handleUpdateAddress = async (id: string, input: AddressInput) => {
+    setAddrSaving(true);
+    setAddrError(null);
+    try {
+      const saved = await meApi.updateAddress(id, input);
+      setAddresses((prev) => prev.map((a) => (a.id === id ? saved : a)));
+      setEditingId(null);
+    } catch (e) {
+      setAddrError(errorMessage(e, "Could not update address."));
+    } finally {
+      setAddrSaving(false);
+    }
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    setAddrError(null);
+    try {
+      await meApi.deleteAddress(id);
+      setAddresses((prev) => prev.filter((a) => a.id !== id));
+    } catch (e) {
+      setAddrError(errorMessage(e, "Could not remove address."));
+    }
+  };
+
+  const handleSetDefault = async (id: string) => {
+    setAddrError(null);
+    try {
+      const updated = await meApi.setDefaultAddress(id);
+      setAddresses(updated);
+    } catch (e) {
+      setAddrError(errorMessage(e, "Could not set default address."));
+    }
   };
 
   const discardChanges = () => {
@@ -344,13 +411,20 @@ export default function ProfilePage() {
               transition={{ duration: 0.3, ease: EASE }}
               className="rounded-[20px] border border-white/10 bg-[#161616] p-4 xs:p-5 sm:p-8 shadow-xl"
             >
-              <form id="profile-form" onSubmit={handleSaveProfile}>
+              <form id="profile-form" onSubmit={(e) => { void handleSaveProfile(e); }}>
                 <h2 className="font-heading font-bold text-white text-[18px] sm:text-[20px] tracking-tight">
                   Personal Information
                 </h2>
                 <p className="mt-1 text-[13px] text-[#7a7a7a]">
                   Update your contact details below.
                 </p>
+
+                {saveError && (
+                  <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-[13px] text-red-300">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>{saveError}</p>
+                  </div>
+                )}
 
                 <div className="mt-5 sm:mt-6 space-y-4 sm:space-y-5">
                   {/* Full Name */}
@@ -436,8 +510,10 @@ export default function ProfilePage() {
                   <div className="pt-2 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
                     <button
                       type="submit"
-                      className="w-full sm:w-auto min-h-[48px] sm:min-h-0 rounded-xl bg-amber-400 px-7 py-3 text-[15px] sm:text-[13.5px] font-bold text-black hover:bg-amber-300 active:scale-95 transition-all shadow-lg shadow-amber-400/20"
+                      disabled={saveBusy}
+                      className="w-full sm:w-auto min-h-[48px] sm:min-h-0 flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-7 py-3 text-[15px] sm:text-[13.5px] font-bold text-black hover:bg-amber-300 active:scale-95 transition-all shadow-lg shadow-amber-400/20 disabled:opacity-70"
                     >
+                      {saveBusy && <Loader2 className="h-4 w-4 animate-spin" />}
                       Save Changes
                     </button>
                     <AnimatePresence>
@@ -470,7 +546,20 @@ export default function ProfilePage() {
               transition={{ duration: 0.3, ease: EASE }}
               className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
             >
-              {addresses.map((addr, i) => (
+              {addrError && (
+                <div role="alert" className="sm:col-span-2 flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-[13px] text-red-300">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>{addrError}</p>
+                </div>
+              )}
+
+              {addrLoading && (
+                <div className="sm:col-span-2 flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
+                </div>
+              )}
+
+              {!addrLoading && addresses.map((addr, i) => (
                 <motion.div
                   key={addr.id}
                   initial={{ opacity: 0, y: 12 }}
@@ -483,12 +572,10 @@ export default function ProfilePage() {
                   {editingId === addr.id ? (
                     <AddressForm
                       title="Edit Address"
-                      initial={addr}
+                      saving={addrSaving}
+                      initial={{ label: addr.label, recipient: addr.recipient, line1: addr.line1, city: addr.city, state: addr.state, zip: addr.zip, country: addr.country, phone: addr.phone, isDefault: addr.isDefault }}
                       onCancel={() => setEditingId(null)}
-                      onSave={(a) => {
-                        commitAddresses(addresses.map((x) => (x.id === addr.id ? { ...a, id: addr.id } : x)));
-                        setEditingId(null);
-                      }}
+                      onSave={(a) => void handleUpdateAddress(addr.id, a)}
                     />
                   ) : (
                     <>
@@ -496,7 +583,7 @@ export default function ProfilePage() {
                         <div className="flex items-center justify-between gap-2 mb-2.5 sm:mb-3">
                           <span className="flex items-center gap-2 font-semibold text-[15px] text-white min-w-0">
                             <MapPin className="h-4 w-4 text-amber-400 shrink-0 sm:hidden" />
-                            <span className="truncate">{addr.tag}</span>
+                            <span className="truncate">{addr.label}</span>
                           </span>
                           {addr.isDefault && (
                             <span className="shrink-0 rounded-full bg-amber-400/15 border border-amber-400/30 px-2.5 py-0.5 text-[11px] sm:text-[10.5px] font-semibold text-amber-300">
@@ -525,17 +612,15 @@ export default function ProfilePage() {
                           <>
                             <button
                               type="button"
-                              onClick={() =>
-                                commitAddresses(addresses.map((a) => ({ ...a, isDefault: a.id === addr.id })))
-                              }
+                              onClick={() => void handleSetDefault(addr.id)}
                               className="inline-flex items-center min-h-[44px] sm:min-h-0 px-1.5 sm:px-0 text-[#909090] sm:text-[#707070] hover:text-white transition-colors"
                             >
                               Set as Default
                             </button>
                             <button
                               type="button"
-                              aria-label={`Remove ${addr.tag} address`}
-                              onClick={() => commitAddresses(addresses.filter((a) => a.id !== addr.id))}
+                              aria-label={`Remove ${addr.label} address`}
+                              onClick={() => void handleDeleteAddress(addr.id)}
                               className="ml-auto inline-flex items-center gap-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 justify-center px-1.5 sm:px-0 text-[#707070] hover:text-red-300 transition-colors"
                             >
                               <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
@@ -550,7 +635,7 @@ export default function ProfilePage() {
               ))}
 
               {/* Add new address */}
-              {editingId === "new" ? (
+              {!addrLoading && (editingId === "new" ? (
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -558,6 +643,7 @@ export default function ProfilePage() {
                 >
                   <AddressForm
                     title="New Address"
+                    saving={addrSaving}
                     initial={{
                       ...EMPTY_ADDRESS,
                       recipient: currentUser.name,
@@ -565,10 +651,7 @@ export default function ProfilePage() {
                       isDefault: addresses.length === 0,
                     }}
                     onCancel={() => setEditingId(null)}
-                    onSave={(a) => {
-                      commitAddresses([...addresses, { ...a, id: `addr-${Date.now()}` }]);
-                      setEditingId(null);
-                    }}
+                    onSave={(a) => void handleAddAddress(a)}
                   />
                 </motion.div>
               ) : (
@@ -583,7 +666,7 @@ export default function ProfilePage() {
                   <span className="flex-1 sm:flex-none">Add New Address</span>
                   <ChevronRight className="h-4 w-4 text-white/30 sm:hidden" />
                 </button>
-              )}
+              ))}
             </motion.div>
           )}
         </AnimatePresence>

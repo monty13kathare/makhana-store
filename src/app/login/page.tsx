@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowRight, Loader2, Phone } from "lucide-react";
 import AuthShell from "@/components/AuthShell";
 import { useAuth } from "@/context/AuthContext";
+import { safeRedirect } from "@/lib/redirect";
 
 /** Formats up to 10 digits as (971) 135-5198. */
 function formatPhone(digits: string) {
@@ -16,7 +18,17 @@ function formatPhone(digits: string) {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const redirectParam = useSearchParams().get("redirect");
+  const redirect = safeRedirect(redirectParam);
   const { user, startLogin } = useAuth();
   const [digits, setDigits] = useState("");
   const [error, setError] = useState("");
@@ -25,9 +37,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      router.replace("/");
+      router.replace(redirect);
     }
-  }, [user, router]);
+  }, [user, router, redirect]);
 
   // Autofocus on desktop only — on phones the keyboard would cover the hero.
   useEffect(() => {
@@ -38,7 +50,7 @@ export default function LoginPage() {
 
   const isValid = digits.length === 10;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) {
       setError("Please enter a valid 10-digit mobile number.");
@@ -46,14 +58,27 @@ export default function LoginPage() {
     }
     setError("");
     setIsSubmitting(true);
-    startLogin("+1" + digits);
-    router.push("/login/verify");
+    const res = await startLogin("+1" + digits);
+    if (!res.ok) {
+      setIsSubmitting(false);
+      setError(res.message);
+      return;
+    }
+    router.push(redirectParam ? `/login/verify?redirect=${encodeURIComponent(redirect)}` : "/login/verify");
   };
 
   return (
     <AuthShell
       title="Welcome back"
       subtitle="Log in with your mobile number. We'll text you a one-time code."
+      footer={
+        <p className="text-center text-[12.5px] text-white/50">
+          Ordered as a guest?{" "}
+          <Link href="/track" className="font-semibold text-amber-400 hover:text-amber-300">
+            Track your order
+          </Link>
+        </p>
+      }
     >
       <form onSubmit={submit} noValidate>
         <label
@@ -98,6 +123,7 @@ export default function LoginPage() {
         {error && (
           <motion.p
             id="phone-error"
+            role="alert"
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-2 px-1 text-[12.5px] text-red-400"

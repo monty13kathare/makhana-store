@@ -17,12 +17,12 @@ import {
   ChevronUp,
   Sparkles,
   Percent,
-  Truck,
   Zap,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
-import { FREE_SHIPPING_OVER, useCart, type Coupon } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
-import { formatUSD } from "@/lib/products";
+import { useCart } from "@/context/CartContext";
+import { formatMoney } from "@/lib/format";
 import { EASE } from "./motion-primitives";
 
 export default function CartDrawer() {
@@ -35,15 +35,24 @@ export default function CartDrawer() {
     subtotal,
     savings,
     shipping,
+    codFee,
     discountAmount,
     appliedCoupon,
+    couponNotice,
     total,
     availableCoupons,
     applyCoupon,
     removeCoupon,
     setQty,
     remove,
+    isQuoting,
+    quote,
+    quoteError,
+    retryQuote,
+    problems,
+    syncError,
   } = useCart();
+  const [applying, setApplying] = useState(false);
 
   const [couponCodeInput, setCouponCodeInput] = useState("");
   const [couponFeedback, setCouponFeedback] = useState<{
@@ -64,16 +73,13 @@ export default function CartDrawer() {
     };
   }, [isOpen]);
 
-  const remaining = Math.max(0, FREE_SHIPPING_OVER - subtotal);
-  const progress = Math.min(100, (subtotal / FREE_SHIPPING_OVER) * 100);
-  const isFreeShipping =
-    appliedCoupon?.discountType === "freeship" || subtotal >= FREE_SHIPPING_OVER;
-
-  const handleApplyCoupon = (codeToApply?: string) => {
+  const handleApplyCoupon = async (codeToApply?: string) => {
     const targetCode = codeToApply || couponCodeInput;
-    if (!targetCode.trim()) return;
+    if (!targetCode.trim() || applying) return;
 
-    const res = applyCoupon(targetCode);
+    setApplying(true);
+    const res = await applyCoupon(targetCode);
+    setApplying(false);
     if (res.success) {
       setCouponFeedback({ type: "success", message: res.message });
       setCouponCodeInput("");
@@ -154,9 +160,9 @@ export default function CartDrawer() {
               ) : (
                 <ul className="flex flex-col gap-3 sm:gap-3.5">
                   <AnimatePresence initial={false}>
-                    {detailed.map(({ product, qty }) => (
+                    {detailed.map((item) => (
                       <motion.li
-                        key={product.slug}
+                        key={item.key}
                         layout
                         initial={{ opacity: 0, x: 24 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -166,8 +172,8 @@ export default function CartDrawer() {
                       >
                         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-neutral-900">
                           <Image
-                            src={product.image}
-                            alt={product.name}
+                            src={item.image}
+                            alt={item.name}
                             fill
                             sizes="80px"
                             className="object-cover"
@@ -178,15 +184,25 @@ export default function CartDrawer() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <p className="truncate text-[15px] sm:text-[14px] font-bold text-white">
-                                {product.name}
+                                {item.name}
                               </p>
                               <p className="text-[12px] text-[#808080]">
-                                {product.weight} · Whole Roasted
+                                {item.kind === "bundle"
+                                  ? item.contents?.length
+                                    ? item.contents.map((c) => `${c.qty}× ${c.name.split(" ")[0]}`).join(" · ")
+                                    : (item.detail ?? "Gift box")
+                                  : `${item.detail ?? ""} · Whole Roasted`}
                               </p>
+                              {item.problem && (
+                                <p role="alert" className="mt-0.5 flex items-center gap-1 text-[11.5px] font-medium text-red-400">
+                                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                                  {item.problem.message}
+                                </p>
+                              )}
                             </div>
                             <button
-                              onClick={() => remove(product.slug)}
-                              aria-label={"Remove " + product.name}
+                              onClick={() => remove(item.key)}
+                              aria-label={"Remove " + item.name}
                               className="-mr-2 -mt-2 grid h-10 w-10 shrink-0 place-items-center rounded-full sm:m-0 sm:block sm:h-auto sm:w-auto sm:rounded-none text-white/40 transition-colors hover:text-red-400 active:text-red-400 p-1"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -196,17 +212,17 @@ export default function CartDrawer() {
                           <div className="mt-auto flex items-center justify-between pt-1.5 sm:pt-2">
                             <div className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 p-0.5">
                               <button
-                                onClick={() => setQty(product.slug, qty - 1)}
+                                onClick={() => setQty(item.key, item.qty - 1)}
                                 aria-label="Decrease quantity"
                                 className="-my-1.5 grid h-10 w-10 sm:my-0 sm:h-6 sm:w-6 place-items-center rounded-full transition-colors active:bg-amber-400/20 sm:active:bg-transparent hover:bg-amber-400/20 hover:text-amber-400 active:text-amber-300"
                               >
                                 <Minus className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                               </button>
                               <span className="w-5 sm:w-6 text-center text-[13px] sm:text-xs font-bold tabular-nums text-white">
-                                {qty}
+                                {item.qty}
                               </span>
                               <button
-                                onClick={() => setQty(product.slug, qty + 1)}
+                                onClick={() => setQty(item.key, item.qty + 1)}
                                 aria-label="Increase quantity"
                                 className="-my-1.5 grid h-10 w-10 sm:my-0 sm:h-6 sm:w-6 place-items-center rounded-full transition-colors active:bg-amber-400/20 sm:active:bg-transparent hover:bg-amber-400/20 hover:text-amber-400 active:text-amber-300"
                               >
@@ -214,7 +230,7 @@ export default function CartDrawer() {
                               </button>
                             </div>
                             <span className="text-[15px] sm:text-[14px] font-extrabold text-white">
-                              {formatUSD(product.price * qty)}
+                              {formatMoney(item.lineTotal)}
                             </span>
                           </div>
                         </div>
@@ -253,7 +269,7 @@ export default function CartDrawer() {
                             </span>
                           </div>
                           <p className="truncate text-[11.5px] text-[#909090]">
-                            {appliedCoupon.description}
+                            {appliedCoupon.description ?? appliedCoupon.message}
                           </p>
                         </div>
                       </div>
@@ -295,15 +311,22 @@ export default function CartDrawer() {
                         <button
                           type="button"
                           onClick={() => handleApplyCoupon()}
-                          className="shrink-0 rounded-xl bg-white px-4 py-2.5 text-[14px] sm:text-[12.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-95 shadow-sm"
+                          disabled={applying}
+                          aria-busy={applying}
+                          className="disabled:opacity-60 shrink-0 rounded-xl bg-white px-4 py-2.5 text-[14px] sm:text-[12.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-95 shadow-sm"
                         >
-                          Apply
+                          {applying ? "…" : "Apply"}
                         </button>
                       </div>
+
+                      {couponNotice && !couponFeedback && (
+                        <p className="mt-1.5 text-[12px] font-medium text-amber-300">{couponNotice}</p>
+                      )}
 
                       {/* Error or Success feedback message */}
                       {couponFeedback && (
                         <p
+                          role={couponFeedback.type === "error" ? "alert" : "status"}
                           className={`mt-1.5 text-[12px] font-medium ${
                             couponFeedback.type === "success"
                               ? "text-emerald-400"
@@ -315,6 +338,7 @@ export default function CartDrawer() {
                       )}
 
                       {/* Available Coupons Accordion Toggle */}
+                      {availableCoupons.length > 0 && (
                       <div className="mt-1 sm:mt-2.5">
                         <button
                           type="button"
@@ -323,7 +347,7 @@ export default function CartDrawer() {
                           className="flex min-h-10 sm:min-h-0 items-center gap-1.5 text-[13px] sm:text-[11.5px] font-semibold text-amber-400 hover:text-amber-300 transition-colors"
                         >
                           <Sparkles className="h-3 w-3" />
-                          <span>View Available Offers ({availableCoupons.slice(0, 3).length})</span>
+                          <span>View Available Offers ({availableCoupons.length})</span>
                           {showCouponsList ? (
                             <ChevronUp className="h-3 w-3" />
                           ) : (
@@ -340,7 +364,7 @@ export default function CartDrawer() {
                               className="mt-2 overflow-hidden"
                             >
                               <div className="cart-coupon-scroll max-h-[220px] overflow-y-auto space-y-2 pr-0.5">
-                              {availableCoupons.slice(0, 3).map((c: Coupon) => (
+                              {availableCoupons.map((c) => (
                                 <div
                                   key={c.code}
                                   className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] p-2.5 transition-colors hover:border-amber-400/40"
@@ -369,22 +393,37 @@ export default function CartDrawer() {
                           )}
                         </AnimatePresence>
                       </div>
+                      )}
                     </div>
                   )}
                 </div>
 
                 {/* Pricing Breakdown Summary */}
-                <dl className="mb-3 sm:mb-4 flex flex-col gap-1.5 sm:gap-2 border-t border-white/10 pt-3 sm:pt-3.5 text-[13.5px]">
+                {quoteError && (
+                  <p role="alert" className="mb-2 flex items-center justify-between gap-2 text-[12px] text-red-400">
+                    <span>{quoteError}</span>
+                    <button type="button" onClick={retryQuote} className="shrink-0 font-semibold underline underline-offset-2">
+                      Retry
+                    </button>
+                  </p>
+                )}
+                <dl
+                  aria-busy={isQuoting}
+                  aria-live="polite"
+                  className={`mb-3 sm:mb-4 flex flex-col gap-1.5 sm:gap-2 border-t border-white/10 pt-3 sm:pt-3.5 text-[13.5px] transition-opacity ${
+                    isQuoting ? "opacity-60" : ""
+                  }`}
+                >
                   <div className="flex justify-between text-[#9a9a9a]">
                     <dt>Subtotal</dt>
-                    <dd className="font-semibold text-white">{formatUSD(subtotal)}</dd>
+                    <dd className="font-semibold text-white">{formatMoney(subtotal)}</dd>
                   </div>
 
                   {savings > 0 && (
                     <div className="flex justify-between text-[#9a9a9a]">
                       <dt>MRP Discount</dt>
                       <dd className="font-semibold text-emerald-400">
-                        &minus;{formatUSD(savings)}
+                        &minus;{formatMoney(savings)}
                       </dd>
                     </div>
                   )}
@@ -396,7 +435,7 @@ export default function CartDrawer() {
                         Promo ({appliedCoupon?.code})
                       </dt>
                       <dd className="font-bold">
-                        &minus;{formatUSD(discountAmount)}
+                        &minus;{formatMoney(discountAmount)}
                       </dd>
                     </div>
                   )}
@@ -404,19 +443,37 @@ export default function CartDrawer() {
                   <div className="flex justify-between text-[#9a9a9a]">
                     <dt>Worldwide Express Shipping</dt>
                     <dd className="font-semibold text-white">
-                      {shipping === 0 ? (
+                      {!quote ? (
+                        <span className="text-white/50">Calculated next</span>
+                      ) : shipping === 0 ? (
                         <span className="text-emerald-400 font-bold">Free</span>
                       ) : (
-                        formatUSD(shipping)
+                        formatMoney(shipping)
                       )}
                     </dd>
                   </div>
 
+                  {codFee > 0 && (
+                    <div className="flex justify-between text-[#9a9a9a]">
+                      <dt>Cash on delivery fee</dt>
+                      <dd className="font-semibold text-white">{formatMoney(codFee)}</dd>
+                    </div>
+                  )}
+
                   <div className="mt-1 flex justify-between border-t border-white/10 pt-2.5 sm:pt-3 text-[17px] font-extrabold text-white">
-                    <dt>Total</dt>
-                    <dd className="text-amber-400">{formatUSD(total)}</dd>
+                    <dt className="flex items-center gap-2">
+                      Total
+                      {isQuoting && <Loader2 className="h-3.5 w-3.5 animate-spin text-white/50" aria-label="Updating totals" />}
+                    </dt>
+                    <dd className="text-amber-400">{formatMoney(total)}</dd>
                   </div>
                 </dl>
+
+                {problems.length > 0 && (
+                  <p role="alert" className="mb-2 text-center text-[12px] font-medium text-red-400">
+                    Remove or adjust the highlighted items to continue.
+                  </p>
+                )}
 
                 {/* Checkout CTA */}
                 <button
@@ -424,15 +481,21 @@ export default function CartDrawer() {
                     closeCart();
                     router.push("/checkout");
                   }}
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-white min-h-[52px] sm:min-h-0 py-3.5 text-center font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-[0.98] shadow-lg shadow-white/5 text-[15px] sm:text-[14px]"
+                  disabled={problems.length > 0}
+                  className="disabled:opacity-50 disabled:pointer-events-none w-full flex items-center justify-center gap-2 rounded-full bg-white min-h-[52px] sm:min-h-0 py-3.5 text-center font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-[0.98] shadow-lg shadow-white/5 text-[15px] sm:text-[14px]"
                 >
                   <span>Proceed to Checkout</span>
-                  <span>({formatUSD(total)})</span>
+                  <span>({formatMoney(total)})</span>
                 </button>
 
                 <p className="mt-2 sm:mt-2.5 text-center text-[11.5px] text-[#7a7a7a]">
                   Taxes calculated at checkout &middot; 100% secure payment
                 </p>
+                {syncError && (
+                  <p role="status" className="mt-1.5 text-center text-[11px] text-amber-300/80">
+                    {syncError} Your bag is still saved on this device.
+                  </p>
+                )}
               </footer>
             )}
           </motion.aside>

@@ -1,13 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, X, ArrowRight, ShoppingBag, Sparkles, Truck } from "lucide-react";
-import { useCart, FREE_SHIPPING_OVER } from "@/context/CartContext";
-import { formatUSD } from "@/lib/products";
+import { useCart } from "@/context/CartContext";
+import { formatMoney } from "@/lib/format";
 import { EASE } from "./motion-primitives";
 
 const PHONE_QUERY = "(max-width: 639px)";
@@ -36,6 +35,8 @@ export default function AddedToCartModal() {
     openCart,
     subtotal,
     count,
+    freeShippingOver,
+    amountToFreeShipping,
   } = useCart();
 
   // Close on Escape key
@@ -49,9 +50,11 @@ export default function AddedToCartModal() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isAddedModalOpen, closeAddedModal]);
 
-  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_OVER - subtotal);
-  const freeShippingProgress = Math.min(100, (subtotal / FREE_SHIPPING_OVER) * 100);
-  const isFreeShipping = subtotal >= FREE_SHIPPING_OVER;
+  // Threshold and remainder come from the cart quote (zone-aware).
+  const remainingForFreeShipping = amountToFreeShipping;
+  const isFreeShipping = freeShippingOver !== null && remainingForFreeShipping <= 0;
+  const freeShippingProgress =
+    freeShippingOver && freeShippingOver > 0 ? Math.min(100, (subtotal / freeShippingOver) * 100) : 100;
 
   const handleViewCartAndCheckout = () => {
     closeAddedModal();
@@ -148,7 +151,7 @@ export default function AddedToCartModal() {
                     {addedProduct.name}
                   </h4>
                   <span className="shrink-0 text-[14px] font-bold text-amber-300">
-                    {formatUSD(addedProduct.price)}
+                    {formatMoney(addedProduct.price)}
                   </span>
                 </div>
 
@@ -158,7 +161,7 @@ export default function AddedToCartModal() {
 
                 <div className="mt-1 flex items-center gap-2 text-[11px] text-emerald-400">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>In Stock • Ready to dispatch</span>
+                  <span>Added to your bag</span>
                 </div>
               </div>
             </div>
@@ -170,11 +173,12 @@ export default function AddedToCartModal() {
                   Cart Subtotal ({count} item{count !== 1 ? "s" : ""}):
                 </span>
                 <span className="font-bold text-white text-[14.5px]">
-                  {formatUSD(subtotal)}
+                  {formatMoney(subtotal)}
                 </span>
               </div>
 
               {/* Free shipping bar */}
+              {freeShippingOver !== null && (
               <div className="mt-3">
                 <div className="flex items-center justify-between text-[11px] text-white/60 mb-1.5">
                   <span className="flex items-center gap-1.5">
@@ -187,7 +191,7 @@ export default function AddedToCartModal() {
                       <span>
                         Add{" "}
                         <strong className="text-amber-300">
-                          {formatUSD(remainingForFreeShipping)}
+                          {formatMoney(remainingForFreeShipping)}
                         </strong>{" "}
                         more for Free Shipping
                       </span>
@@ -203,6 +207,7 @@ export default function AddedToCartModal() {
                   />
                 </div>
               </div>
+              )}
             </div>
 
             {/* Action Buttons — phones: big thumb-friendly sheet actions */}

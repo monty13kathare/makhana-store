@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -13,29 +13,49 @@ import {
   MessageSquare,
   Sparkles,
   Truck,
-  RotateCcw,
   ShoppingBag,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { formatUSD } from "@/lib/products";
+import { formatMoney } from "@/lib/format";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import { LogoIcon } from "./BrandLogo";
 import { EASE } from "./motion-primitives";
 
+/** Normalises what the shopper typed into an identifier the API accepts. */
+function toIdentifier(raw: string): string | null {
+  const clean = raw.trim();
+  if (clean.includes("@")) return /^\S+@\S+\.\S+$/.test(clean) ? clean : null;
+  const digits = clean.replace(/\D/g, "");
+  if (digits.length < 10) return null;
+  return digits.length === 10 ? `+1${digits}` : `+${digits}`;
+}
+
+const EMPTY_CODE = () => Array<string>(6).fill("");
+
 export default function AuthModal() {
+  const { isAuthModalOpen } = useAuth();
+  // The panel mounts fresh each time the dialog opens, so its state starts clean.
+  if (!isAuthModalOpen) return null;
+  return <AuthModalPanel />;
+}
+
+function AuthModalPanel() {
   const {
-    isAuthModalOpen,
     closeAuthModal,
     modalOptions,
     startLogin,
     verify,
     activeOtpNotice,
+    otpChallenge,
   } = useAuth();
   const router = useRouter();
 
-  const [step, setStep] = useState<"input" | "verify">("input");
-  const [identifier, setIdentifier] = useState("");
-  const [otpDigits, setOtpDigits] = useState<string[]>(Array(6).fill(""));
-  const [fullName, setFullName] = useState("");
+  const prefId = (modalOptions.prefill?.phone || modalOptions.prefill?.email || "").trim();
+  const [step, setStep] = useState<"input" | "verify">(prefId ? "verify" : "input");
+  const [identifier, setIdentifier] = useState(prefId);
+  const [otpDigits, setOtpDigits] = useState<string[]>(EMPTY_CODE);
+  const [fullName, setFullName] = useState(modalOptions.prefill?.name || "");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [seconds, setSeconds] = useState(30);
@@ -43,44 +63,44 @@ export default function AuthModal() {
   const otpInputs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Phones get a bottom sheet (slides up); sm+ keeps the centred card.
-  const [isSheet, setIsSheet] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)");
-    const sync = () => setIsSheet(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
+  const isSheet = useMediaQuery("(max-width: 639px)");
 
   // Lock background scroll while the dialog is open.
   useEffect(() => {
-    if (!isAuthModalOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [isAuthModalOpen]);
+  }, []);
 
-  // Reset state whenever modal is opened
-  useEffect(() => {
-    if (isAuthModalOpen) {
+  const sendCode = useCallback(
+    async (id: string): Promise<boolean> => {
+      setIsSubmitting(true);
       setError("");
-      setOtpDigits(Array(6).fill(""));
-      setSeconds(30);
-
-      const prefId = modalOptions.prefill?.phone || modalOptions.prefill?.email;
-      if (prefId) {
-        setIdentifier(prefId);
-        startLogin(prefId);
-        setStep("verify");
-      } else {
-        setIdentifier("");
-        setStep("input");
+      const res = await startLogin(id);
+      setIsSubmitting(false);
+      if (!res.ok) {
+        setError(res.message);
+        return false;
       }
-      setFullName(modalOptions.prefill?.name || "");
-    }
-  }, [isAuthModalOpen, modalOptions]);
+      setSeconds(res.challenge.resendAfterSeconds || 30);
+      setOtpDigits(EMPTY_CODE());
+      setTimeout(() => otpInputs.current[0]?.focus(), 150);
+      return true;
+    },
+    [startLogin],
+  );
+
+  // Prefilled (e.g. from checkout): send the code straight away, once per open.
+  const autoSent = useRef(false);
+  useEffect(() => {
+    if (!prefId || autoSent.current) return;
+    autoSent.current = true;
+    void sendCode(prefId).then((ok) => {
+      if (!ok) setStep("input");
+    });
+  }, [prefId, sendCode]);
 
   // Resend countdown
   useEffect(() => {
@@ -89,23 +109,17 @@ export default function AuthModal() {
     return () => clearTimeout(t);
   }, [step, seconds]);
 
-  if (!isAuthModalOpen) return null;
-
-  const handleSendOtp = (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = identifier.trim();
-    const digits = clean.replace(/\D/g, "");
-    if (digits.length < 10) {
+    const id = toIdentifier(identifier);
+    if (!id) {
       setError("Please enter a valid 10-digit mobile number.");
       return;
     }
-    setError("");
-    setIsSubmitting(true);
-    startLogin("+1" + digits.slice(-10));
-    setStep("verify");
-    setSeconds(30);
-    setIsSubmitting(false);
-    setTimeout(() => otpInputs.current[0]?.focus(), 150);
+    if (await sendCode(id)) {
+      setIdentifier(id);
+      setStep("verify");
+    }
   };
 
   const handleOtpChange = (index: number, val: string) => {
@@ -130,7 +144,7 @@ export default function AuthModal() {
     const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (!text) return;
     e.preventDefault();
-    const updated = Array(6).fill("");
+    const updated = EMPTY_CODE();
     for (let i = 0; i < text.length; i++) {
       updated[i] = text[i];
     }
@@ -139,26 +153,32 @@ export default function AuthModal() {
   };
 
   const handleAutofillCode = (code: string) => {
-    const digits = code.split("").slice(0, 6);
-    const updated = Array(6).fill("");
-    for (let i = 0; i < digits.length; i++) {
-      updated[i] = digits[i];
-    }
+    const updated = EMPTY_CODE();
+    code
+      .split("")
+      .slice(0, 6)
+      .forEach((d, i) => {
+        updated[i] = d;
+      });
     setOtpDigits(updated);
     setError("");
   };
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const entered = otpDigits.join("");
-    if (entered.length < 4) {
-      setError("Please enter the complete verification code.");
+    if (entered.length < 6) {
+      setError("Please enter the complete 6-digit code.");
       return;
     }
-
-    const success = verify(entered, fullName);
-    if (!success) {
-      setError("Invalid verification code. Please check and try again.");
+    setIsSubmitting(true);
+    const res = await verify(entered, fullName);
+    // On success the dialog closes (and this panel unmounts).
+    if (!res.ok) {
+      setIsSubmitting(false);
+      setError(res.message);
+      setOtpDigits(EMPTY_CODE());
+      otpInputs.current[0]?.focus();
     }
   };
 
@@ -174,11 +194,13 @@ export default function AuthModal() {
     closeAuthModal();
   };
 
-  const maskedIdentifier = identifier
-    ? identifier.includes("@")
-      ? `${identifier.slice(0, 2)}•••@${identifier.split("@")[1]}`
-      : `+1 (${identifier.slice(0, 3)}) •••-${identifier.slice(-4)}`
-    : "your account";
+  const maskedIdentifier =
+    otpChallenge?.sentTo ??
+    (identifier
+      ? identifier.includes("@")
+        ? `${identifier.slice(0, 2)}•••@${identifier.split("@")[1]}`
+        : `•••-${identifier.replace(/\D/g, "").slice(-4)}`
+      : "your account");
 
   return (
     <AnimatePresence>
@@ -259,7 +281,7 @@ export default function AuthModal() {
                   {modalOptions.product.name}
                 </p>
                 <p className="text-[12px] font-semibold text-white/70">
-                  {formatUSD(modalOptions.product.price)} · Slow-roasted Fox Nuts
+                  {formatMoney(modalOptions.product.price)} · Slow-roasted Fox Nuts
                 </p>
               </div>
             </motion.div>
@@ -314,6 +336,7 @@ export default function AuthModal() {
 
               {error && (
                 <motion.p
+                  role="alert"
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-2.5 text-[12.5px] font-medium text-red-400"
@@ -326,11 +349,21 @@ export default function AuthModal() {
               <motion.button
                 type="submit"
                 disabled={isSubmitting}
+                aria-busy={isSubmitting}
                 whileTap={{ scale: 0.98 }}
                 className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[15px] sm:mt-5 sm:min-h-0 sm:text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-xl shadow-white/5 disabled:opacity-50"
               >
-                <span>Continue with OTP</span>
-                <ArrowRight className="h-4 w-4" />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Sending code…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Continue with OTP</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </motion.button>
 
               {/* Perks Grid */}
@@ -454,8 +487,14 @@ export default function AuthModal() {
                 />
               </div>
 
+              {isSubmitting && !otpChallenge && !error && (
+                <p role="status" className="mt-2.5 text-center text-[12.5px] text-white/60">
+                  Sending your code…
+                </p>
+              )}
               {error && (
                 <motion.p
+                  role="alert"
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-2.5 text-center text-[12.5px] font-medium text-red-400"
@@ -467,10 +506,16 @@ export default function AuthModal() {
               {/* Verify Button */}
               <motion.button
                 type="submit"
+                disabled={isSubmitting || !otpChallenge}
+                aria-busy={isSubmitting}
                 whileTap={{ scale: 0.98 }}
                 className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[15px] sm:mt-5 sm:min-h-0 sm:text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-xl shadow-white/5"
               >
-                <Check className="h-4 w-4 stroke-[3]" />
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4 stroke-[3]" />
+                )}
                 <span>{modalOptions.actionText || "Verify & Continue"}</span>
               </motion.button>
 
@@ -478,7 +523,10 @@ export default function AuthModal() {
               <div className="mt-2 flex items-center justify-between text-[13px] sm:mt-4 sm:text-[12.5px]">
                 <button
                   type="button"
-                  onClick={() => setStep("input")}
+                  onClick={() => {
+                    setStep("input");
+                    setError("");
+                  }}
                   className="min-h-[44px] pr-3 text-white/60 hover:text-amber-400 active:text-amber-400 transition-colors sm:min-h-0 sm:pr-0"
                 >
                   &larr; Change mobile/email
@@ -491,11 +539,9 @@ export default function AuthModal() {
                 ) : (
                   <button
                     type="button"
+                    disabled={isSubmitting}
                     onClick={() => {
-                      if (identifier) startLogin(identifier);
-                      setSeconds(30);
-                      setOtpDigits(Array(6).fill(""));
-                      setError("");
+                      if (identifier) void sendCode(identifier);
                     }}
                     className="min-h-[44px] pl-3 font-bold text-amber-400 hover:text-amber-300 underline underline-offset-4 sm:min-h-0 sm:pl-0"
                   >

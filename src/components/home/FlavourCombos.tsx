@@ -7,103 +7,69 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { formatUSD } from "@/lib/products";
+import type { Bundle } from "@/lib/api/types";
+import { formatMoney } from "@/lib/format";
+import { percentOff } from "@/lib/product";
 import { Reveal, EASE } from "../motion-primitives";
 import CustomDropdown from "@/components/ui/CustomDropdown";
+import { EmptyState, ErrorState } from "@/components/ui/DataState";
 
-type Variant = {
-  label: string;
-  price: number;
-  mrp: number;
-};
-
-type ComboItem = {
+/** One combo card: bundles sharing a `groupSlug`, each option priced by the API. */
+type ComboGroup = {
   id: string;
   title: string;
-  badge: string;
+  badge?: string;
   image: string;
-  slug: string;
-  variants: Variant[];
+  options: Bundle[];
 };
 
-const comboItems: ComboItem[] = [
-  {
-    id: "variety-combo",
-    title: "Ultimate 4-Flavour Variety Combo",
-    badge: "35% OFF",
-    image: "/img/combo-variety-pack.jpg",
-    slug: "classic-himalayan-salt",
-    variants: [
-      { label: "Ziplock Pouch (4x60g)", price: 28, mrp: 43 },
-      { label: "Keepsake Jars (4x150g)", price: 42, mrp: 65 },
-    ],
-  },
-  {
-    id: "peri-salt-combo",
-    title: "Peri Peri + Salt & Pepper Combo",
-    badge: "38% OFF",
-    image: "/img/makhana-prod-pouch.png",
-    slug: "peri-peri-roast",
-    variants: [
-      { label: "Ziplock Pouch • 60g / Pack of 2", price: 18, mrp: 29 },
-      { label: "Ziplock Pouch • 200g / Pack of 2", price: 24, mrp: 39 },
-    ],
-  },
-  {
-    id: "all-in-one-combo",
-    title: "All In One Luxury Gift Box",
-    badge: "39% OFF",
-    image: "/img/makhana-prod-canister.png",
-    slug: "truffle-black-pepper",
-    variants: [
-      { label: "Grand Sampler Pack (6 Tins)", price: 61, mrp: 102 },
-      { label: "Signature Pack (4 Tins)", price: 45, mrp: 74 },
-    ],
-  },
-  {
-    id: "peri-pudina-combo",
-    title: "Peri Peri + Truffle Signature Set",
-    badge: "38% OFF",
-    image: "/img/makhana-prod-jar.png",
-    slug: "peri-peri-roast",
-    variants: [
-      { label: "Gourmet Jars • Pack of 2", price: 22, mrp: 35 },
-      { label: "Gourmet Jars • Pack of 4", price: 38, mrp: 62 },
-    ],
-  },
-];
+function groupCombos(combos: Bundle[]): ComboGroup[] {
+  const groups = new Map<string, ComboGroup>();
+  for (const b of combos) {
+    const id = b.groupSlug ?? b.slug;
+    const g = groups.get(id);
+    if (g) g.options.push(b);
+    else groups.set(id, { id, title: b.name, badge: b.badge, image: b.image, options: [b] });
+  }
+  return [...groups.values()];
+}
 
-function ComboCard({ item }: { item: ComboItem }) {
+function ComboCard({ item }: { item: ComboGroup }) {
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [added, setAdded] = useState(false);
-  const { add, openCart, openAddedModal } = useCart();
+  const { addBundle, openAddedModal } = useCart();
   const router = useRouter();
 
-  const currentVariant = item.variants[selectedVariant];
+  const currentVariant = item.options[selectedVariant] ?? item.options[0];
+  const label = currentVariant.optionLabel ?? currentVariant.name;
+  const soldOut = !currentVariant.inStock;
+
+  const toCart = () =>
+    addBundle({ ...currentVariant, name: `${item.title} (${label})`, count: label });
 
   const handleAddToCart = () => {
-    add(item.slug, 1, false);
+    if (soldOut) return;
+    toCart();
     setAdded(true);
     openAddedModal({
-      slug: item.slug,
-      name: `${item.title} (${currentVariant.label})`,
+      slug: currentVariant.slug,
+      name: `${item.title} (${label})`,
       price: currentVariant.price,
       mrp: currentVariant.mrp,
-      image: item.image,
-      badge: item.badge,
-      weight: currentVariant.label,
+      image: currentVariant.image,
+      badge: currentVariant.badge,
+      weight: label,
     });
     setTimeout(() => setAdded(false), 1800);
   };
 
   const handleBuyNow = () => {
-    add(item.slug, 1);
+    if (soldOut) return;
+    toCart();
     router.push("/checkout");
   };
 
-  const savingsPercent = Math.round(
-    ((currentVariant.mrp - currentVariant.price) / currentVariant.mrp) * 100
-  );
+  const savingsPercent = percentOff(currentVariant.price, currentVariant.mrp);
 
   return (
     <div className="group flex flex-col justify-between rounded-[22px] border border-white/10 bg-[#161616] p-4 sm:p-5 transition-all duration-300 hover:border-amber-400/40 hover:bg-[#1a1a1a] shadow-lg hover:shadow-2xl hover:shadow-black/60 h-full">
@@ -134,9 +100,9 @@ function ComboCard({ item }: { item: ComboItem }) {
         {/* Variant Dropdown Selector */}
         <div className="mt-3 relative z-30">
           <CustomDropdown
-            options={item.variants.map((v, idx) => ({
+            options={item.options.map((v, idx) => ({
               value: idx,
-              label: v.label,
+              label: v.inStock ? (v.optionLabel ?? v.name) : `${v.optionLabel ?? v.name} (sold out)`,
             }))}
             value={selectedVariant}
             onChange={(val) => setSelectedVariant(Number(val))}
@@ -146,14 +112,16 @@ function ComboCard({ item }: { item: ComboItem }) {
         {/* Price Display */}
         <div className="mt-3.5 flex items-baseline gap-2">
           <span className="font-heading font-medium text-[20px] text-white">
-            {formatUSD(currentVariant.price)}
+            {formatMoney(currentVariant.price)}
           </span>
           <span className="text-[13px] text-white/40 line-through">
-            {formatUSD(currentVariant.mrp)}
+            {formatMoney(currentVariant.mrp)}
           </span>
-          <span className="text-[11px] font-semibold text-amber-400/90">
-            Save {savingsPercent}%
-          </span>
+          {savingsPercent > 0 && (
+            <span className="text-[11px] font-semibold text-amber-400/90">
+              Save {savingsPercent}%
+            </span>
+          )}
         </div>
       </div>
 
@@ -161,7 +129,8 @@ function ComboCard({ item }: { item: ComboItem }) {
       <div className="mt-5 grid grid-cols-2 gap-2">
         <button
           onClick={handleAddToCart}
-          className={`rounded-full border py-3 sm:py-2.5 text-[13px] sm:text-[12px] font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+          disabled={soldOut}
+          className={`disabled:opacity-50 disabled:pointer-events-none rounded-full border py-3 sm:py-2.5 text-[13px] sm:text-[12px] font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
             added
               ? "border-amber-400 bg-amber-400/20 text-amber-300"
               : "border-white/20 bg-white/5 text-white hover:border-amber-400/50 hover:text-amber-300 hover:bg-amber-400/10"
@@ -173,13 +142,14 @@ function ComboCard({ item }: { item: ComboItem }) {
               <span>Added</span>
             </>
           ) : (
-            <span>Add to Cart</span>
+            <span>{soldOut ? "Sold out" : "Add to Cart"}</span>
           )}
         </button>
 
         <button
           onClick={handleBuyNow}
-          className="rounded-full bg-white py-3 sm:py-2.5 text-[13px] sm:text-[12px] font-semibold text-black transition-all hover:bg-amber-400 hover:text-black hover:shadow-[0_4px_16px_rgba(235,175,70,0.3)] active:scale-95 text-center"
+          disabled={soldOut}
+          className="disabled:opacity-40 disabled:pointer-events-none rounded-full bg-white py-3 sm:py-2.5 text-[13px] sm:text-[12px] font-semibold text-black transition-all hover:bg-amber-400 hover:text-black hover:shadow-[0_4px_16px_rgba(235,175,70,0.3)] active:scale-95 text-center"
         >
           Buy Now
         </button>
@@ -188,7 +158,10 @@ function ComboCard({ item }: { item: ComboItem }) {
   );
 }
 
-export default function FlavourCombos() {
+/** `combos` is null when the API couldn't be reached. */
+export default function FlavourCombos({ combos }: { combos: Bundle[] | null }) {
+  const groups = groupCombos(combos ?? []);
+
   return (
     <section className="py-10 sm:py-16 lg:py-24 relative overflow-hidden bg-[#0d0d0d]">
       {/* Background warm ambient glow */}
@@ -207,9 +180,12 @@ export default function FlavourCombos() {
           </Reveal>
         </div>
 
+        {combos === null && <ErrorState title="Combos are unavailable right now" />}
+        {combos?.length === 0 && <EmptyState title="New combos are coming soon" />}
+
         {/* Swipe row until lg, 4-up grid on desktop */}
         <div className="swipe-row gap-3.5 sm:gap-6 pb-4 pt-2 sm:-mx-6 sm:px-6 sm:scroll-px-6 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
-          {comboItems.map((item, i) => (
+          {groups.map((item, i) => (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, y: 20 }}

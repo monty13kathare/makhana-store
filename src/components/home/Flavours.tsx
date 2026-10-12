@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { products } from "@/lib/products";
+import type { Product } from "@/lib/api/types";
 import ProductCard from "../ProductCard";
 import { Reveal } from "../motion-primitives";
+import { EmptyState, ErrorState } from "../ui/DataState";
 
-export default function Flavours() {
-  const collection = products.slice(0, 4);
+/** `products` is null when the catalog couldn't be loaded. */
+export default function Flavours({ products }: { products: Product[] | null }) {
+  const collection = (products ?? []).slice(0, 4);
 
   return (
     <section id="collection" className="relative bg-[#0a0a0a] pt-12 sm:pt-36 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
@@ -30,10 +32,17 @@ export default function Flavours() {
             className="group inline-flex min-h-11 shrink-0 items-center gap-1 text-[13px] sm:min-h-0 font-semibold text-gold sm:gap-2 sm:rounded-full sm:border sm:border-white/15 sm:bg-white/5 sm:px-5 sm:py-2.5 sm:text-white sm:transition-all sm:hover:border-amber-400/40 sm:hover:bg-amber-400/10 sm:hover:text-amber-400"
           >
             <span className="sm:hidden">See all</span>
-            <span className="hidden sm:inline">Explore all {products.length} products</span>
+            <span className="hidden sm:inline">
+              {products?.length ? `Explore all ${products.length} products` : "Explore the collection"}
+            </span>
             <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
         </div>
+
+        {products === null && <ErrorState title="Our collection is unavailable right now" />}
+        {products?.length === 0 && (
+          <EmptyState title="New roasts are on their way" message="Check back soon for our next small batch." />
+        )}
 
         {/* Swipe row on phones, grid from sm up */}
         <div className="swipe-row gap-3.5 pb-2 sm:mx-0 sm:grid sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 sm:grid-cols-2 lg:grid-cols-4 items-stretch">

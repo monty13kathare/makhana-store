@@ -23,31 +23,41 @@ import {
   Star,
   Truck,
 } from "lucide-react";
-import { formatUSD, type Product } from "@/lib/products";
+import type { Product, ProductDetail, ShippingEstimate } from "@/lib/api/types";
+import { catalog } from "@/lib/api/store";
+import { errorMessage } from "@/lib/api/errors";
+import { formatDeliveryWindow, formatMoney } from "@/lib/format";
+import { baseVariantLabel, percentOff } from "@/lib/product";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { useStoreConfig } from "@/context/StoreConfigContext";
 import ProductCard from "@/components/ProductCard";
 import { EASE, Reveal } from "@/components/motion-primitives";
 
-const WEIGHT_OPTIONS = ["50g", "100g", "150g", "200g"] as const;
-type WeightOption = (typeof WEIGHT_OPTIONS)[number];
-
-const WEIGHT_MULTIPLIERS: Record<
-  WeightOption,
-  { priceRatio: number; mrpRatio: number }
-> = {
-  "50g": { priceRatio: 0.45, mrpRatio: 0.45 },
-  "100g": { priceRatio: 0.68, mrpRatio: 0.68 },
-  "150g": { priceRatio: 0.86, mrpRatio: 0.86 },
-  "200g": { priceRatio: 1.0, mrpRatio: 1.0 },
+const VARIANT_GRID: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-2",
+  3: "grid-cols-3",
 };
 
-const assurances = [
-  { icon: Truck, text: "Free shipping over $49" },
-  { icon: RotateCcw, text: "7-day easy returns" },
-  { icon: ShieldCheck, text: "FSSAI certified kitchen" },
-  { icon: Leaf, text: "Recyclable packaging" },
-];
+/** Destinations for the "Deliver to" checker; the API maps them to shipping zones. */
+const DELIVERY_COUNTRIES = [
+  "United States",
+  "Canada",
+  "United Kingdom",
+  "India",
+  "United Arab Emirates",
+  "Australia",
+  "Germany",
+  "France",
+  "Singapore",
+] as const;
+
+type EstimateState =
+  | { state: "idle" }
+  | { state: "loading" }
+  | { state: "done"; data: ShippingEstimate }
+  | { state: "error"; message: string };
 
 const noopSubscribe = () => () => {};
 /** True only on the client after hydration, so we can portal into <body>. */
@@ -63,23 +73,40 @@ export default function ProductClient({
   product,
   related,
 }: {
-  product: Product;
+  product: ProductDetail;
   related: Product[];
 }) {
   const router = useRouter();
-  const { add, lines, openAddedModal } = useCart();
+  const { addProduct, qtyOf, openAddedModal } = useCart();
+  const { config } = useStoreConfig();
 
   const { isLiked, toggleLike } = useWishlist();
 
   const liked = isLiked(product.slug);
-  const [selectedWeight, setSelectedWeight] = useState<WeightOption>("200g");
+  const assurances = [
+    { icon: Truck, text: `Free shipping over ${formatMoney(config.freeShippingOver)}` },
+    { icon: RotateCcw, text: "7-day easy returns" },
+    { icon: ShieldCheck, text: "FSSAI certified kitchen" },
+    { icon: Leaf, text: "Recyclable packaging" },
+  ];
+
+  // Sizes and their prices come from the API (`variants`); the base size is preselected.
+  const variants = product.variants.length
+    ? product.variants
+    : [{ label: product.weight, price: product.price, mrp: product.mrp, inStock: product.inStock, isBase: true }];
+  const [selectedWeight, setSelectedWeight] = useState<string>(
+    () => baseVariantLabel(product) ?? variants[0].label,
+  );
+  const selected = variants.find((v) => v.label === selectedWeight) ?? variants[0];
+  const variantInStock = product.inStock && selected.inStock;
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const [tab, setTab] = useState<"nutrition" | "ingredients">("nutrition");
   const [active, setActive] = useState(0);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [zipCode, setZipCode] = useState("");
-  const [zipChecked, setZipChecked] = useState(false);
+  const [country, setCountry] = useState<string>(DELIVERY_COUNTRIES[0]);
+  const [estimate, setEstimate] = useState<EstimateState>({ state: "idle" });
   const isClient = useIsClient();
   const swipeRef = useRef<HTMLDivElement>(null);
 
@@ -92,8 +119,7 @@ export default function ProductClient({
     if (idx !== active) setActive(idx);
   };
 
-  const cartItem = lines?.find((l) => l.slug === product.slug);
-  const inCart = Boolean(cartItem && cartItem.qty > 0);
+  const inCart = qtyOf({ slug: product.slug, variant: selected.label }) > 0;
   const isAdded = inCart || justAdded;
 
   // Gallery reuses the hero shot plus process imagery as supporting frames.
@@ -103,16 +129,24 @@ export default function ProductClient({
     "/img/grading-seeds.jpg",
   ];
 
-  // Dynamic pricing based on selected weight
-  const effectivePrice = Math.max(
-    5,
-    Math.round(product.price * WEIGHT_MULTIPLIERS[selectedWeight].priceRatio)
-  );
-  const effectiveMrp = Math.max(
-    effectivePrice + 2,
-    Math.round(product.mrp * WEIGHT_MULTIPLIERS[selectedWeight].mrpRatio)
-  );
-  const off = Math.round(((effectiveMrp - effectivePrice) / effectiveMrp) * 100);
+  // Each size has its own server price.
+  const effectivePrice = selected.price;
+  const effectiveMrp = selected.mrp;
+  const off = percentOff(effectivePrice, effectiveMrp);
+
+  const checkDelivery = async () => {
+    setEstimate({ state: "loading" });
+    try {
+      const data = await catalog.estimate({
+        country,
+        zip: zipCode.trim() || undefined,
+        subtotal: Math.round(effectivePrice * qty * 100) / 100,
+      });
+      setEstimate({ state: "done", data });
+    } catch (e) {
+      setEstimate({ state: "error", message: errorMessage(e, "We couldn't check delivery right now.") });
+    }
+  };
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -130,23 +164,35 @@ export default function ProductClient({
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(window.location.href);
-      showToast("Product link copied to clipboard! 📋");
+      navigator.clipboard
+        .writeText(window.location.href)
+        .then(() => showToast("Product link copied to clipboard! 📋"))
+        .catch(() => showToast("Couldn't copy the link"));
     }
   };
 
+  const addSelected = () =>
+    addProduct(
+      { ...product, price: effectivePrice, mrp: effectiveMrp, weight: selected.label },
+      { variant: selected.label, qty },
+    );
+
   const handleAddToCart = () => {
-    add(product.slug, qty, false);
+    if (!variantInStock) return;
+    addSelected();
     setJustAdded(true);
     openAddedModal({
       ...product,
-      name: `${product.name} (${selectedWeight})`,
+      name: `${product.name} (${selected.label})`,
       price: effectivePrice,
+      mrp: effectiveMrp,
+      weight: selected.label,
     });
   };
 
   const handleBuyNow = () => {
-    add(product.slug, qty);
+    if (!variantInStock) return;
+    addSelected();
     router.push("/checkout");
   };
 
@@ -377,11 +423,11 @@ export default function ProductClient({
               {/* Price Row (Dynamic based on selected weight) */}
               <div className="flex items-baseline gap-2.5 sm:gap-3">
                 <span className="text-[32px] font-extrabold tracking-tight text-white sm:text-[36px]">
-                  {formatUSD(effectivePrice)}
+                  {formatMoney(effectivePrice)}
                   <span className="text-[20px] font-normal text-white/50">/-</span>
                 </span>
                 <span className="text-[17px] text-dim line-through">
-                  {formatUSD(effectiveMrp)}/-
+                  {formatMoney(effectiveMrp)}/-
                 </span>
                 {off > 0 && (
                   <span className="rounded-full bg-amber-400 px-2.5 py-1 text-[11.5px] font-bold text-black">
@@ -402,25 +448,41 @@ export default function ProductClient({
                   <span className="font-semibold text-white/90">
                     Select Weight:
                   </span>
-                  <span className="text-[11.5px] text-emerald-400 font-medium">
-                    In Stock · Roasted in Small Batches
+                  <span
+                    role="status"
+                    className={`text-[11.5px] font-medium ${
+                      !variantInStock ? "text-red-400" : product.lowStock ? "text-amber-300" : "text-emerald-400"
+                    }`}
+                  >
+                    {!variantInStock
+                      ? "Out of Stock"
+                      : product.lowStock
+                        ? "Low Stock · Only a few left"
+                        : "In Stock · Roasted in Small Batches"}
                   </span>
                 </div>
-                <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
-                  {WEIGHT_OPTIONS.map((w) => {
-                    const isActive = selectedWeight === w;
+                <div
+                  role="radiogroup"
+                  aria-label="Pack size"
+                  className={`grid ${VARIANT_GRID[variants.length] ?? "grid-cols-4"} gap-2.5 sm:gap-3`}
+                >
+                  {variants.map((v) => {
+                    const isActive = selected.label === v.label;
                     return (
                       <button
-                        key={w}
+                        key={v.label}
                         type="button"
-                        onClick={() => setSelectedWeight(w)}
+                        role="radio"
+                        aria-checked={isActive}
+                        onClick={() => setSelectedWeight(v.label)}
+                        title={v.inStock ? `${v.label} · ${formatMoney(v.price)}` : `${v.label} · out of stock`}
                         className={`relative flex min-h-11 items-center justify-center rounded-xl py-3 text-[14px] font-bold transition-all ${
                           isActive
                             ? "bg-white text-black shadow-lg shadow-white/15 ring-2 ring-white/30"
                             : "border border-white/15 bg-white/[0.04] text-white/70 hover:border-white/30 hover:bg-white/[0.08] hover:text-white active:scale-95"
-                        }`}
+                        } ${v.inStock ? "" : "line-through opacity-50"}`}
                       >
-                        {w}
+                        {v.label}
                       </button>
                     );
                   })}
@@ -481,7 +543,8 @@ export default function ProductClient({
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={handleAddToCart}
-                  className={`flex-1 rounded-full px-6 py-3.5 text-[14px] font-bold transition-all shadow-md ${
+                  disabled={!variantInStock}
+                  className={`flex-1 disabled:opacity-50 disabled:pointer-events-none rounded-full px-6 py-3.5 text-[14px] font-bold transition-all shadow-md ${
                     isAdded
                       ? "bg-amber-400 text-black ring-2 ring-amber-400/40"
                       : "bg-white text-black hover:bg-amber-400 hover:text-black active:bg-amber-300"
@@ -512,8 +575,14 @@ export default function ProductClient({
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.15 }}
                       >
-                        Add {qty > 1 ? `${qty} ` : ""}to bag ·{" "}
-                        {formatUSD(effectivePrice * qty)}
+                        {variantInStock ? (
+                          <>
+                            Add {qty > 1 ? `${qty} ` : ""}to bag ·{" "}
+                            {formatMoney(effectivePrice * qty)}
+                          </>
+                        ) : (
+                          "Out of stock"
+                        )}
                       </motion.span>
                     )}
                   </AnimatePresence>
@@ -522,7 +591,8 @@ export default function ProductClient({
                 {/* Buy Now Button */}
                 <button
                   onClick={handleBuyNow}
-                  className="rounded-full border border-amber-400/40 bg-amber-400/10 px-6 py-3.5 text-[14px] font-bold text-amber-300 transition-all hover:bg-amber-400 hover:text-black active:scale-95"
+                  disabled={!variantInStock}
+                  className="disabled:opacity-40 disabled:pointer-events-none rounded-full border border-amber-400/40 bg-amber-400/10 px-6 py-3.5 text-[14px] font-bold text-amber-300 transition-all hover:bg-amber-400 hover:text-black active:scale-95"
                 >
                   Buy Now
                 </button>
@@ -535,39 +605,77 @@ export default function ProductClient({
                     <MapPin className="h-4 w-4 text-amber-400 shrink-0" />
                     <span>Deliver to:</span>
                   </div>
-                  <div className="flex min-w-0 items-center gap-1.5">
+                  <form
+                    className="flex min-w-0 items-center gap-1.5"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void checkDelivery();
+                    }}
+                  >
+                    <select
+                      aria-label="Country"
+                      value={country}
+                      onChange={(e) => {
+                        setCountry(e.target.value);
+                        setEstimate({ state: "idle" });
+                      }}
+                      className="h-11 w-full min-w-0 max-w-[120px] rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-[16px] text-white outline-none focus:border-amber-400 sm:h-auto sm:w-28 sm:py-1.5 sm:text-[12px]"
+                    >
+                      {DELIVERY_COUNTRIES.map((c) => (
+                        <option key={c} value={c} className="bg-[#161616]">
+                          {c}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       type="text"
-                      inputMode="numeric"
                       autoComplete="postal-code"
                       aria-label="Zip code"
-                      maxLength={6}
+                      maxLength={12}
                       value={zipCode}
                       onChange={(e) => {
                         setZipCode(e.target.value);
-                        setZipChecked(false);
+                        setEstimate({ state: "idle" });
                       }}
-                      placeholder="Enter Zip Code"
-                      className="h-11 w-full min-w-0 max-w-[150px] rounded-lg border border-white/15 bg-black/40 px-3 py-1 text-[16px] text-white outline-none focus:border-amber-400 placeholder:text-white/30 sm:h-auto sm:w-28 sm:px-2.5 sm:text-[12px]"
+                      placeholder="Zip Code"
+                      className="h-11 w-full min-w-0 max-w-[110px] rounded-lg border border-white/15 bg-black/40 px-3 py-1 text-[16px] text-white outline-none focus:border-amber-400 placeholder:text-white/30 sm:h-auto sm:w-24 sm:px-2.5 sm:text-[12px]"
                     />
                     <button
-                      type="button"
-                      onClick={() => setZipChecked(true)}
-                      className="h-11 shrink-0 rounded-lg bg-white/10 px-4 py-1 text-[13px] font-bold sm:h-auto sm:px-3 sm:text-[11.5px] text-white hover:bg-amber-400 hover:text-black transition-colors"
+                      type="submit"
+                      disabled={estimate.state === "loading"}
+                      className="h-11 shrink-0 rounded-lg bg-white/10 px-4 py-1 text-[13px] font-bold sm:h-auto sm:px-3 sm:text-[11.5px] text-white hover:bg-amber-400 hover:text-black transition-colors disabled:opacity-60"
                     >
-                      Check
+                      {estimate.state === "loading" ? "…" : "Check"}
                     </button>
-                  </div>
+                  </form>
                 </div>
-                {zipChecked && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -2 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-2 text-[11.5px] text-emerald-400 font-medium"
-                  >
-                    ✓ Express delivery available! Order now for delivery in 2–3 business days.
-                  </motion.p>
-                )}
+                <div aria-live="polite">
+                  {estimate.state === "done" && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -2 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`mt-2 text-[11.5px] font-medium ${
+                        estimate.data.deliverable ? "text-emerald-400" : "text-amber-300"
+                      }`}
+                    >
+                      {estimate.data.deliverable ? "✓ " : ""}
+                      {estimate.data.message ??
+                        `Delivery ${formatDeliveryWindow(estimate.data.window.from, estimate.data.window.to)}`}
+                      {estimate.data.deliverable && (
+                        <span className="text-white/60">
+                          {" "}
+                          · {estimate.data.freeShipping ? "Free shipping" : `Shipping ${formatMoney(estimate.data.fee)}`}
+                          {estimate.data.codAvailable ? " · Cash on delivery available" : ""}
+                        </span>
+                      )}
+                    </motion.p>
+                  )}
+                  {estimate.state === "error" && (
+                    <p role="alert" className="mt-2 text-[11.5px] font-medium text-red-400">
+                      {estimate.message}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Assurances */}
@@ -684,7 +792,7 @@ export default function ProductClient({
                 <div className="min-w-0 shrink-0 pr-1">
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-[19px] font-extrabold leading-none tracking-tight text-white tabular-nums">
-                      {formatUSD(effectivePrice * qty)}
+                      {formatMoney(effectivePrice * qty)}
                     </span>
                     {off > 0 && (
                       <span className="text-[11px] font-bold text-amber-400">
@@ -700,7 +808,8 @@ export default function ProductClient({
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={handleAddToCart}
-                  className={`flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-[14px] font-bold transition-colors ${
+                  disabled={!variantInStock}
+                  className={`disabled:opacity-50 flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-[14px] font-bold transition-colors ${
                     isAdded
                       ? "border border-amber-400/50 bg-amber-400/10 text-amber-300"
                       : "border border-white/20 bg-white/[0.06] text-white active:bg-white/15"
@@ -711,13 +820,16 @@ export default function ProductClient({
                   ) : (
                     <ShoppingBag className="h-4 w-4 shrink-0" />
                   )}
-                  <span className="truncate">{isAdded ? "Added" : "Add to Bag"}</span>
+                  <span className="truncate">
+                    {!variantInStock ? "Sold out" : isAdded ? "Added" : "Add to Bag"}
+                  </span>
                 </motion.button>
 
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={handleBuyNow}
-                  className="flex h-12 min-w-0 flex-1 items-center justify-center rounded-full bg-amber-400 px-3 text-[14px] font-bold text-black shadow-[0_8px_22px_-8px_rgba(229,169,60,0.8)] active:bg-amber-300"
+                  disabled={!variantInStock}
+                  className="disabled:opacity-50 flex h-12 min-w-0 flex-1 items-center justify-center rounded-full bg-amber-400 px-3 text-[14px] font-bold text-black shadow-[0_8px_22px_-8px_rgba(229,169,60,0.8)] active:bg-amber-300"
                 >
                   <span className="truncate">Buy Now</span>
                 </motion.button>

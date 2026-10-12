@@ -15,11 +15,14 @@ import {
   ArrowRight,
   ShoppingBag,
 } from "lucide-react";
-import { formatUSD } from "@/lib/products";
+import { formatMoney } from "@/lib/format";
+import type { Bundle } from "@/lib/api/types";
 import { useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
+import { useStoreConfig } from "@/context/StoreConfigContext";
 import { EASE, Reveal, StaggerGroup, StaggerItem } from "@/components/motion-primitives";
+import { EmptyState, ErrorState } from "@/components/ui/DataState";
 
+/** Gift box as the page renders it; `discountedPrice` is the API's bundle `price` (discount included). */
 export type GiftBox = {
   id: string;
   name: string;
@@ -28,143 +31,33 @@ export type GiftBox = {
   standardPrice: number;
   mrp: number;
   discountPercent: number;
-  discountCode: string;
   discountedPrice: number;
   blurb: string;
+  image: string;
+  inStock: boolean;
   featured?: boolean;
   badge?: string;
-  items: {
-    slug: string;
-    name: string;
-    qty: number;
-    image: string;
-    weight: string;
-    unitPrice: number;
-  }[];
+  items: Bundle["items"];
 };
 
-const boxes: GiftBox[] = [
-  {
-    id: "trio",
-    name: "The Trio",
-    count: "3 flavours",
-    totalWeight: "600g",
-    standardPrice: 41,
-    mrp: 51,
-    discountPercent: 15,
-    discountCode: "TRIO15",
-    discountedPrice: 34.85,
-    blurb: "All 3 signature gourmet flavours in a slim keepsake gold-embossed sleeve.",
-    badge: "15% Special Discount",
-    items: [
-      {
-        slug: "classic-himalayan-salt",
-        name: "Classic Himalayan Salt",
-        qty: 1,
-        image: "/img/bowl-classic.jpg",
-        weight: "200g",
-        unitPrice: 11,
-      },
-      {
-        slug: "peri-peri-roast",
-        name: "Peri Peri Roast",
-        qty: 1,
-        image: "/img/bowl-peri.jpg",
-        weight: "200g",
-        unitPrice: 14,
-      },
-      {
-        slug: "truffle-black-pepper",
-        name: "Truffle Black Pepper",
-        qty: 1,
-        image: "/img/bowl-cheese.jpg",
-        weight: "200g",
-        unitPrice: 16,
-      },
-    ],
-  },
-  {
-    id: "festival",
-    name: "Festival Box",
-    count: "6 flavours",
-    totalWeight: "1.2kg",
-    standardPrice: 82,
-    mrp: 102,
-    discountPercent: 25,
-    discountCode: "FESTIVAL25",
-    discountedPrice: 61.5,
-    blurb:
-      "Our signature festive celebration box with 6 gourmet roasts, hand-tied gold satin ribbon and note card.",
-    featured: true,
-    badge: "Most Gifted · 25% OFF",
-    items: [
-      {
-        slug: "classic-himalayan-salt",
-        name: "Classic Himalayan Salt",
-        qty: 2,
-        image: "/img/bowl-classic.jpg",
-        weight: "200g",
-        unitPrice: 11,
-      },
-      {
-        slug: "peri-peri-roast",
-        name: "Peri Peri Roast",
-        qty: 2,
-        image: "/img/bowl-peri.jpg",
-        weight: "200g",
-        unitPrice: 14,
-      },
-      {
-        slug: "truffle-black-pepper",
-        name: "Truffle Black Pepper",
-        qty: 2,
-        image: "/img/bowl-cheese.jpg",
-        weight: "200g",
-        unitPrice: 16,
-      },
-    ],
-  },
-  {
-    id: "corporate",
-    name: "Corporate Case",
-    count: "8 roasts",
-    totalWeight: "1.6kg",
-    standardPrice: 107,
-    mrp: 134,
-    discountPercent: 35,
-    discountCode: "CORP35",
-    discountedPrice: 69.55,
-    blurb:
-      "Luxury executive hamper featuring 8 assorted gourmet jars with custom gift messaging and presentation box.",
-    badge: "Executive VIP · 35% OFF",
-    items: [
-      {
-        slug: "classic-himalayan-salt",
-        name: "Classic Himalayan Salt",
-        qty: 3,
-        image: "/img/bowl-classic.jpg",
-        weight: "200g",
-        unitPrice: 11,
-      },
-      {
-        slug: "peri-peri-roast",
-        name: "Peri Peri Roast",
-        qty: 3,
-        image: "/img/bowl-peri.jpg",
-        weight: "200g",
-        unitPrice: 14,
-      },
-      {
-        slug: "truffle-black-pepper",
-        name: "Truffle Black Pepper",
-        qty: 2,
-        image: "/img/bowl-cheese.jpg",
-        weight: "200g",
-        unitPrice: 16,
-      },
-    ],
-  },
-];
+function toGiftBox(b: Bundle): GiftBox {
+  return {
+    id: b.slug,
+    name: b.name,
+    count: b.count,
+    totalWeight: b.totalWeight,
+    standardPrice: b.standardPrice,
+    mrp: b.mrp,
+    discountPercent: b.discountPercent,
+    discountedPrice: b.price,
+    blurb: b.blurb,
+    image: b.image,
+    inStock: b.inStock,
+    featured: b.featured,
+    badge: b.badge,
+    items: b.items,
+  };
+}
 
 const steps = [
   {
@@ -184,12 +77,17 @@ const steps = [
   },
 ];
 
-export default function GiftingPage() {
-  const { addBundle } = useCart();
+/** `bundles` comes from GET /store/bundles?kind=gift_box (null when unavailable). */
+export default function GiftingClient({ bundles }: { bundles: Bundle[] | null }) {
+  const { addBundle, giftNote: savedNote, setGiftNote: saveGiftNote } = useCart();
+  const { config } = useStoreConfig();
+  const boxes = (bundles ?? []).map(toGiftBox);
 
-  const [picked, setPicked] = useState("festival");
-  const [giftNote, setGiftNote] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
+  const [picked, setPicked] = useState(() => (boxes.find((b) => b.featured) ?? boxes[0])?.id ?? "");
+  // Mirrors the note already in the bag until edited; saved to the bag when a box is added.
+  const [draftNote, setGiftNote] = useState<string | null>(null);
+  const giftNote = draftNote ?? savedNote;
+  const [added, setAdded] = useState(false);
 
   // Phone-only sticky "add to bag" bar: shown while the box picker is on
   // screen but the inline CTA isn't, so it never overlaps the footer.
@@ -199,18 +97,26 @@ export default function GiftingPage() {
   const ctaInView = useInView(ctaRef);
   const showStickyBar = pickerInView && !ctaInView;
 
-  const selectedBox = boxes.find((b) => b.id === picked) || boxes[1];
-  const discountSavings = selectedBox.standardPrice - selectedBox.discountedPrice;
-  const totalMrpSavings = selectedBox.mrp - selectedBox.discountedPrice;
+  const selectedBox: GiftBox | undefined = boxes.find((b) => b.id === picked) ?? boxes[0];
+  const discountSavings = selectedBox ? selectedBox.standardPrice - selectedBox.discountedPrice : 0;
+  const totalMrpSavings = selectedBox ? selectedBox.mrp - selectedBox.discountedPrice : 0;
 
+  // The box is one cart line priced by the API; its discount is already in the price.
   const handleAddGiftBox = () => {
-    setIsAdding(true);
-    // Add all items in the bundle and automatically apply the special gift discount code
+    if (!selectedBox || !selectedBox.inStock) return;
+    if (giftNote.trim()) saveGiftNote(giftNote.trim());
     addBundle(
-      selectedBox.items.map((it) => ({ slug: it.slug, qty: it.qty })),
-      selectedBox.discountCode
+      {
+        slug: selectedBox.id,
+        name: selectedBox.name,
+        image: selectedBox.image,
+        price: selectedBox.discountedPrice,
+        mrp: selectedBox.mrp,
+        count: selectedBox.count,
+      },
+      { openDrawer: true },
     );
-    setTimeout(() => setIsAdding(false), 500);
+    setAdded(true);
   };
 
   return (
@@ -276,9 +182,12 @@ export default function GiftingPage() {
               Three ways to give
             </h2>
             <p className="mt-1.5 sm:mt-2 text-[13.5px] sm:text-[14px] text-[#909090]">
-              Select a box to preview its contents and apply the card-specific discount.
+              Select a box to preview its contents. Each box price already includes its discount.
             </p>
           </Reveal>
+
+          {bundles === null && <ErrorState title="Gift boxes are unavailable right now" />}
+          {bundles?.length === 0 && <EmptyState title="New gift boxes are coming soon" />}
 
           <div
             ref={pickerRef}
@@ -289,7 +198,10 @@ export default function GiftingPage() {
               return (
                 <motion.button
                   key={b.id}
-                  onClick={() => setPicked(b.id)}
+                  onClick={() => {
+                    setPicked(b.id);
+                    setAdded(false);
+                  }}
                   initial={{ opacity: 0, y: 28 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: "some" }}
@@ -358,20 +270,22 @@ export default function GiftingPage() {
                       <span className="font-bold text-amber-300">
                         {b.discountPercent}% Special Discount
                       </span>{" "}
-                      <span className="font-mono text-white/60">({b.discountCode})</span>
+                      <span className="text-white/60">
+                        {b.inStock ? "· included in price" : "· currently sold out"}
+                      </span>
                     </div>
                   </div>
 
                   {/* Pricing Breakdown */}
                   <div className="mt-4 flex items-baseline gap-2.5 sm:mt-6">
                     <span className="text-[26px] sm:text-[28px] font-extrabold text-amber-400">
-                      {formatUSD(b.discountedPrice)}
+                      {formatMoney(b.discountedPrice)}
                     </span>
                     <span className="text-[14px] text-white/50 line-through">
-                      {formatUSD(b.standardPrice)}
+                      {formatMoney(b.standardPrice)}
                     </span>
                     <span className="ml-auto text-[11.5px] font-bold text-emerald-400">
-                      Save {formatUSD(b.standardPrice - b.discountedPrice)}
+                      Save {formatMoney(b.standardPrice - b.discountedPrice)}
                     </span>
                   </div>
                 </motion.button>
@@ -382,6 +296,7 @@ export default function GiftingPage() {
           {/* =========================================================================
               Interactive "What's Inside & Gift Personalization" Drawer Card
              ========================================================================= */}
+          {selectedBox && (
           <Reveal delay={0.15} className="mt-6 sm:mt-10">
             <div className="rounded-[22px] sm:rounded-[28px] border border-white/12 bg-[#161616] p-4 sm:p-9 shadow-2xl backdrop-blur-xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4 sm:gap-4 sm:pb-6">
@@ -398,7 +313,7 @@ export default function GiftingPage() {
                 <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[12.5px] sm:px-4 sm:py-2 sm:text-[13px]">
                   <Percent className="h-4 w-4 text-emerald-400" />
                   <span className="font-bold text-emerald-300">
-                    {selectedBox.discountPercent}% Off Applied ({selectedBox.discountCode})
+                    {selectedBox.discountPercent}% Off Included
                   </span>
                 </div>
               </div>
@@ -431,7 +346,7 @@ export default function GiftingPage() {
                         {item.weight} &middot; Whole Roasted
                       </p>
                       <p className="mt-1 text-[12.5px] font-semibold text-amber-300">
-                        {formatUSD(item.unitPrice * item.qty)}
+                        {formatMoney(item.unitPrice * item.qty)}
                       </p>
                     </div>
                   </div>
@@ -468,18 +383,18 @@ export default function GiftingPage() {
                 <div>
                   <div className="flex items-baseline gap-2.5">
                     <span className="text-[28px] font-extrabold text-amber-400">
-                      {formatUSD(selectedBox.discountedPrice)}
+                      {formatMoney(selectedBox.discountedPrice)}
                     </span>
                     <span className="text-[15px] text-white/50 line-through">
-                      {formatUSD(selectedBox.standardPrice)}
+                      {formatMoney(selectedBox.standardPrice)}
                     </span>
                     <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11.5px] font-bold text-emerald-300">
-                      Save {formatUSD(discountSavings)}
+                      Save {formatMoney(discountSavings)}
                     </span>
                   </div>
                   <p className="mt-1 text-[12px] text-[#8e8e8e]">
-                    Total MRP savings: {formatUSD(totalMrpSavings)} &middot;{" "}
-                    {selectedBox.discountedPrice >= 49 ? (
+                    Total MRP savings: {formatMoney(totalMrpSavings)} &middot;{" "}
+                    {selectedBox.discountedPrice >= config.freeShippingOver ? (
                       <span className="text-emerald-400 font-semibold">
                         Free Worldwide Express Shipping
                       </span>
@@ -493,18 +408,23 @@ export default function GiftingPage() {
                   ref={ctaRef}
                   type="button"
                   onClick={handleAddGiftBox}
-                  disabled={isAdding}
-                  className="flex min-h-[52px] items-center justify-center gap-3 rounded-full bg-white px-6 py-4 sm:px-9 text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-[0.98] shadow-xl shadow-white/5"
+                  disabled={!selectedBox.inStock}
+                  className="disabled:opacity-50 disabled:pointer-events-none flex min-h-[52px] items-center justify-center gap-3 rounded-full bg-white px-6 py-4 sm:px-9 text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 active:scale-[0.98] shadow-xl shadow-white/5"
                 >
                   <ShoppingBag className="h-4 w-4" />
                   <span>
-                    Add {selectedBox.name} to bag &middot; {formatUSD(selectedBox.discountedPrice)}
+                    {!selectedBox.inStock
+                      ? `${selectedBox.name} is sold out`
+                      : added
+                        ? `${selectedBox.name} added · add another`
+                        : <>Add {selectedBox.name} to bag &middot; {formatMoney(selectedBox.discountedPrice)}</>}
                   </span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
           </Reveal>
+          )}
         </div>
       </section>
 
@@ -536,7 +456,7 @@ export default function GiftingPage() {
 
       {/* Phone sticky add-to-bag bar (sits above the bottom app dock) */}
       <AnimatePresence>
-        {showStickyBar && (
+        {showStickyBar && selectedBox && (
           <motion.div
             initial={{ y: 24, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -551,17 +471,17 @@ export default function GiftingPage() {
                 </p>
                 <p className="flex items-baseline gap-1.5">
                   <span className="text-[17px] font-extrabold text-amber-400">
-                    {formatUSD(selectedBox.discountedPrice)}
+                    {formatMoney(selectedBox.discountedPrice)}
                   </span>
                   <span className="text-[12px] text-white/45 line-through">
-                    {formatUSD(selectedBox.standardPrice)}
+                    {formatMoney(selectedBox.standardPrice)}
                   </span>
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleAddGiftBox}
-                disabled={isAdding}
+                disabled={!selectedBox.inStock}
                 className="flex h-12 shrink-0 items-center gap-2 rounded-xl bg-white px-5 text-[14px] font-bold text-black transition-all active:scale-[0.97] active:bg-amber-300"
               >
                 <ShoppingBag className="h-4 w-4" />

@@ -230,13 +230,6 @@ export default function Hero() {
     setIsPaused(false);
   };
 
-  // Reset slide index if slides array is shortened
-  useEffect(() => {
-    if (currentSlide >= slides.length) {
-      setCurrentSlide(0);
-    }
-  }, [currentSlide]);
-
   // Auto-slide every 5.2s with silky smooth crossfade transition
   useEffect(() => {
     if (isPaused || !inView || slides.length === 0) return;

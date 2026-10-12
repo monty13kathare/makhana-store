@@ -1,37 +1,50 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ShieldCheck, MessageSquare, Copy, Check, ArrowRight } from "lucide-react";
+import { ShieldCheck, MessageSquare, ArrowRight, Loader2 } from "lucide-react";
 import AuthShell from "@/components/AuthShell";
 import { useAuth } from "@/context/AuthContext";
 import { EASE } from "@/components/motion-primitives";
+import { safeRedirect } from "@/lib/redirect";
 
 const LENGTH = 6;
 
 export default function VerifyPage() {
+  return (
+    <Suspense>
+      <VerifyForm />
+    </Suspense>
+  );
+}
+
+function VerifyForm() {
   const router = useRouter();
-  const { user, pendingIdentifier, activeOtpNotice, verify, startLogin } = useAuth();
+  const redirectParam = useSearchParams().get("redirect");
+  const redirect = safeRedirect(redirectParam);
+  const { user, pendingIdentifier, activeOtpNotice, otpChallenge, verify, startLogin } = useAuth();
   const [code, setCode] = useState<string[]>(Array(LENGTH).fill(""));
-  const [error, setError] = useState(false);
-  const [seconds, setSeconds] = useState(30);
-  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [seconds, setSeconds] = useState(() => otpChallenge?.resendAfterSeconds ?? 30);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  const verified = useRef(false);
 
   useEffect(() => {
-    // If already logged in, redirect straight to home page
+    // Already signed in (or just verified): go where the shopper was heading.
     if (user) {
-      router.replace("/");
+      router.replace(redirect);
       return;
     }
-    // If no identifier pending, redirect to login
+    if (verified.current) return;
+    // No code requested yet: start over on the login screen.
     if (!pendingIdentifier) {
-      router.replace("/login");
+      router.replace(redirectParam ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login");
       return;
     }
     inputs.current[0]?.focus();
-  }, [user, pendingIdentifier, router]);
+  }, [user, pendingIdentifier, router, redirect, redirectParam]);
 
   // Resend countdown
   useEffect(() => {
@@ -45,7 +58,7 @@ export default function VerifyPage() {
     const next = [...code];
     next[i] = digit;
     setCode(next);
-    setError(false);
+    setError(null);
     if (digit && i < LENGTH - 1) inputs.current[i + 1]?.focus();
   };
 
@@ -72,48 +85,57 @@ export default function VerifyPage() {
       .fill("")
       .map((_, i) => digits[i] ?? "");
     setCode(next);
-    setError(false);
+    setError(null);
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (!pendingIdentifier) return;
-    startLogin(pendingIdentifier);
-    setSeconds(30);
     setCode(Array(LENGTH).fill(""));
-    setError(false);
+    setError(null);
+    const res = await startLogin(pendingIdentifier);
+    if (!res.ok) {
+      setError(res.message);
+      return;
+    }
+    setSeconds(res.challenge.resendAfterSeconds || 30);
     inputs.current[0]?.focus();
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const entered = code.join("");
-    if (entered.length < 4) {
-      setError(true);
+    if (entered.length < LENGTH) {
+      setError("Please enter the complete 6-digit code.");
       return;
     }
-
-    if (verify(entered)) {
-      router.replace("/");
-    } else {
-      setError(true);
+    setSubmitting(true);
+    const res = await verify(entered);
+    if (res.ok) {
+      verified.current = true;
+      router.replace(redirect);
+      return;
     }
+    setSubmitting(false);
+    setError(res.message);
   };
 
   const digits = pendingIdentifier ? pendingIdentifier.replace(/\D/g, "") : "";
-  const masked = digits.length >= 10
-    ? `+1 (${digits.slice(-10, -7)}) •••-${digits.slice(-4)}`
-    : pendingIdentifier || "your phone";
+  const masked =
+    otpChallenge?.sentTo ??
+    (digits.length >= 10
+      ? `+1 (${digits.slice(-10, -7)}) •••-${digits.slice(-4)}`
+      : pendingIdentifier || "your phone");
 
   return (
     <AuthShell
       title="Verification Code"
-      backHref="/login"
+      backHref={redirectParam ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login"}
       backLabel="Change number"
       subtitle={`Enter the 6-digit code sent to ${masked} to securely access your account.`}
       footer={
         <div className="flex items-center justify-center gap-2 text-[12px] text-white/50">
           <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
-          <span>One-time code expires in 10 minutes</span>
+          <span>One-time codes expire after a few minutes</span>
         </div>
       }
     >
@@ -174,11 +196,12 @@ export default function VerifyPage() {
 
         {error && (
           <motion.p
+            role="alert"
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-3 text-center text-[12.5px] text-red-400"
           >
-            Invalid verification code. Please check and try again.
+            {error}
           </motion.p>
         )}
 
@@ -191,7 +214,7 @@ export default function VerifyPage() {
           ) : (
             <button
               type="button"
-              onClick={handleResend}
+              onClick={() => void handleResend()}
               className="font-bold text-amber-400 transition-colors hover:text-amber-300 underline underline-offset-4"
             >
               Resend code now
@@ -201,11 +224,22 @@ export default function VerifyPage() {
 
         <motion.button
           type="submit"
+          disabled={submitting}
+          aria-busy={submitting}
           whileTap={{ scale: 0.98 }}
           className="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white text-[14.5px] font-bold text-black transition-all hover:bg-amber-400 hover:text-black active:bg-amber-300 shadow-md"
         >
-          <span>Verify &amp; Continue</span>
-          <ArrowRight className="h-4 w-4" />
+          {submitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Verifying…</span>
+            </>
+          ) : (
+            <>
+              <span>Verify &amp; Continue</span>
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </motion.button>
       </form>
     </AuthShell>
