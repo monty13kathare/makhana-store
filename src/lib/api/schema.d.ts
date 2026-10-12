@@ -2198,7 +2198,7 @@ export interface components {
             supportEmail: string;
             supportPhone: string;
             /** @constant */
-            currency: "USD";
+            currency: "USD" | "INR" | string;
             /** @description Amount in store currency (USD), rounded to cents */
             freeShippingOver: number;
             /** @description Amount in store currency (USD), rounded to cents */
