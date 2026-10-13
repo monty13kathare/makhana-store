@@ -25,7 +25,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useStoreConfig } from "@/context/StoreConfigContext";
 import { EASE } from "@/components/motion-primitives";
 import { CardIcon, UpiIcon, PayPalIcon, CodIcon } from "@/components/PaymentIcons";
-import { orders as ordersApi } from "@/lib/api/store";
+import { getAccessToken } from "@/lib/api/session";
+import { contact as contactApi, orders as ordersApi } from "@/lib/api/store";
 import { ApiError, isApiError } from "@/lib/api/errors";
 import type { CheckoutInput, PaymentMethod, RazorpayCheckout, StoreOrder } from "@/lib/api/types";
 import { toApiLines, type CartLine } from "@/lib/cart-lines";
@@ -100,7 +101,7 @@ export default function CheckoutPage() {
   const cart = useCart();
   const { detailed, lines, count, total, couponCode, appliedCoupon, giftNote, setQuoteContext, setCheckoutProblems, subtract, quote, problems } =
     cart;
-  const { user, requireAuth } = useAuth();
+  const { user, status, requireAuth, refreshUser } = useAuth();
   const { config } = useStoreConfig();
   const razorpay = useRazorpay(config.payments.enabled);
 
@@ -142,6 +143,20 @@ export default function CheckoutPage() {
       : (defaultAddressId ?? "new");
   const selectedAddress = savedAddresses.find((a) => a.id === addressChoice) ?? null;
   const [saveAddress, setSaveAddress] = useState(true);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const shipTo = selectedAddress ?? { line1: form.address1, line2: form.address2, city: form.city, state: form.state, zip: form.zip, country: form.country };
+  const shippingLine = [shipTo.line1, shipTo.line2, shipTo.city, `${shipTo.state} ${shipTo.zip}`, shipTo.country]
+    .map((s) => s?.trim())
+    .filter(Boolean)
+    .join(", ");
+
+  // The cached member may predate addresses saved by an earlier order or on the profile page.
+  const refreshedOnOpen = useRef(false);
+  useEffect(() => {
+    if (status !== "authenticated" || refreshedOnOpen.current) return;
+    refreshedOnOpen.current = true;
+    refreshUser().catch(() => {});
+  }, [status, refreshUser]);
 
   /* ── Payment methods from /store/config ────────────────────────────── */
 
@@ -206,10 +221,14 @@ export default function CheckoutPage() {
 
   // requireAuth may run the callback after sign-in, from an older render:
   // read the latest values from a ref.
-  const latest = useRef({ form, selectedAddress, paymentMethod, lines, couponCode, appliedCoupon, giftNote, saveAddress, user });
+  const latest = useRef({ form, selectedAddress, paymentMethod, lines, couponCode, appliedCoupon, giftNote, saveAddress, marketingOptIn, user });
   useEffect(() => {
-    latest.current = { form, selectedAddress, paymentMethod, lines, couponCode, appliedCoupon, giftNote, saveAddress, user };
+    latest.current = { form, selectedAddress, paymentMethod, lines, couponCode, appliedCoupon, giftNote, saveAddress, marketingOptIn, user };
   });
+
+  // Signing in at "Verify & Complete Order" runs placeOrder before React re-renders
+  // with the member, so `latest.current.user` can still be null: the token is the truth.
+  const isSignedIn = () => Boolean(latest.current.user || getAccessToken());
 
   /** One Idempotency-Key per attempt; reused when the outcome of the last try is unknown. */
   const attempt = useRef<{ key: string; sig: string; uncertain: boolean } | null>(null);
@@ -227,7 +246,7 @@ export default function CheckoutPage() {
       let options = payment;
       // Fresh options for a retry (or when the first attempt couldn't reach Razorpay).
       if (!options || Date.parse(options.expiresAt) <= Date.now()) {
-        options = await ordersApi.startPayment(order.id, latest.current.user ? undefined : order.contact.email);
+        options = await ordersApi.startPayment(order.id, isSignedIn() ? undefined : order.contact.email);
       }
       setResult({ kind: "pending", order, payment: options, message: null });
       const outcome = await razorpay.pay(order.id, options);
@@ -318,7 +337,7 @@ export default function CheckoutPage() {
       ...(v.couponCode && v.appliedCoupon ? { couponCode: v.couponCode } : {}),
       paymentMethod: v.paymentMethod,
       ...(v.giftNote.trim() ? { giftNote: v.giftNote.trim().slice(0, 500) } : {}),
-      saveAddress: Boolean(v.user) && !v.selectedAddress && v.saveAddress,
+      saveAddress: isSignedIn() && !v.selectedAddress && v.saveAddress,
     };
 
     const sig = JSON.stringify(body);
@@ -333,6 +352,10 @@ export default function CheckoutPage() {
       const res = await ordersApi.place(body, current.key);
       attempt.current = null;
       orderedLines.current = v.lines;
+      // Pick up the address the order just saved, so the next checkout offers it.
+      if (body.saveAddress) refreshUser().catch(() => {});
+      // Only once the order exists; a failed sign-up must never get in the way of the purchase.
+      if (v.marketingOptIn) contactApi.subscribe({ email: body.customer.email, source: "checkout" }).catch(() => {});
       if (!res.payment && !res.paymentError) {
         finishPaid(res.order);
         return;
@@ -721,6 +744,22 @@ export default function CheckoutPage() {
                         </div>
                       ))}
 
+                      {/* Opt-in, never pre-ticked; hidden for members who already get the emails. */}
+                      {!user?.preferences?.exclusiveDrops && (
+                        <label className="flex items-start gap-2.5 text-[13px] text-zinc-300">
+                          <input
+                            type="checkbox"
+                            checked={marketingOptIn}
+                            onChange={(e) => setMarketingOptIn(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 accent-amber-400"
+                          />
+                          <span>
+                            Email me new flavours and members-only offers.{" "}
+                            <span className="text-zinc-500">Unsubscribe anytime.</span>
+                          </span>
+                        </label>
+                      )}
+
                       <div className="pt-4 hidden md:block">
                         <button
                           type="submit"
@@ -933,17 +972,16 @@ export default function CheckoutPage() {
                             </div>
                           </div>
 
-                          {user && (
-                            <label className="flex items-center gap-2.5 text-[13px] text-zinc-300">
-                              <input
-                                type="checkbox"
-                                checked={saveAddress}
-                                onChange={(e) => setSaveAddress(e.target.checked)}
-                                className="h-4 w-4 accent-amber-400"
-                              />
-                              Save this address to my account
-                            </label>
-                          )}
+                          {/* Everyone verifies before ordering, so guests can opt in too. */}
+                          <label className="flex items-center gap-2.5 text-[13px] text-zinc-300">
+                            <input
+                              type="checkbox"
+                              checked={saveAddress}
+                              onChange={(e) => setSaveAddress(e.target.checked)}
+                              className="h-4 w-4 accent-amber-400"
+                            />
+                            {user ? "Save this address to my account" : "Save this address for faster checkout next time"}
+                          </label>
                         </>
                       )}
 
@@ -995,6 +1033,27 @@ export default function CheckoutPage() {
                         <Lock className="h-3.5 w-3.5 text-emerald-400 sm:hidden" />
                         Choose your preferred payment method.
                       </p>
+                    </div>
+
+                    {/* Last look at where the order goes, without leaving the payment step. */}
+                    <div className="mb-4 flex items-start justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                      <div className="flex min-w-0 items-start gap-2.5">
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                        <div className="min-w-0 text-[12.5px] leading-relaxed">
+                          <p className="font-semibold text-white">
+                            Shipping to {selectedAddress?.recipient || form.name.trim()}
+                            {selectedAddress && <span className="font-normal text-zinc-400"> · {selectedAddress.label}</span>}
+                          </p>
+                          <p className="truncate text-zinc-400">{shippingLine}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(2)}
+                        className="shrink-0 text-[12.5px] font-semibold text-amber-400 hover:text-amber-300"
+                      >
+                        Change
+                      </button>
                     </div>
 
                     {!config.payments.enabled && (

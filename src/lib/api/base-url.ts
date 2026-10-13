@@ -7,13 +7,17 @@ function trimSlash(url: string): string {
 /**
  * Base URL of the REST API, including `/api/v1`.
  *
- * - Browser: `NEXT_PUBLIC_API_URL` (inlined at build time).
+ * - Browser: `NEXT_PUBLIC_API_URL` (inlined at build time). A relative value
+ *   such as `/api/v1` goes through this site's rewrite proxy (next.config.ts).
  * - Server (RSC, route handlers): `API_URL`, which may be a private address,
- *   falling back to `NEXT_PUBLIC_API_URL`.
+ *   falling back to `NEXT_PUBLIC_API_URL` when that is absolute.
  */
 export function apiBaseUrl(): string {
+  const publicUrl = process.env.NEXT_PUBLIC_API_URL;
   if (typeof window === "undefined") {
-    return trimSlash(process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || DEV_DEFAULT);
+    const absolutePublic = publicUrl && !publicUrl.startsWith("/") ? publicUrl : undefined;
+    return trimSlash(process.env.API_URL || absolutePublic || DEV_DEFAULT);
   }
-  return trimSlash(process.env.NEXT_PUBLIC_API_URL || DEV_DEFAULT);
+  if (publicUrl?.startsWith("/")) return trimSlash(window.location.origin + publicUrl);
+  return trimSlash(publicUrl || DEV_DEFAULT);
 }

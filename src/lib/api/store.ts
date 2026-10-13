@@ -51,8 +51,11 @@ type Opts = { signal?: AbortSignal };
 /* ── Auth ─────────────────────────────────────────────────────────────── */
 
 export const auth = {
-  requestOtp: (identifier: string) =>
-    apiData<OtpChallenge>("/store/auth/otp/request", { method: "POST", body: { identifier } }),
+  requestOtp: (identifier: string, backupEmail?: string) =>
+    apiData<OtpChallenge>("/store/auth/otp/request", {
+      method: "POST",
+      body: { identifier, ...(backupEmail ? { backupEmail } : {}) },
+    }),
   verifyOtp: (body: { challengeId: string; code: string; name?: string }) =>
     apiData<OtpVerifyResult>("/store/auth/otp/verify", { method: "POST", body }),
   logout: () => apiRequest<void>("/store/auth/logout", { method: "POST", body: {} }),
@@ -190,4 +193,7 @@ export const contact = {
     apiData<OpData<"postStoreContact">>("/store/contact", { method: "POST", body }),
   subscribe: (body: NewsletterInput) =>
     apiData<OpData<"postStoreNewsletter">>("/store/newsletter", { method: "POST", body }),
+  /** Token from the link in every newsletter email. 404 `invalid_token` for an unknown link. */
+  unsubscribe: (token: string) =>
+    apiData<OpData<"postStoreNewsletterUnsubscribe">>("/store/newsletter/unsubscribe", { method: "POST", body: { token } }),
 };

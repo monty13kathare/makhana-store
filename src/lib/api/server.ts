@@ -91,8 +91,9 @@ export function getReviewSummary(): Promise<ReviewSummary | null> {
   return orNull(serverGet<ReviewSummary>("/store/reviews/summary", REVALIDATE.reviews, ["reviews"]));
 }
 
-export function getReviews(category: ReviewCategory, limit = 3): Promise<Review[] | null> {
-  const q = new URLSearchParams({ category, limit: String(limit) });
+/** Most recently approved first. Without a category: across all of them. */
+export function getReviews(category: ReviewCategory | undefined, limit = 3): Promise<Review[] | null> {
+  const q = new URLSearchParams({ ...(category ? { category } : {}), limit: String(limit) });
   return orNull(serverGet<Review[]>(`/store/reviews?${q}`, REVALIDATE.reviews, ["reviews"]));
 }
 

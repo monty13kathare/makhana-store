@@ -14,6 +14,8 @@ import {
   AlertTriangle,
   Loader2,
   LogIn,
+  ExternalLink,
+  Copy,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -21,7 +23,7 @@ import { me as meApi } from "@/lib/api/store";
 import { isApiError, errorMessage } from "@/lib/api/errors";
 import type { StoreOrder, OrderGroup, ReorderResult } from "@/lib/api/types";
 import { EASE } from "@/components/motion-primitives";
-import { formatMoney, formatDate, formatDeliveryWindow } from "@/lib/format";
+import { formatMoney, formatDate, formatDateTime, formatDeliveryWindow } from "@/lib/format";
 
 /* ── Helpers ── */
 const ORDER_STATUS_LABEL: Record<string, string> = {
@@ -42,6 +44,10 @@ const STATUS_COLOR: Record<string, string> = {
   refunded: "bg-zinc-500",
 };
 
+/** Orders whose status can still change on its own (staff, carrier, payment). */
+const ACTIVE_STATUSES: StoreOrder["status"][] = ["pending", "processing", "shipped"];
+const LIVE_REFRESH_MS = 30_000;
+
 type GroupTab = { label: string; value: OrderGroup | "all" };
 const FILTER_TABS: GroupTab[] = [
   { label: "All", value: "all" },
@@ -58,19 +64,42 @@ function deriveBadgeColor(status: string): string {
   return STATUS_COLOR[status] ?? "bg-zinc-600";
 }
 
+/* ── Refunds ── */
+const PAID_VIA: Record<string, string> = {
+  upi: "UPI",
+  card: "card",
+  netbanking: "net banking",
+  wallet: "wallet",
+  emi: "EMI",
+  paypal: "PayPal",
+};
+const paidVia = (method?: string) => (method && PAID_VIA[method] ? PAID_VIA[method] : "original payment method");
+
+/** What goes back to the customer if they cancel now: only money actually collected online. */
+const refundOnCancel = (o: StoreOrder) => (o.paymentMethod !== "cod" && o.paymentStatus === "paid" ? o.total : 0);
+
+/** Refunds still on their way to the bank, or stuck and awaiting a staff retry. */
+const refundInFlight = (o: StoreOrder) => (o.refunds ?? []).some((r) => r.status !== "processed");
+
+const refundedTotal = (o: StoreOrder) =>
+  (o.refunds ?? []).filter((r) => r.status !== "failed").reduce((sum, r) => sum + r.amount, 0);
+
 /* ── Cancel Modal ── */
 function CancelModal({
   order,
   onConfirm,
   onClose,
   busy,
+  error,
 }: {
   order: StoreOrder;
   onConfirm: (reason?: string) => void;
   onClose: () => void;
   busy: boolean;
+  error: string | null;
 }) {
   const [reason, setReason] = useState("");
+  const refund = refundOnCancel(order);
   const [sheet] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
   const firstItem = order.items[0];
 
@@ -138,11 +167,29 @@ function CancelModal({
           />
         </div>
 
-        <p className="text-[14px] sm:text-[13px] text-[#8a8a8a] leading-relaxed mb-5">
-          Any paid amount of{" "}
-          <span className="text-white font-semibold">{formatMoney(order.total)}</span> will be
-          refunded within 3-5 business days.
-        </p>
+        {/* Say exactly what happens to the customer's money, per payment state. */}
+        <div className="mb-5 rounded-xl border border-white/8 bg-white/[0.02] p-3.5 text-[14px] sm:text-[13px] leading-relaxed text-[#8a8a8a]">
+          {refund > 0 ? (
+            <>
+              <p className="mb-1 flex items-center gap-1.5 font-semibold text-emerald-400">
+                <RotateCcw className="h-3.5 w-3.5" /> Full refund: {formatMoney(refund)}
+              </p>
+              We&apos;ll send it back to your original payment method right away. Banks usually show it in{" "}
+              <span className="text-white">5–7 business days</span>; UPI is often faster.
+            </>
+          ) : order.awaitingPayment ? (
+            <>You haven&apos;t been charged for this order, so there&apos;s nothing to refund.</>
+          ) : (
+            <>This is a cash-on-delivery order and nothing has been paid, so there&apos;s nothing to refund.</>
+          )}
+        </div>
+
+        {error && (
+          <p role="alert" className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2.5 text-[13px] text-red-300">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            {error}
+          </p>
+        )}
 
         <div className="flex gap-2.5">
           <button
@@ -160,7 +207,7 @@ function CancelModal({
             className="flex-1 min-h-[48px] sm:min-h-0 flex items-center justify-center gap-1.5 rounded-xl bg-red-500 py-2.5 text-[15px] sm:text-[13.5px] font-semibold text-white hover:bg-red-600 transition-colors disabled:opacity-70"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Yes, Cancel
+            {busy ? "Cancelling…" : refund > 0 ? "Cancel & Refund" : "Yes, Cancel"}
           </button>
         </div>
       </motion.div>
@@ -169,54 +216,205 @@ function CancelModal({
 }
 
 /* ── Delivery stepper ── */
-const STEPS = ["processing", "shipped", "delivered"] as const;
-const STEP_LABELS: Record<string, string> = {
-  processing: "Processing",
+// Every order starts at "pending" (placed), so that is the first step, not an empty bar.
+const STEPS = ["pending", "processing", "shipped", "delivered"] as const;
+const STEP_LABELS: Record<(typeof STEPS)[number], string> = {
+  pending: "Order Placed",
+  processing: "Packed",
   shipped: "Shipped",
   delivered: "Delivered",
 };
+/** What the customer is waiting for next, per status. */
+const NEXT_UP: Partial<Record<StoreOrder["status"], string>> = {
+  pending: "We've received your order and will start packing it soon.",
+  processing: "Your order is being packed. You'll get an email when it ships.",
+  shipped: "On its way. Track it with the carrier below.",
+};
 
 function OrderStepper({ order }: { order: StoreOrder }) {
-  const si = STEPS.indexOf(order.status as (typeof STEPS)[number]);
-  const currentStep = si === -1 ? 0 : si + 1;
+  const current = Math.max(0, STEPS.indexOf(order.status as (typeof STEPS)[number]));
+  const finished = order.status === "delivered";
+  const message = order.awaitingPayment ? "Complete the payment to confirm this order." : NEXT_UP[order.status];
 
   return (
-    <div className="relative pt-3 sm:pt-2">
-      <div className="absolute top-[22px] sm:top-[18px] left-[12.5%] right-[12.5%] sm:left-[18px] sm:right-[18px] h-[2px] bg-white/8">
-        <div
-          className="h-full bg-emerald-500 transition-all duration-700"
-          style={{
-            width:
-              currentStep <= 1 ? "0%" :
-              currentStep === 2 ? "50%" : "100%",
-          }}
-        />
+    <div className="pt-3 sm:pt-2">
+      <div className="relative">
+        {/* Track runs between the first and last dot centres (columns are 25% wide). */}
+        <div className="absolute top-[10px] left-[12.5%] right-[12.5%] h-[2px] bg-white/8">
+          <div
+            className="h-full bg-emerald-500 transition-all duration-700"
+            style={{ width: `${(current / (STEPS.length - 1)) * 100}%` }}
+          />
+        </div>
+        <ol className="relative grid grid-cols-4 gap-1 text-center">
+          {STEPS.map((step, i) => {
+            const done = i < current || finished;
+            const active = i === current && !finished;
+            const at = order.timeline?.find((t) => t.status === step)?.at;
+            const label = step === "pending" && order.awaitingPayment ? "Awaiting Payment" : STEP_LABELS[step];
+            return (
+              <li key={step} className="flex flex-col items-center" aria-current={active ? "step" : undefined}>
+                <div
+                  className={`grid h-5 w-5 place-items-center rounded-full border transition-all ${
+                    done
+                      ? "bg-emerald-500 border-emerald-500 text-black"
+                      : active
+                        ? "border-amber-400 bg-amber-400/15 ring-4 ring-amber-400/10"
+                        : "border-white/15 bg-[#1e1e1e]"
+                  }`}
+                >
+                  {done ? (
+                    <Check className="h-2.5 w-2.5 stroke-[3]" />
+                  ) : active ? (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  ) : null}
+                </div>
+                <span
+                  className={`mt-1.5 text-[11.5px] sm:text-[10.5px] font-medium leading-tight ${
+                    active ? "text-amber-300" : done ? "text-white" : "text-[#666]"
+                  }`}
+                >
+                  {label}
+                </span>
+                <span className="text-[11px] sm:text-[9.5px] text-[#5a5a5a] mt-0.5">{at ? formatDate(at) : "—"}</span>
+              </li>
+            );
+          })}
+        </ol>
       </div>
-      <div className="grid grid-cols-3 gap-1 relative text-center">
-        {STEPS.map((step, si2) => {
-          const sn = si2 + 1;
-          const done = sn <= currentStep;
-          const current = sn === currentStep;
-          const stepTime = order.timeline?.find((t) => t.status === step)?.at;
-          const date = stepTime ? formatDate(stepTime) : "—";
+      {message && <p className="mt-3 text-center text-[12.5px] sm:text-[12px] text-[#8a8a8a]">{message}</p>}
+    </div>
+  );
+}
+
+/** Every status change, newest first, with the note left by staff or the system. */
+function OrderUpdates({ order }: { order: StoreOrder }) {
+  const events = [...(order.timeline ?? [])].reverse();
+  if (events.length === 0) return null;
+  return (
+    <div>
+      <p className="mb-2 text-[11.5px] sm:text-[11px] font-semibold uppercase tracking-wider text-[#666]">Order updates</p>
+      <ol className="relative space-y-3 border-l border-white/10 pl-4">
+        {events.map((e, i) => (
+          <li key={`${e.status}-${e.at}`} className="relative">
+            <span
+              className={`absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-[#161616] ${
+                i === 0 ? deriveBadgeColor(e.status) : "bg-white/20"
+              }`}
+            />
+            <p className={`text-[13px] sm:text-[12.5px] font-semibold ${i === 0 ? "text-white" : "text-white/70"}`}>
+              {ORDER_STATUS_LABEL[e.status] ?? e.status}
+              <span className="ml-2 font-normal text-[#666]">{formatDateTime(e.at)}</span>
+            </p>
+            {e.note && <p className="text-[12.5px] sm:text-[12px] text-[#8a8a8a]">{e.note}</p>}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** Cancelled/refunded orders: why, and exactly where the customer's money is. */
+function RefundStatus({ order }: { order: StoreOrder }) {
+  const [copied, setCopied] = useState<string | null>(null);
+  const refunds = order.refunds ?? [];
+  const reason = [...(order.timeline ?? [])].reverse().find((e) => e.status === order.status)?.note;
+
+  const copy = (ref: string) => {
+    void navigator.clipboard?.writeText(ref).then(() => {
+      setCopied(ref);
+      setTimeout(() => setCopied(null), 1500);
+    });
+  };
+
+  return (
+    <div className="mt-3 sm:mt-0 space-y-3">
+      <div className="flex items-start gap-2.5 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-[13px] sm:text-[12.5px] text-red-300">
+        <X className="mt-px h-4 w-4 shrink-0" />
+        <div>
+          <p className="font-semibold">{order.status === "refunded" ? "This order was refunded." : "This order was cancelled."}</p>
+          {reason && <p className="text-red-300/80">{reason}</p>}
+        </div>
+      </div>
+
+      {refunds.length > 0 ? (
+        refunds.map((r) => {
+          const done = r.status === "processed";
+          const failed = r.status === "failed";
           return (
-            <div key={step} className="flex flex-col items-center">
-              <div className={`grid h-5 w-5 place-items-center rounded-full border transition-all ${
-                done ? "bg-emerald-500 border-emerald-500 text-black" :
-                current ? "border-amber-400 bg-amber-400/15" :
-                "border-white/15 bg-[#1e1e1e]"
-              }`}>
-                {done ? <Check className="h-2.5 w-2.5 stroke-[3]" /> :
-                 current ? <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" /> : null}
+            <div key={r.reference} className="rounded-xl border border-white/10 bg-white/[0.025] p-3.5 sm:p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 text-[14px] sm:text-[13.5px] font-semibold text-white">
+                  <RotateCcw className="h-4 w-4 text-amber-400" />
+                  Refund {formatMoney(r.amount)}
+                </p>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                    done ? "bg-emerald-500/15 text-emerald-300" : failed ? "bg-red-500/15 text-red-300" : "bg-amber-400/15 text-amber-300"
+                  }`}
+                >
+                  {done ? "Refunded" : failed ? "Delayed" : "In progress"}
+                </span>
               </div>
-              <span className={`mt-1.5 text-[11.5px] sm:text-[10px] font-medium leading-tight ${done ? "text-white" : "text-[#666]"}`}>
-                {STEP_LABELS[step]}
-              </span>
-              <span className="text-[11px] sm:text-[9.5px] text-[#5a5a5a] mt-0.5">{date}</span>
+
+              {/* Two-step tracker: initiated by us → credited by the bank. */}
+              <ol className="mt-3 grid grid-cols-2 gap-2 text-[12px] sm:text-[11.5px]">
+                <li className="flex items-center gap-2 text-white">
+                  <span className="grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-black">
+                    <Check className="h-2.5 w-2.5 stroke-[3]" />
+                  </span>
+                  <span>
+                    Initiated <span className="text-[#666]">{formatDate(r.createdAt)}</span>
+                  </span>
+                </li>
+                <li className={`flex items-center gap-2 ${done ? "text-white" : "text-[#666]"}`}>
+                  <span
+                    className={`grid h-4 w-4 place-items-center rounded-full border ${
+                      done ? "border-emerald-500 bg-emerald-500 text-black" : failed ? "border-red-400" : "border-amber-400"
+                    }`}
+                  >
+                    {done ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : !failed && <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />}
+                  </span>
+                  <span>
+                    Credited to {paidVia(r.method)}
+                    {done && <span className="text-[#666]"> {formatDate(r.updatedAt)}</span>}
+                  </span>
+                </li>
+              </ol>
+
+              <p className="mt-3 text-[12.5px] sm:text-[12px] leading-relaxed text-[#8a8a8a]">
+                {done
+                  ? `The bank has the money. If it isn't in your account yet, it will appear within a few business days.`
+                  : failed
+                    ? "The bank couldn't complete this refund. Our team has been alerted and will send it again. You don't need to do anything."
+                    : `Sent to your ${paidVia(r.method)}. Banks usually credit it within 5–7 business days; UPI is often faster.`}
+              </p>
+
+              <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-[#666]">
+                <span>Refund reference</span>
+                <code className="font-mono text-white/80 break-all">{r.reference}</code>
+                <button
+                  type="button"
+                  onClick={() => copy(r.reference)}
+                  aria-label="Copy refund reference"
+                  className="grid h-7 w-7 place-items-center rounded-md hover:bg-white/8 hover:text-white"
+                >
+                  {copied === r.reference ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                </button>
+              </div>
             </div>
           );
-        })}
-      </div>
+        })
+      ) : order.paymentStatus === "refunded" ? (
+        <p className="rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3 text-[12.5px] text-[#8a8a8a]">
+          A refund of <span className="font-semibold text-white">{formatMoney(order.total)}</span> was issued for this order. If you
+          haven&apos;t received it, <Link href="/contact" className="text-amber-400 hover:underline">contact us</Link>.
+        </p>
+      ) : (
+        <p className="rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3 text-[12.5px] text-[#8a8a8a]">
+          You weren&apos;t charged for this order, so there&apos;s nothing to refund.
+        </p>
+      )}
     </div>
   );
 }
@@ -236,34 +434,62 @@ function OrdersContent() {
   const [cancelTarget, setCancelTarget] = useState<StoreOrder | null>(null);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  // Auto-expand via ?id= query param
-  const [syncedQueryId, setSyncedQueryId] = useState<string | null>(null);
-  if (queryId !== syncedQueryId) {
-    setSyncedQueryId(queryId);
-    if (queryId && orders.some((o) => o.id === queryId)) setExpandedId(queryId);
-  }
-
-  const fetchOrders = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const group = filter === "all" ? undefined : filter;
-      const result = await meApi.orders({ group, pageSize: 50 });
-      setOrders(result.data);
-    } catch (e) {
-      setError(errorMessage(e, "We couldn't load your orders. Please try again."));
-    } finally {
-      setLoading(false);
-    }
-  }, [user, filter]);
+  // Always the full list: tabs filter locally, so every tab's count stays right.
+  // `silent` refreshes keep the list on screen (no skeleton, no error swap).
+  // `loading` starts true; Retry sets it again before calling this.
+  const signedIn = Boolean(user);
+  const fetchOrders = useCallback(
+    (silent = false) =>
+      meApi
+        .orders({ pageSize: 50 })
+        .then(
+          (result) => {
+            setOrders(result.data);
+            setError(null);
+          },
+          (e: unknown) => {
+            if (!silent) setError(errorMessage(e, "We couldn't load your orders. Please try again."));
+          },
+        )
+        .finally(() => {
+          if (!silent) setLoading(false);
+        }),
+    [],
+  );
 
   useEffect(() => {
-    if (authStatus === "loading") return;
-    if (!user) { setLoading(false); return; }
+    // Guests see the sign-in gate, which doesn't depend on `loading`.
+    if (authStatus === "loading" || !signedIn) return;
     void fetchOrders();
-  }, [authStatus, user, fetchOrders]);
+  }, [authStatus, signedIn, fetchOrders]);
+
+  // Open the order from ?id= once the list has it (e.g. arriving from an order email).
+  const [openedQueryId, setOpenedQueryId] = useState<string | null>(null);
+  if (queryId && queryId !== openedQueryId && orders.some((o) => o.id === queryId)) {
+    setOpenedQueryId(queryId);
+    setExpandedId(queryId);
+  }
+
+  // Live status: re-check while the page is open and something is still on its way,
+  // and whenever the customer comes back to the tab.
+  const hasActive = orders.some((o) => ACTIVE_STATUSES.includes(o.status) || refundInFlight(o));
+  useEffect(() => {
+    if (!signedIn) return;
+    const refresh = () => {
+      if (document.visibilityState === "visible") void fetchOrders(true);
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    const timer = hasActive ? window.setInterval(refresh, LIVE_REFRESH_MS) : undefined;
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+      window.clearInterval(timer);
+    };
+  }, [signedIn, hasActive, fetchOrders]);
 
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
 
@@ -292,13 +518,22 @@ function OrdersContent() {
   const handleCancelConfirm = async (reason?: string) => {
     if (!cancelTarget) return;
     setCancelBusy(true);
-    setActionError(null);
+    setCancelError(null);
+    setNotice(null);
     try {
       const updated = await meApi.cancelOrder(cancelTarget.id, reason);
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
       setCancelTarget(null);
+      setExpandedId(updated.id);
+      const refunded = refundedTotal(updated);
+      setNotice(
+        refunded > 0
+          ? `Order ${updated.number} cancelled. Your refund of ${formatMoney(refunded)} has been initiated; you'll get an email when the bank completes it.`
+          : `Order ${updated.number} cancelled. You weren't charged.`,
+      );
     } catch (e) {
-      if (isApiError(e)) setActionError(e.message);
+      // Shown inside the dialog, which stays open: if the refund couldn't start, nothing was cancelled.
+      setCancelError(errorMessage(e, "We couldn't cancel this order. Please try again or contact us."));
     } finally {
       setCancelBusy(false);
     }
@@ -366,6 +601,15 @@ function OrdersContent() {
             <p>{actionError}</p>
           </div>
         )}
+        {notice && (
+          <div role="status" className="mb-4 flex items-start gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-[13px] text-emerald-300">
+            <Check className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="flex-1">{notice}</p>
+            <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss" className="-m-1 p-1 text-emerald-300/70 hover:text-emerald-200">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         <div role="tablist" aria-label="Filter orders" className="swipe-row items-center gap-2 pb-1 mb-4 sm:mb-5 sm:mx-0 sm:px-0">
           {FILTER_TABS.map((tab) => (
@@ -403,7 +647,11 @@ function OrdersContent() {
             <p className="text-[14px] text-red-300 mb-4">{error}</p>
             <button
               type="button"
-              onClick={() => void fetchOrders()}
+              onClick={() => {
+                setLoading(true);
+                setError(null);
+                void fetchOrders();
+              }}
               className="rounded-full bg-white px-5 py-2 text-[13px] font-bold text-black hover:bg-amber-400 transition-all"
             >
               Retry
@@ -417,7 +665,7 @@ function OrdersContent() {
             <AnimatePresence initial={false}>
               {filtered.map((order, idx) => {
                 const isExpanded = expandedId === order.id;
-                const canCancel = ["pending", "processing"].includes(order.status);
+                const canCancel = order.canCancel;
                 const firstItem = order.items[0];
                 const imageUrl = firstItem?.image ?? null;
                 const deliveryEst = order.estimatedDelivery
@@ -474,6 +722,11 @@ function OrdersContent() {
                               ) : null;
                             })()
                           )}
+                          {(order.refunds?.length ?? 0) > 0 && (
+                            <span className={`text-[11.5px] sm:text-[11px] truncate ${refundInFlight(order) ? "text-amber-300/90" : "text-emerald-400/90"}`}>
+                              {refundInFlight(order) ? "Refund in progress" : `Refunded ${formatMoney(refundedTotal(order))}`}
+                            </span>
+                          )}
                           {order.status === "shipped" && deliveryEst !== "—" && (
                             <span className="text-[11.5px] sm:text-[11px] text-[#707070] truncate">Est. {deliveryEst}</span>
                           )}
@@ -504,12 +757,7 @@ function OrdersContent() {
                             {!["cancelled", "refunded"].includes(order.status) ? (
                               <OrderStepper order={order} />
                             ) : (
-                              <div className="mt-3 sm:mt-0 flex items-start sm:items-center gap-2.5 rounded-xl bg-red-500/8 border border-red-500/20 px-4 py-3 text-[13px] sm:text-[12.5px] text-red-400">
-                                <X className="h-4 w-4 shrink-0 mt-px sm:mt-0" />
-                                {order.status === "refunded"
-                                  ? "This order has been refunded."
-                                  : "This order has been cancelled. Refund processed within 3-5 business days."}
-                              </div>
+                              <RefundStatus order={order} />
                             )}
 
                             {order.items.length > 1 && (
@@ -530,16 +778,30 @@ function OrdersContent() {
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-3 text-[13px] sm:text-[12px] rounded-xl sm:rounded-none bg-white/[0.02] sm:bg-transparent p-3 sm:p-0">
                               {[
                                 { label: "Carrier", value: order.carrier ?? "—" },
-                                { label: "Tracking", value: order.trackingNumber ?? "—", mono: true },
+                                { label: "Tracking", value: order.trackingNumber ?? "—", mono: true, href: order.trackingUrl },
                                 { label: "Order Date", value: formatDate(order.createdAt) },
                                 { label: "Est. Delivery", value: deliveryEst },
                               ].map((m) => (
                                 <div key={m.label} className="min-w-0">
                                   <p className="text-[11.5px] sm:text-[12px] text-[#666] sm:text-[#555] mb-0.5">{m.label}</p>
-                                  <p className={`text-white font-medium ${m.mono ? "font-mono text-[11.5px] sm:text-[10.5px] break-all" : ""}`}>{m.value}</p>
+                                  {m.href ? (
+                                    <a
+                                      href={m.href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 font-mono text-[11.5px] sm:text-[10.5px] font-medium text-amber-400 hover:text-amber-300 break-all"
+                                    >
+                                      {m.value}
+                                      <ExternalLink className="h-3 w-3 shrink-0" />
+                                    </a>
+                                  ) : (
+                                    <p className={`text-white font-medium ${m.mono ? "font-mono text-[11.5px] sm:text-[10.5px] break-all" : ""}`}>{m.value}</p>
+                                  )}
                                 </div>
                               ))}
                             </div>
+
+                            <OrderUpdates order={order} />
 
                             <div className="rounded-xl border border-white/8 bg-white/[0.025] p-3.5 sm:p-4 space-y-2 text-[13.5px] sm:text-[12.5px]">
                               <div className="flex justify-between text-[#7a7a7a]">
@@ -562,6 +824,12 @@ function OrdersContent() {
                               <div className="flex justify-between font-bold text-white text-[15px] sm:text-[13.5px] pt-2 border-t border-white/8">
                                 <span>Total</span><span>{formatMoney(order.total)}</span>
                               </div>
+                              {refundedTotal(order) > 0 && (
+                                <div className="flex justify-between text-[#7a7a7a]">
+                                  <span>{refundInFlight(order) ? "Refund (in progress)" : "Refunded"}</span>
+                                  <span className="text-emerald-400">-{formatMoney(refundedTotal(order))}</span>
+                                </div>
+                              )}
                             </div>
 
                             <div className="flex sm:flex-wrap items-center gap-2.5">
@@ -576,7 +844,10 @@ function OrdersContent() {
                               {canCancel && (
                                 <button
                                   type="button"
-                                  onClick={() => setCancelTarget(order)}
+                                  onClick={() => {
+                                    setCancelError(null);
+                                    setCancelTarget(order);
+                                  }}
                                   className="flex-1 sm:flex-none justify-center min-h-[44px] sm:min-h-0 flex items-center gap-1.5 rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-2.5 text-[14px] sm:text-[12.5px] font-semibold text-red-400 hover:bg-red-500/15 transition-all"
                                 >
                                   <X className="h-3.5 w-3.5" />
@@ -623,8 +894,13 @@ function OrdersContent() {
           <CancelModal
             order={cancelTarget}
             onConfirm={(reason) => void handleCancelConfirm(reason)}
-            onClose={() => setCancelTarget(null)}
+            onClose={() => {
+              if (cancelBusy) return;
+              setCancelTarget(null);
+              setCancelError(null);
+            }}
             busy={cancelBusy}
+            error={cancelError}
           />
         )}
       </AnimatePresence>

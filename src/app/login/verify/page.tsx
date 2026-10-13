@@ -54,8 +54,19 @@ function VerifyForm() {
   }, [seconds]);
 
   const setDigit = (i: number, value: string) => {
-    const digit = value.replace(/\D/g, "").slice(-1);
+    const digits = value.replace(/\D/g, "");
     const next = [...code];
+    if (digits.length > 1) {
+      // SMS autofill (autoComplete="one-time-code") drops the whole code into one box.
+      const full = digits.slice(-LENGTH);
+      const start = full.length === LENGTH ? 0 : i;
+      for (let k = 0; k < full.length && start + k < LENGTH; k++) next[start + k] = full[k];
+      setCode(next);
+      setError(null);
+      inputs.current[Math.min(start + full.length, LENGTH - 1)]?.focus();
+      return;
+    }
+    const digit = digits;
     next[i] = digit;
     setCode(next);
     setError(null);

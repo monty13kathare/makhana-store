@@ -11,6 +11,7 @@ import {
   Check,
   Phone,
   MessageSquare,
+  Mail,
   Sparkles,
   Truck,
   ShoppingBag,
@@ -86,7 +87,11 @@ function AuthModalPanel() {
       }
       setSeconds(res.challenge.resendAfterSeconds || 30);
       setOtpDigits(EMPTY_CODE());
-      setTimeout(() => otpInputs.current[0]?.focus(), 150);
+      // Don't pull the cursor out of a field the shopper is typing in (e.g. Full Name).
+      setTimeout(() => {
+        const busy = document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement;
+        if (!busy || otpInputs.current.includes(document.activeElement as HTMLInputElement)) otpInputs.current[0]?.focus();
+      }, 150);
       return true;
     },
     [startLogin],
@@ -123,13 +128,23 @@ function AuthModalPanel() {
   };
 
   const handleOtpChange = (index: number, val: string) => {
-    const char = val.replace(/\D/g, "").slice(-1);
+    const digits = val.replace(/\D/g, "");
     const updated = [...otpDigits];
-    updated[index] = char;
+    if (digits.length > 1) {
+      // SMS autofill (autoComplete="one-time-code") drops the whole code into one box.
+      const code = digits.slice(-6);
+      const start = code.length === 6 ? 0 : index;
+      for (let i = 0; i < code.length && start + i < 6; i++) updated[start + i] = code[i];
+      setOtpDigits(updated);
+      setError("");
+      otpInputs.current[Math.min(start + code.length, 5)]?.focus();
+      return;
+    }
+    updated[index] = digits;
     setOtpDigits(updated);
     setError("");
 
-    if (char && index < 5) {
+    if (digits && index < 5) {
       otpInputs.current[index + 1]?.focus();
     }
   };
@@ -298,7 +313,9 @@ function AuthModalPanel() {
               {step === "input"
                 ? modalOptions.message ||
                   "Sign in with your mobile number to sync your cart, view delivery checkpoints, and checkout in 1 click."
-                : `We sent a secure 6-digit verification code to ${maskedIdentifier}.`}
+                : otpChallenge?.backupSentTo
+                  ? `We sent a 6-digit code by SMS to ${maskedIdentifier} and another by email to ${otpChallenge.backupSentTo}. Enter either one.`
+                  : `We sent a secure 6-digit verification code to ${maskedIdentifier}.`}
             </p>
           </div>
 
@@ -412,27 +429,32 @@ function AuthModalPanel() {
           {step === "verify" && (
             <form onSubmit={handleVerifyOtp} className="relative z-10 mt-5 sm:mt-6">
               {/* SMS Simulator Preview Banner */}
-              {activeOtpNotice && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mb-4 flex items-center justify-between rounded-2xl border border-amber-400/30 bg-amber-400/[0.08] p-3 text-[12.5px]"
-                >
-                  <div className="flex items-center gap-2.5 text-white/90">
-                    <MessageSquare className="h-4 w-4 text-amber-400 shrink-0" />
-                    <span>
-                      Passcode: <strong className="text-amber-300 font-mono text-[14px] tracking-wider">{activeOtpNotice.code}</strong>
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleAutofillCode(activeOtpNotice.code)}
-                    className="min-h-[44px] shrink-0 rounded-lg bg-amber-400/20 px-3.5 py-2 text-[12.5px] font-bold sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[11.5px] text-amber-300 hover:bg-amber-400 hover:text-black transition-colors"
+              {activeOtpNotice &&
+                [
+                  { label: activeOtpNotice.backupCode ? "SMS code" : "Passcode", code: activeOtpNotice.code, Icon: MessageSquare },
+                  ...(activeOtpNotice.backupCode ? [{ label: "Email code", code: activeOtpNotice.backupCode, Icon: Mail }] : []),
+                ].map(({ label, code, Icon }) => (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mb-4 flex items-center justify-between rounded-2xl border border-amber-400/30 bg-amber-400/[0.08] p-3 text-[12.5px]"
                   >
-                    Auto-fill
-                  </button>
-                </motion.div>
-              )}
+                    <div className="flex items-center gap-2.5 text-white/90">
+                      <Icon className="h-4 w-4 text-amber-400 shrink-0" />
+                      <span>
+                        {label}: <strong className="text-amber-300 font-mono text-[14px] tracking-wider">{code}</strong>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAutofillCode(code)}
+                      className="min-h-[44px] shrink-0 rounded-lg bg-amber-400/20 px-3.5 py-2 text-[12.5px] font-bold sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[11.5px] text-amber-300 hover:bg-amber-400 hover:text-black transition-colors"
+                    >
+                      Auto-fill
+                    </button>
+                  </motion.div>
+                ))}
 
               {/* 6 Box Inputs */}
               <div>

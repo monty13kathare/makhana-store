@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Mail, Clock, Truck } from "lucide-react";
 import BrandLogo from "./BrandLogo";
+import NewsletterSignup from "./NewsletterSignup";
 
 export default function Footer() {
   const pathname = usePathname();
@@ -13,6 +14,9 @@ export default function Footer() {
   return (
     <footer className="relative border-t border-white/10 bg-[#0a0a0a] text-white">
       <div className="container-x pt-10 pb-6 sm:py-16 lg:py-20">
+        <div className="mb-10 sm:mb-14">
+          <NewsletterSignup />
+        </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {/* Column 1: Brand */}
           <div className="col-span-2 flex flex-col md:col-span-1">
@@ -203,7 +207,17 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="container-x flex flex-col sm:flex-row items-center justify-between gap-2 py-5 text-[11.5px] text-white/40 text-center sm:text-left">
           <span>&copy; {new Date().getFullYear()} Makhana Connoisseur. All rights reserved.</span>
-          <span>Design and Developed by Veloc</span>
+          <span className="text-white/60">
+            Design and Developed by{" "}
+            <a
+              href="https://www.veloc.in/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-amber-400 underline-offset-4 transition-colors hover:text-amber-300 hover:underline"
+            >
+              Veloc
+            </a>
+          </span>
         </div>
       </div>
     </footer>

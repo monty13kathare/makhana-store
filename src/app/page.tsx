@@ -21,17 +21,22 @@ import { REVIEW_CATEGORIES } from "@/lib/api/types";
 export const revalidate = 60;
 
 export default async function Home() {
-  const [products, combos, giftBoxes, zones, faq, summary, ...reviewLists] = await Promise.all([
+  const [products, combos, giftBoxes, zones, faq, summary, latest, ...reviewLists] = await Promise.all([
     getProducts(),
     getBundles("combo"),
     getBundles("gift_box"),
     getShippingZones(),
     getFaq(),
     getReviewSummary(),
+    getReviews(undefined, 1),
     ...REVIEW_CATEGORIES.map((c) => getReviews(c, 3)),
   ]);
 
+  // Lead with the category of the most recently approved review, so a review
+  // approved in the admin is on the first slide, not two clicks away.
   const slides = REVIEW_CATEGORIES.map((category, i) => ({ category, reviews: reviewLists[i] ?? null }));
+  const newest = latest?.[0]?.category;
+  if (newest) slides.sort((a, b) => Number(b.category === newest) - Number(a.category === newest));
   const flavourOptions: FlavourOption[] = [
     ...(products ?? []).map((p) => ({ label: p.name, productSlug: p.slug })),
     ...(giftBoxes ?? []).map((b) => ({ label: b.name, bundleSlug: b.slug })),

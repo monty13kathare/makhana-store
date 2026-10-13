@@ -2361,6 +2361,29 @@ export interface components {
                 at: string;
                 note?: string;
             }[];
+            /** @description Online refunds for this order, oldest first */
+            refunds: {
+                amount: number;
+                /**
+                 * @description pending: sent to the bank · processed: completed · failed: staff will retry
+                 * @enum {string}
+                 */
+                status: "pending" | "processed" | "failed";
+                /** @description How the original payment was made (upi, card, netbanking...) */
+                method?: string;
+                /** @description Razorpay refund id, for the customer's bank */
+                reference: string;
+                /**
+                 * Format: date-time
+                 * @description ISO-8601 timestamp (UTC)
+                 */
+                createdAt: string;
+                /**
+                 * Format: date-time
+                 * @description ISO-8601 timestamp (UTC)
+                 */
+                updatedAt: string;
+            }[];
             /** @description Pending and processing orders can still be cancelled by the customer */
             canCancel: boolean;
             /**
@@ -2570,6 +2593,29 @@ export interface components {
                  */
                 at: string;
                 note?: string;
+            }[];
+            /** @description Online refunds for this order, oldest first */
+            refunds: {
+                amount: number;
+                /**
+                 * @description pending: sent to the bank · processed: completed · failed: staff will retry
+                 * @enum {string}
+                 */
+                status: "pending" | "processed" | "failed";
+                /** @description How the original payment was made (upi, card, netbanking...) */
+                method?: string;
+                /** @description Razorpay refund id, for the customer's bank */
+                reference: string;
+                /**
+                 * Format: date-time
+                 * @description ISO-8601 timestamp (UTC)
+                 */
+                createdAt: string;
+                /**
+                 * Format: date-time
+                 * @description ISO-8601 timestamp (UTC)
+                 */
+                updatedAt: string;
             }[];
             /** @description Pending and processing orders can still be cancelled by the customer */
             canCancel: boolean;
@@ -4034,6 +4080,8 @@ export interface operations {
                 "application/json": {
                     /** @description Phone number or email */
                     identifier: string;
+                    /** @description Phone sign-in only: also email a separate code here. Ignored if invalid. */
+                    backupEmail?: string;
                 };
             };
         };
@@ -4052,6 +4100,8 @@ export interface operations {
                             channel: "sms" | "email";
                             /** @description Masked destination, e.g. ••••••2041 */
                             sentTo: string;
+                            /** @description Masked backup email, when a backup code was sent */
+                            backupSentTo?: string;
                             /**
                              * Format: date-time
                              * @description ISO-8601 timestamp (UTC)
@@ -4059,6 +4109,7 @@ export interface operations {
                             expiresAt: string;
                             resendAfterSeconds: number;
                             devCode?: string;
+                            devBackupCode?: string;
                         };
                     };
                 };

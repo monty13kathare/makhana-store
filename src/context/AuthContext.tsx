@@ -39,6 +39,8 @@ export type AuthModalOptions = {
 /** Development-only code echo (`devCode`). Never present in production. */
 export type OtpNotice = {
   code: string;
+  /** The separate code emailed as a backup to an SMS sign-in. */
+  backupCode?: string;
   identifier: string;
   createdAt: number;
 };
@@ -195,11 +197,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPendingIdentifier(clean);
     setActiveOtpNotice(null);
     try {
-      const challenge = await auth.requestOtp(clean);
+      // Checkout knows the email too: for a phone sign-in, also email a backup code there.
+      const email = modalOptionsRef.current.prefill?.email?.trim();
+      const backupEmail = !clean.includes("@") && email?.includes("@") ? email : undefined;
+      const challenge = await auth.requestOtp(clean, backupEmail);
       challengeRef.current = challenge;
       setOtpChallenge(challenge);
       if (challenge.devCode) {
-        setActiveOtpNotice({ code: challenge.devCode, identifier: clean, createdAt: Date.now() });
+        setActiveOtpNotice({ code: challenge.devCode, backupCode: challenge.devBackupCode, identifier: clean, createdAt: Date.now() });
       }
       return { ok: true, challenge };
     } catch (e) {
@@ -231,6 +236,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch (e) {
             // email_taken / invalid: keep the account as is; checkout still sends the email.
             console.warn("[auth] could not attach checkout email", e);
+          }
+        }
+        // Signed in with the backup email code: keep the checkout mobile as the contact number.
+        if (prefill?.phone && !member.phone) {
+          try {
+            member = await me.update({ phone: prefill.phone.trim() });
+          } catch (e) {
+            console.warn("[auth] could not attach checkout phone", e);
           }
         }
 
