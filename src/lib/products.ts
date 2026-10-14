@@ -238,14 +238,5 @@ export const products: Product[] = [
 export const getProduct = (slug: string) =>
   products.find((p) => p.slug === slug);
 
-/** Store prices are quoted in USD for the international storefront. */
-export function formatUSD(n: number): string {
-  return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
-}
-
-export function formatINR(n: number): string {
-  return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
-}
-
 export const FREE_SHIPPING_OVER = 49;
 export const SHIPPING_FEE = 6;

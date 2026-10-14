@@ -131,7 +131,7 @@ const baseFeatures = [
   {
     icon: ShieldCheck,
     title: "Secure checkout confidence",
-    desc: "100% encrypted transactions with Stripe, Apple Pay, PayPal & global payment cards.",
+    desc: "100% encrypted payments via Razorpay: UPI, cards, net banking, wallets & EMI.",
     badge: "256-bit SSL",
   },
   {

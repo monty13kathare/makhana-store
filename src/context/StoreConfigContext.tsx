@@ -9,7 +9,7 @@ export const FALLBACK_CONFIG: StoreConfig = {
   storeName: "Makhana Premium",
   supportEmail: "hello@makhana.store",
   supportPhone: "",
-  currency: "USD",
+  currency: "INR",
   freeShippingOver: 49,
   shippingFee: 5,
   taxRatePercent: 0,

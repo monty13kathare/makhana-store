@@ -17,7 +17,6 @@ type CartItem = {
   name: string;
   desc: string;
   deliveredBy: string;
-  priceUSD: number;
   priceINR: number;
   qty: number;
   image: string;
@@ -29,7 +28,6 @@ const initialCartItems: CartItem[] = [
     name: "Classic Himalayan Salt",
     desc: "Clean, elegant, and lightly seasoned for a timeless premium crunch.",
     deliveredBy: "Sunday, 25 Sep",
-    priceUSD: 14,
     priceINR: 1100,
     qty: 1,
     image: "/img/bowl-classic.jpg",
@@ -39,7 +37,6 @@ const initialCartItems: CartItem[] = [
     name: "Peri Peri Roast",
     desc: "A bold and modern flavour profile with a rich premium presentation.",
     deliveredBy: "Sunday, 25 Sep",
-    priceUSD: 14,
     priceINR: 1500,
     qty: 1,
     image: "/img/bowl-peri.jpg",
@@ -49,7 +46,6 @@ const initialCartItems: CartItem[] = [
     name: "Truffle Black Pepper",
     desc: "Sophisticated, giftable, and positioned for a high-end snacking audience.",
     deliveredBy: "Sunday, 25 Sep",
-    priceUSD: 14,
     priceINR: 1500,
     qty: 1,
     image: "/img/bowl-cheese.jpg",
@@ -240,7 +236,7 @@ export default function CartPage() {
 
                       {/* Price Tag */}
                       <span className="font-heading font-bold text-white text-[17px] sm:text-[22px] tracking-tight">
-                        ${item.priceUSD}/-
+                        ₹{item.priceINR}/-
                       </span>
                     </div>
                   </div>

@@ -75,6 +75,18 @@ export function CodIcon({ className }: IconProps) {
   );
 }
 
+/** Wallet with a clasp and a card peeking out. */
+export function WalletIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M5 7.5l10.5-3.3a1.5 1.5 0 0 1 1.9 1.1l.5 2.2" />
+      <rect x="3" y="7.5" width="18" height="12.5" rx="2" />
+      <path d="M21 11.5h-4a2 2 0 0 0 0 4h4" />
+      <path d="M17.2 13.5h.01" />
+    </Svg>
+  );
+}
+
 /** PayPal-style double "P" mark. */
 export function PayPalIcon({ className }: IconProps) {
   return (

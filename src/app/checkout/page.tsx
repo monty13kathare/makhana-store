@@ -24,7 +24,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useStoreConfig } from "@/context/StoreConfigContext";
 import { EASE } from "@/components/motion-primitives";
-import { CardIcon, UpiIcon, PayPalIcon, CodIcon } from "@/components/PaymentIcons";
+import { CardIcon, UpiIcon, NetBankingIcon, WalletIcon, PayPalIcon, CodIcon } from "@/components/PaymentIcons";
 import { getAccessToken } from "@/lib/api/session";
 import { contact as contactApi, orders as ordersApi } from "@/lib/api/store";
 import { ApiError, isApiError } from "@/lib/api/errors";
@@ -82,6 +82,8 @@ const STEP_OF: Record<keyof FormData | "address", Step> = {
 const METHOD_META: Record<PaymentMethod, { label: string; icon: typeof CardIcon; blurb: string }> = {
   card: { label: "Card", icon: CardIcon, blurb: "Visa, Mastercard, RuPay and international cards." },
   upi: { label: "UPI", icon: UpiIcon, blurb: "GPay, PhonePe, Paytm, BHIM or any UPI app." },
+  netbanking: { label: "Net Banking", icon: NetBankingIcon, blurb: "All major Indian banks: SBI, HDFC, ICICI, Axis and more." },
+  wallet: { label: "Wallets", icon: WalletIcon, blurb: "Paytm, PhonePe, Amazon Pay, Mobikwik and other wallets." },
   paypal: { label: "PayPal", icon: PayPalIcon, blurb: "Pay with your PayPal balance or linked card." },
   cod: { label: "Cash on Delivery", icon: CodIcon, blurb: "Pay in cash when your order arrives at your door." },
 };
@@ -1066,7 +1068,13 @@ export default function CheckoutPage() {
                       role="radiogroup"
                       aria-label="Payment method"
                       className={`grid gap-2 sm:gap-2.5 mb-5 sm:mb-6 ${
-                        methods.length >= 4 ? "grid-cols-2 sm:grid-cols-4" : methods.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3"
+                        methods.length >= 5
+                          ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+                          : methods.length === 4
+                            ? "grid-cols-2 sm:grid-cols-4"
+                            : methods.length === 1
+                              ? "grid-cols-1"
+                              : "grid-cols-2 sm:grid-cols-3"
                       }`}
                     >
                       {methods.map((id) => {
@@ -1141,7 +1149,7 @@ export default function CheckoutPage() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-                                <span>Your card and UPI details are entered with Razorpay, never on this site.</span>
+                                <span>Your card, UPI and bank details are entered with Razorpay, never on this site.</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />

@@ -11,6 +11,8 @@ import { EASE } from "@/components/motion-primitives";
 const PAYMENT_LABEL: Record<StoreOrder["paymentMethod"], string> = {
   card: "Card",
   upi: "UPI",
+  netbanking: "Net banking",
+  wallet: "Wallet",
   paypal: "PayPal",
   cod: "Cash on delivery",
 };

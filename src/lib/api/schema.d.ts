@@ -2211,7 +2211,7 @@ export interface components {
                 enabled: boolean;
                 /** @description Razorpay key id for Checkout (public) */
                 keyId: string;
-                methods: ("card" | "upi" | "paypal" | "cod")[];
+                methods: ("card" | "upi" | "netbanking" | "wallet" | "paypal" | "cod")[];
                 /** @description Unpaid online orders are cancelled after this long */
                 timeoutMinutes: number;
             };
@@ -2306,7 +2306,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded";
             /** @enum {string} */
-            paymentMethod: "card" | "upi" | "paypal" | "cod";
+            paymentMethod: "card" | "upi" | "netbanking" | "wallet" | "paypal" | "cod";
             /** @enum {string} */
             paymentStatus: "pending" | "paid" | "refunded" | "failed";
             /** @description Online order not paid yet: resume with POST /store/orders/{id}/payment */
@@ -2443,7 +2443,7 @@ export interface components {
             keyId: string;
             /** @description Pass as `order_id` */
             razorpayOrderId: string;
-            /** @description Smallest currency unit (cents) */
+            /** @description Smallest currency unit (paise for INR, cents for USD) */
             amount: number;
             currency: string;
             /** @example Jane Doe */
@@ -2494,7 +2494,7 @@ export interface components {
             items: components["schemas"]["CartLineInput"][];
             couponCode?: string;
             /** @enum {string} */
-            paymentMethod: "card" | "upi" | "paypal" | "cod";
+            paymentMethod: "card" | "upi" | "netbanking" | "wallet" | "paypal" | "cod";
             giftNote?: string;
             /**
              * @description Add the address to the member's address book
@@ -2509,7 +2509,7 @@ export interface components {
             keyId: string;
             /** @description Pass as `order_id` */
             razorpayOrderId: string;
-            /** @description Smallest currency unit (cents) */
+            /** @description Smallest currency unit (paise for INR, cents for USD) */
             amount: number;
             currency: string;
             /** @example Jane Doe */
@@ -2539,7 +2539,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded";
             /** @enum {string} */
-            paymentMethod: "card" | "upi" | "paypal" | "cod";
+            paymentMethod: "card" | "upi" | "netbanking" | "wallet" | "paypal" | "cod";
             /** @enum {string} */
             paymentStatus: "pending" | "paid" | "refunded" | "failed";
             /** @description Online order not paid yet: resume with POST /store/orders/{id}/payment */
@@ -2960,7 +2960,7 @@ export interface components {
                 total: number;
                 couponCode?: string;
                 /** @enum {string} */
-                paymentMethod: "card" | "upi" | "paypal" | "cod";
+                paymentMethod: "card" | "upi" | "netbanking" | "wallet" | "paypal" | "cod";
                 /** @enum {string} */
                 paymentStatus: "pending" | "paid" | "refunded" | "failed";
                 paymentReference?: string;
@@ -3074,7 +3074,7 @@ export interface components {
             total: number;
             couponCode?: string;
             /** @enum {string} */
-            paymentMethod: "card" | "upi" | "paypal" | "cod";
+            paymentMethod: "card" | "upi" | "netbanking" | "wallet" | "paypal" | "cod";
             /** @enum {string} */
             paymentStatus: "pending" | "paid" | "refunded" | "failed";
             paymentReference?: string;
@@ -3218,7 +3218,7 @@ export interface components {
             total: number;
             couponCode?: string;
             /** @enum {string} */
-            paymentMethod: "card" | "upi" | "paypal" | "cod";
+            paymentMethod: "card" | "upi" | "netbanking" | "wallet" | "paypal" | "cod";
             /** @enum {string} */
             paymentStatus: "pending" | "paid" | "refunded" | "failed";
             paymentReference?: string;
@@ -3900,7 +3900,7 @@ export interface components {
             supportEmail: string;
             supportPhone: string;
             /** @constant */
-            currency: "USD";
+            currency: "USD" | "INR";
             /** @description Amount in store currency (USD), rounded to cents */
             freeShippingOver: number;
             /** @description Amount in store currency (USD), rounded to cents */
@@ -4803,7 +4803,7 @@ export interface operations {
                      * @description cod adds the zone's COD fee
                      * @enum {string}
                      */
-                    paymentMethod?: "card" | "upi" | "paypal" | "cod";
+                    paymentMethod?: "card" | "upi" | "netbanking" | "wallet" | "paypal" | "cod";
                 };
             };
         };
@@ -7399,7 +7399,7 @@ export interface operations {
                             total: number;
                             couponCode?: string;
                             /** @enum {string} */
-                            paymentMethod: "card" | "upi" | "paypal" | "cod";
+                            paymentMethod: "card" | "upi" | "netbanking" | "wallet" | "paypal" | "cod";
                             /** @enum {string} */
                             paymentStatus: "pending" | "paid" | "refunded" | "failed";
                             paymentReference?: string;
@@ -9361,7 +9361,7 @@ export interface operations {
                                 total: number;
                                 couponCode?: string;
                                 /** @enum {string} */
-                                paymentMethod: "card" | "upi" | "paypal" | "cod";
+                                paymentMethod: "card" | "upi" | "netbanking" | "wallet" | "paypal" | "cod";
                                 /** @enum {string} */
                                 paymentStatus: "pending" | "paid" | "refunded" | "failed";
                                 paymentReference?: string;

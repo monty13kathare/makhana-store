@@ -16,10 +16,12 @@ import {
   LogIn,
   ExternalLink,
   Copy,
+  CreditCard,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { me as meApi } from "@/lib/api/store";
+import { me as meApi, orders as ordersApi } from "@/lib/api/store";
+import { useRazorpay } from "@/hooks/useRazorpay";
 import { isApiError, errorMessage } from "@/lib/api/errors";
 import type { StoreOrder, OrderGroup, ReorderResult } from "@/lib/api/types";
 import { EASE } from "@/components/motion-primitives";
@@ -436,6 +438,7 @@ function OrdersContent() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
   // Always the full list: tabs filter locally, so every tab's count stays right.
   // `silent` refreshes keep the list on screen (no skeleton, no error swap).
@@ -490,6 +493,32 @@ function OrdersContent() {
       window.clearInterval(timer);
     };
   }, [signedIn, hasActive, fetchOrders]);
+
+  // Load Razorpay only when an order can still be paid.
+  const razorpay = useRazorpay(orders.some((o) => o.awaitingPayment));
+
+  /** Retry a failed or abandoned online payment from the order card. */
+  const handlePay = async (order: StoreOrder) => {
+    setActionError(null);
+    setNotice(null);
+    setPayingId(order.id);
+    try {
+      const options = await ordersApi.startPayment(order.id);
+      const outcome = await razorpay.pay(order.id, options);
+      if (outcome.status === "paid") {
+        setOrders((prev) => prev.map((o) => (o.id === outcome.order.id ? outcome.order : o)));
+        setNotice(`Payment received. Order ${outcome.order.number} is confirmed.`);
+      } else if (outcome.status === "failed") {
+        setActionError(outcome.message);
+      }
+    } catch (e) {
+      // e.g. the payment window closed: the order was cancelled meanwhile.
+      setActionError(errorMessage(e, "We couldn't start the payment. Please try again."));
+      void fetchOrders(true);
+    } finally {
+      setPayingId(null);
+    }
+  };
 
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
 
@@ -583,6 +612,7 @@ function OrdersContent() {
 
   return (
     <main className="min-h-screen bg-[#111111] pt-[84px] sm:pt-[100px] pb-8 sm:pb-20 text-white">
+      {razorpay.script}
       <div className="pointer-events-none fixed left-1/4 top-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(215,160,70,0.04)_0%,transparent_70%)] blur-3xl -z-0" />
       <div className="container-x relative z-10 max-w-[720px]">
         <motion.div
@@ -714,6 +744,9 @@ function OrdersContent() {
                           <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] sm:text-[10.5px] font-semibold text-white ${deriveBadgeColor(order.status)}`}>
                             {ORDER_STATUS_LABEL[order.status] ?? order.status}
                           </span>
+                          {order.awaitingPayment && (
+                            <span className="text-[11.5px] sm:text-[11px] text-amber-300/90 truncate">Payment pending</span>
+                          )}
                           {order.status === "delivered" && (
                             (() => {
                               const del = order.timeline?.find((t) => t.status === "delivered")?.at;
@@ -832,7 +865,28 @@ function OrdersContent() {
                               )}
                             </div>
 
-                            <div className="flex sm:flex-wrap items-center gap-2.5">
+                            {order.awaitingPayment && order.paymentDueAt && (
+                              <p className="text-[12.5px] sm:text-[12px] text-amber-300/90">
+                                Pay by {formatDateTime(order.paymentDueAt)}, or the order is cancelled automatically.
+                              </p>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              {order.awaitingPayment && (
+                                <button
+                                  type="button"
+                                  onClick={() => void handlePay(order)}
+                                  disabled={payingId !== null || razorpay.scriptState === "loading"}
+                                  className="w-full sm:w-auto justify-center min-h-[44px] sm:min-h-0 flex items-center gap-1.5 rounded-xl bg-amber-400 px-4 py-2.5 text-[14px] sm:text-[12.5px] font-bold text-black hover:bg-amber-300 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                                >
+                                  {payingId === order.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <CreditCard className="h-3.5 w-3.5" />
+                                  )}
+                                  Pay {formatMoney(order.total)}
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => void handleReorder(order)}
