@@ -36,15 +36,6 @@ export type AuthModalOptions = {
   actionText?: string;
 };
 
-/** Development-only code echo (`devCode`). Never present in production. */
-export type OtpNotice = {
-  code: string;
-  /** The separate code emailed as a backup to an SMS sign-in. */
-  backupCode?: string;
-  identifier: string;
-  createdAt: number;
-};
-
 export type AuthStatus = "loading" | "authenticated" | "guest";
 
 /** Lets other providers react to sign-in/out (cart merge, wishlist sync). */
@@ -66,8 +57,6 @@ type AuthValue = {
   pendingPhone: string | null;
   pendingIdentifier: string | null;
   otpChallenge: OtpChallenge | null;
-  /** Simulated SMS banner; driven only by the API's `devCode`. */
-  activeOtpNotice: OtpNotice | null;
   isAuthModalOpen: boolean;
   modalOptions: AuthModalOptions;
   openAuthModal: (options?: AuthModalOptions) => void;
@@ -81,7 +70,6 @@ type AuthValue = {
   setUser: (member: Member) => void;
   refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
-  clearOtpNotice: () => void;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -98,7 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authEvent, setAuthEvent] = useState<AuthEvent | null>(null);
   const [pendingIdentifier, setPendingIdentifier] = useState<string | null>(null);
   const [otpChallenge, setOtpChallenge] = useState<OtpChallenge | null>(null);
-  const [activeOtpNotice, setActiveOtpNotice] = useState<OtpNotice | null>(null);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [modalOptions, setModalOptions] = useState<AuthModalOptions>({});
@@ -195,17 +182,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const startLogin = useCallback(async (identifier: string): Promise<StartLoginResult> => {
     const clean = identifier.trim();
     setPendingIdentifier(clean);
-    setActiveOtpNotice(null);
     try {
-      // Checkout knows the email too: for a phone sign-in, also email a backup code there.
-      const email = modalOptionsRef.current.prefill?.email?.trim();
-      const backupEmail = !clean.includes("@") && email?.includes("@") ? email : undefined;
-      const challenge = await auth.requestOtp(clean, backupEmail);
+      const challenge = await auth.requestOtp(clean);
       challengeRef.current = challenge;
       setOtpChallenge(challenge);
-      if (challenge.devCode) {
-        setActiveOtpNotice({ code: challenge.devCode, backupCode: challenge.devBackupCode, identifier: clean, createdAt: Date.now() });
-      }
       return { ok: true, challenge };
     } catch (e) {
       return failure(e);
@@ -238,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.warn("[auth] could not attach checkout email", e);
           }
         }
-        // Signed in with the backup email code: keep the checkout mobile as the contact number.
+        // Signed in by email from checkout: keep the checkout mobile as the contact number.
         if (prefill?.phone && !member.phone) {
           try {
             member = await me.update({ phone: prefill.phone.trim() });
@@ -251,7 +231,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         challengeRef.current = null;
         setOtpChallenge(null);
         setPendingIdentifier(null);
-        setActiveOtpNotice(null);
         setIsAuthModalOpen(false);
         emit("signedIn");
 
@@ -299,12 +278,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSession();
     applyUser(null);
     setPendingIdentifier(null);
-    setActiveOtpNotice(null);
     emit("signedOut");
     router.push("/");
   }, [applyUser, emit, router]);
-
-  const clearOtpNotice = useCallback(() => setActiveOtpNotice(null), []);
 
   const value = useMemo<AuthValue>(
     () => ({
@@ -314,7 +290,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       pendingPhone: pendingIdentifier,
       pendingIdentifier,
       otpChallenge,
-      activeOtpNotice,
       isAuthModalOpen,
       modalOptions,
       openAuthModal,
@@ -326,7 +301,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser,
       refreshUser,
       logout,
-      clearOtpNotice,
     }),
     [
       user,
@@ -334,7 +308,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authEvent,
       pendingIdentifier,
       otpChallenge,
-      activeOtpNotice,
       isAuthModalOpen,
       modalOptions,
       openAuthModal,
@@ -346,7 +319,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser,
       refreshUser,
       logout,
-      clearOtpNotice,
     ],
   );
 

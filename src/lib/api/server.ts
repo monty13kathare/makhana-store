@@ -34,9 +34,9 @@ async function serverGet<T>(
   tags: string[],
 ): Promise<ServerResult<T>> {
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  const url = apiBaseUrl() + normalized;
   try {
-    const res = await fetch(url, {
+    // Inside the try: a missing/invalid API_URL fails soft like any other outage.
+    const res = await fetch(apiBaseUrl() + normalized, {
       headers: { Accept: "application/json" },
       next: { revalidate, tags },
       signal: AbortSignal.timeout(8_000),

@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
   ThumbsUp,
   X,
   MessageSquarePlus,

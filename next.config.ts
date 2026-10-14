@@ -1,19 +1,8 @@
 import type { NextConfig } from "next";
 
-/** Where `/api/v1/*` on this site is proxied to (see NEXT_PUBLIC_API_URL in .env). */
-const backendApiUrl = (process.env.API_URL || "http://localhost:4000/api/v1").replace(/\/+$/, "");
-
-const nextConfig: NextConfig = {
-  async rewrites() {
-    return [
-      {
-        // Browser requests go through this site (same origin), so they work
-        // regardless of the backend's CORS_ORIGINS and keep the refresh cookie first-party.
-        source: "/api/v1/:path*",
-        destination: `${backendApiUrl}/:path*`,
-      },
-    ];
-  },
-};
+// `/api/v1/*` is proxied to the backend by src/app/api/v1/[...path]/route.ts,
+// which reads API_URL at request time. Don't add a rewrite for it here:
+// rewrites are fixed at startup/build, so changing API_URL would need a rebuild.
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

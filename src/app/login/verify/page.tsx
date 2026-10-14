@@ -3,10 +3,11 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ShieldCheck, MessageSquare, ArrowRight, Loader2 } from "lucide-react";
+import { ShieldCheck, ArrowRight, Loader2 } from "lucide-react";
 import AuthShell from "@/components/AuthShell";
 import { useAuth } from "@/context/AuthContext";
 import { EASE } from "@/components/motion-primitives";
+import { otpSentMessage } from "@/lib/identifier";
 import { safeRedirect } from "@/lib/redirect";
 
 const LENGTH = 6;
@@ -23,7 +24,7 @@ function VerifyForm() {
   const router = useRouter();
   const redirectParam = useSearchParams().get("redirect");
   const redirect = safeRedirect(redirectParam);
-  const { user, pendingIdentifier, activeOtpNotice, otpChallenge, verify, startLogin } = useAuth();
+  const { user, pendingIdentifier, otpChallenge, verify, startLogin } = useAuth();
   const [code, setCode] = useState<string[]>(Array(LENGTH).fill(""));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -90,15 +91,6 @@ function VerifyForm() {
     inputs.current[Math.min(text.length, LENGTH - 1)]?.focus();
   };
 
-  const handleAutofill = (otp: string) => {
-    const digits = otp.split("").slice(0, LENGTH);
-    const next = Array(LENGTH)
-      .fill("")
-      .map((_, i) => digits[i] ?? "");
-    setCode(next);
-    setError(null);
-  };
-
   const handleResend = async () => {
     if (!pendingIdentifier) return;
     setCode(Array(LENGTH).fill(""));
@@ -130,19 +122,12 @@ function VerifyForm() {
     setError(res.message);
   };
 
-  const digits = pendingIdentifier ? pendingIdentifier.replace(/\D/g, "") : "";
-  const masked =
-    otpChallenge?.sentTo ??
-    (digits.length >= 10
-      ? `+1 (${digits.slice(-10, -7)}) •••-${digits.slice(-4)}`
-      : pendingIdentifier || "your phone");
-
   return (
     <AuthShell
       title="Verification Code"
       backHref={redirectParam ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login"}
-      backLabel="Change number"
-      subtitle={`Enter the 6-digit code sent to ${masked} to securely access your account.`}
+      backLabel="Change email"
+      subtitle={otpSentMessage(otpChallenge?.sentTo ?? pendingIdentifier)}
       footer={
         <div className="flex items-center justify-center gap-2 text-[12px] text-white/50">
           <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -150,29 +135,6 @@ function VerifyForm() {
         </div>
       }
     >
-      {/* Simulation / Dispatch Notice (like real SMS preview) */}
-      {activeOtpNotice && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-5 flex items-center justify-between rounded-xl border border-amber-400/30 bg-amber-400/[0.08] p-3 text-[12.5px]"
-        >
-          <div className="flex items-center gap-2.5 text-white/90">
-            <MessageSquare className="h-4 w-4 text-amber-400 shrink-0" />
-            <span>
-              Security Code: <strong className="text-amber-300 font-mono tracking-wider">{activeOtpNotice.code}</strong>
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleAutofill(activeOtpNotice.code)}
-            className="flex items-center gap-1 rounded-md bg-amber-400/20 px-2 py-1 text-[11.5px] font-bold text-amber-300 hover:bg-amber-400 hover:text-black transition-colors"
-          >
-            Auto-fill
-          </button>
-        </motion.div>
-      )}
-
       <form onSubmit={submit}>
         <motion.div
           animate={error ? { x: [0, -8, 8, -6, 6, 0] } : undefined}

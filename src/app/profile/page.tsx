@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail,
@@ -191,13 +191,6 @@ export default function ProfilePage() {
   const [smsAlerts, setSmsAlerts] = useState(user?.preferences?.smsAlerts ?? true);
   const [exclusiveDrops, setExclusiveDrops] = useState(user?.preferences?.exclusiveDrops ?? true);
 
-  useEffect(() => {
-    if (user?.preferences) {
-      setSmsAlerts(user.preferences.smsAlerts);
-      setExclusiveDrops(user.preferences.exclusiveDrops);
-    }
-  }, [user]);
-
   // Addresses — fetched from the API
   const [addresses, setAddresses] = useState<SavedAddress[]>(user?.addresses ?? []);
   const [addrLoading, setAddrLoading] = useState(false);
@@ -205,29 +198,41 @@ export default function ProfilePage() {
   const [editingId, setEditingId] = useState<string | null>(null); // address id or "new"
   const [addrSaving, setAddrSaving] = useState(false);
 
-  // Fetch addresses when the user changes or when switching to the addresses tab
-  const fetchAddresses = useCallback(async () => {
-    if (!user) return;
-    setAddrLoading(true);
-    setAddrError(null);
-    try {
-      const list = await meApi.addresses();
-      setAddresses(list);
-    } catch (e) {
-      setAddrError(errorMessage(e, "Could not load your addresses."));
-    } finally {
-      setAddrLoading(false);
+  // Re-seed preferences and addresses whenever the member record changes
+  // (adjusting state during render instead of in an effect).
+  const [seededFrom, setSeededFrom] = useState(user);
+  if (user !== seededFrom) {
+    setSeededFrom(user);
+    if (user?.preferences) {
+      setSmsAlerts(user.preferences.smsAlerts);
+      setExclusiveDrops(user.preferences.exclusiveDrops);
     }
-  }, [user]);
-
-  useEffect(() => {
-    if (activeTab === "addresses" && user) void fetchAddresses();
-  }, [activeTab, user, fetchAddresses]);
-
-  // Seed from embedded member addresses on first render
-  useEffect(() => {
     if (user?.addresses?.length) setAddresses(user.addresses);
-  }, [user]);
+  }
+
+  // Fetch addresses when the user changes or when switching to the addresses tab
+  const addrFor = activeTab === "addresses" ? user : null;
+  const [addrFetchedFor, setAddrFetchedFor] = useState(addrFor);
+  if (addrFor !== addrFetchedFor) {
+    setAddrFetchedFor(addrFor);
+    setAddrLoading(!!addrFor);
+    setAddrError(null);
+  }
+
+  useEffect(() => {
+    if (!addrFor) return;
+    let cancelled = false;
+    meApi
+      .addresses()
+      .then(
+        (list) => !cancelled && setAddresses(list),
+        (e) => !cancelled && setAddrError(errorMessage(e, "Could not load your addresses.")),
+      )
+      .finally(() => !cancelled && setAddrLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [addrFor]);
 
   const handleSaveProfile = async (e?: React.FormEvent) => {
     e?.preventDefault();

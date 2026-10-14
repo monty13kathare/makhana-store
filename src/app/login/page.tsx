@@ -4,18 +4,11 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, Phone } from "lucide-react";
+import { ArrowRight, Loader2, Mail } from "lucide-react";
 import AuthShell from "@/components/AuthShell";
 import { useAuth } from "@/context/AuthContext";
+import { toIdentifier } from "@/lib/identifier";
 import { safeRedirect } from "@/lib/redirect";
-
-/** Formats up to 10 digits as (971) 135-5198. */
-function formatPhone(digits: string) {
-  const d = digits.slice(0, 10);
-  if (d.length <= 3) return d;
-  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
-  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
-}
 
 export default function LoginPage() {
   return (
@@ -30,7 +23,7 @@ function LoginForm() {
   const redirectParam = useSearchParams().get("redirect");
   const redirect = safeRedirect(redirectParam);
   const { user, startLogin } = useAuth();
-  const [digits, setDigits] = useState("");
+  const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -48,17 +41,18 @@ function LoginForm() {
     }
   }, []);
 
-  const isValid = digits.length === 10;
+  const identifier = toIdentifier(value);
+  const isValid = identifier !== null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) {
-      setError("Please enter a valid 10-digit mobile number.");
+    if (!identifier) {
+      setError("Please enter a valid email address.");
       return;
     }
     setError("");
     setIsSubmitting(true);
-    const res = await startLogin("+1" + digits);
+    const res = await startLogin(identifier);
     if (!res.ok) {
       setIsSubmitting(false);
       setError(res.message);
@@ -70,7 +64,7 @@ function LoginForm() {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Log in with your mobile number. We'll text you a one-time code."
+      subtitle="Log in with your email. We'll send you a one-time code."
       footer={
         <p className="text-center text-[12.5px] text-white/50">
           Ordered as a guest?{" "}
@@ -82,10 +76,10 @@ function LoginForm() {
     >
       <form onSubmit={submit} noValidate>
         <label
-          htmlFor="phone"
+          htmlFor="email"
           className="mb-2 block px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-white/50"
         >
-          Mobile number
+          Email address
         </label>
         <motion.div
           animate={error ? { x: [0, -6, 6, -4, 4, 0] } : undefined}
@@ -97,32 +91,33 @@ function LoginForm() {
           }`}
         >
           <span className="flex h-full shrink-0 items-center gap-2 border-r border-white/10 pl-4 pr-3 text-[16px] font-semibold text-white">
-            <Phone className="h-4 w-4 text-gold" />
-            +1
+            <Mail className="h-4 w-4 text-gold" />
           </span>
           {/* 16px text keeps iOS Safari from zooming on focus */}
           <input
             ref={inputRef}
-            id="phone"
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel-national"
+            id="email"
+            type="email"
+            inputMode="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            autoComplete="email"
             enterKeyHint="go"
-            value={formatPhone(digits)}
+            value={value}
             onChange={(e) => {
-              setDigits(e.target.value.replace(/\D/g, "").slice(0, 10));
+              setValue(e.target.value);
               setError("");
             }}
-            placeholder="(971) 135-5198"
+            placeholder="you@example.com"
             aria-invalid={!!error}
-            aria-describedby={error ? "phone-error" : undefined}
+            aria-describedby={error ? "email-error" : undefined}
             className="h-full w-full bg-transparent px-4 text-[16px] font-medium tracking-wide text-white outline-none placeholder:text-white/30"
           />
         </motion.div>
 
         {error && (
           <motion.p
-            id="phone-error"
+            id="email-error"
             role="alert"
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}

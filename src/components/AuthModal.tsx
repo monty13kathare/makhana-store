@@ -9,8 +9,6 @@ import {
   ArrowRight,
   ShieldCheck,
   Check,
-  Phone,
-  MessageSquare,
   Mail,
   Sparkles,
   Truck,
@@ -19,18 +17,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatMoney } from "@/lib/format";
+import { otpSentMessage, toIdentifier } from "@/lib/identifier";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { LogoIcon } from "./BrandLogo";
 import { EASE } from "./motion-primitives";
-
-/** Normalises what the shopper typed into an identifier the API accepts. */
-function toIdentifier(raw: string): string | null {
-  const clean = raw.trim();
-  if (clean.includes("@")) return /^\S+@\S+\.\S+$/.test(clean) ? clean : null;
-  const digits = clean.replace(/\D/g, "");
-  if (digits.length < 10) return null;
-  return digits.length === 10 ? `+1${digits}` : `+${digits}`;
-}
 
 const EMPTY_CODE = () => Array<string>(6).fill("");
 
@@ -47,12 +37,12 @@ function AuthModalPanel() {
     modalOptions,
     startLogin,
     verify,
-    activeOtpNotice,
     otpChallenge,
   } = useAuth();
   const router = useRouter();
 
-  const prefId = (modalOptions.prefill?.phone || modalOptions.prefill?.email || "").trim();
+  // Checkout passes its email: valid ones skip straight to the code step.
+  const prefId = toIdentifier(modalOptions.prefill?.email ?? "") ?? "";
   const [step, setStep] = useState<"input" | "verify">(prefId ? "verify" : "input");
   const [identifier, setIdentifier] = useState(prefId);
   const [otpDigits, setOtpDigits] = useState<string[]>(EMPTY_CODE);
@@ -118,7 +108,7 @@ function AuthModalPanel() {
     e.preventDefault();
     const id = toIdentifier(identifier);
     if (!id) {
-      setError("Please enter a valid 10-digit mobile number.");
+      setError("Please enter a valid email address.");
       return;
     }
     if (await sendCode(id)) {
@@ -167,18 +157,6 @@ function AuthModalPanel() {
     otpInputs.current[Math.min(text.length, 5)]?.focus();
   };
 
-  const handleAutofillCode = (code: string) => {
-    const updated = EMPTY_CODE();
-    code
-      .split("")
-      .slice(0, 6)
-      .forEach((d, i) => {
-        updated[i] = d;
-      });
-    setOtpDigits(updated);
-    setError("");
-  };
-
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const entered = otpDigits.join("");
@@ -208,14 +186,6 @@ function AuthModalPanel() {
   const handleClose = () => {
     closeAuthModal();
   };
-
-  const maskedIdentifier =
-    otpChallenge?.sentTo ??
-    (identifier
-      ? identifier.includes("@")
-        ? `${identifier.slice(0, 2)}•••@${identifier.split("@")[1]}`
-        : `•••-${identifier.replace(/\D/g, "").slice(-4)}`
-      : "your account");
 
   return (
     <AnimatePresence>
@@ -312,32 +282,31 @@ function AuthModalPanel() {
             <p className="mt-1.5 text-[13.5px] leading-relaxed text-[#9e9e9e]">
               {step === "input"
                 ? modalOptions.message ||
-                  "Sign in with your mobile number to sync your cart, view delivery checkpoints, and checkout in 1 click."
-                : otpChallenge?.backupSentTo
-                  ? `We sent a 6-digit code by SMS to ${maskedIdentifier} and another by email to ${otpChallenge.backupSentTo}. Enter either one.`
-                  : `We sent a secure 6-digit verification code to ${maskedIdentifier}.`}
+                  "Sign in with your email to sync your cart, view delivery checkpoints, and checkout in 1 click."
+                : otpSentMessage(otpChallenge?.sentTo ?? identifier)}
             </p>
           </div>
 
-          {/* STEP 1: Phone Input Form */}
+          {/* STEP 1: Email Input Form */}
           {step === "input" && (
             <form onSubmit={handleSendOtp} className="relative z-10 mt-5 sm:mt-6">
               <div>
-                <label htmlFor="auth-modal-phone" className="block mb-2 text-[12px] font-medium text-white/70">
-                  Mobile Number
+                <label htmlFor="auth-modal-email" className="block mb-2 text-[12px] font-medium text-white/70">
+                  Email address
                 </label>
                 <div className="flex min-h-[52px] items-center gap-2.5 rounded-2xl border border-white/15 bg-white/[0.03] px-4 py-3 sm:min-h-0 sm:py-3.5 transition-all focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/25">
                   <span className="flex items-center gap-1.5 text-[15px] font-black text-amber-400 sm:text-[13.5px]">
-                    <Phone className="h-3.5 w-3.5" />
-                    <span>+1</span>
+                    <Mail className="h-3.5 w-3.5" />
                   </span>
                   <span className="h-5 w-px bg-white/15" />
                   <input
-                    id="auth-modal-phone"
-                    name="tel"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel-national"
+                    id="auth-modal-email"
+                    name="email"
+                    type="email"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    autoComplete="email"
                     enterKeyHint="go"
                     autoFocus
                     value={identifier}
@@ -345,7 +314,7 @@ function AuthModalPanel() {
                       setIdentifier(e.target.value);
                       setError("");
                     }}
-                    placeholder="(555) 389-2041"
+                    placeholder="you@example.com"
                     className="w-full bg-transparent text-[16px] font-medium sm:text-[14.5px] text-white tracking-wide outline-none placeholder:text-white/30"
                   />
                 </div>
@@ -428,34 +397,6 @@ function AuthModalPanel() {
           {/* STEP 2: 6-Digit OTP Verification Form */}
           {step === "verify" && (
             <form onSubmit={handleVerifyOtp} className="relative z-10 mt-5 sm:mt-6">
-              {/* SMS Simulator Preview Banner */}
-              {activeOtpNotice &&
-                [
-                  { label: activeOtpNotice.backupCode ? "SMS code" : "Passcode", code: activeOtpNotice.code, Icon: MessageSquare },
-                  ...(activeOtpNotice.backupCode ? [{ label: "Email code", code: activeOtpNotice.backupCode, Icon: Mail }] : []),
-                ].map(({ label, code, Icon }) => (
-                  <motion.div
-                    key={label}
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="mb-4 flex items-center justify-between rounded-2xl border border-amber-400/30 bg-amber-400/[0.08] p-3 text-[12.5px]"
-                  >
-                    <div className="flex items-center gap-2.5 text-white/90">
-                      <Icon className="h-4 w-4 text-amber-400 shrink-0" />
-                      <span>
-                        {label}: <strong className="text-amber-300 font-mono text-[14px] tracking-wider">{code}</strong>
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAutofillCode(code)}
-                      className="min-h-[44px] shrink-0 rounded-lg bg-amber-400/20 px-3.5 py-2 text-[12.5px] font-bold sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[11.5px] text-amber-300 hover:bg-amber-400 hover:text-black transition-colors"
-                    >
-                      Auto-fill
-                    </button>
-                  </motion.div>
-                ))}
-
               {/* 6 Box Inputs */}
               <div>
                 <label className="block mb-2 text-[12px] font-bold uppercase tracking-wider text-white/60">
@@ -551,7 +492,7 @@ function AuthModalPanel() {
                   }}
                   className="min-h-[44px] pr-3 text-white/60 hover:text-amber-400 active:text-amber-400 transition-colors sm:min-h-0 sm:pr-0"
                 >
-                  &larr; Change mobile/email
+                  &larr; Change email
                 </button>
 
                 {seconds > 0 ? (
